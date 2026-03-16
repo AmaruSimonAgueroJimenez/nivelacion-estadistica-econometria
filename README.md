@@ -20,13 +20,13 @@ Material docente para los cursos de nivelacion del **Doctorado en Ciencias de la
 
 ## Curso de Econometria
 
-| Sesion | Tema | Presentacion |
-|:------:|------|:------------:|
-| 1 | Pruebas de Hipotesis | [PDF](clases_econometria/sesion1_hipotesis.pdf) |
-| 2 | Regresion Lineal Simple | [PDF](clases_econometria/sesion2_regresion_simple.pdf) |
-| 3 | Regresion Lineal Multiple | [PDF](clases_econometria/sesion3_regresion_multiple.pdf) |
-| 4 | Practica Integradora en R (Parte 1) | [PDF](clases_econometria/sesion4_practica_r1.pdf) |
-| 5 | Practica Integradora en R (Parte 2) | [PDF](clases_econometria/sesion5_practica_r2.pdf) |
+| Sesion | Tema | Presentacion | Quarto | Script R |
+|:------:|------|:------------:|:------:|:--------:|
+| 1 | Pruebas de Hipotesis | [PDF](clases_econometria/sesion1_hipotesis.pdf) | [QMD](clases_econometria/sesion1_hipotesis.qmd) | [R](clases_econometria/sesion1_hipotesis.R) |
+| 2 | Regresion Lineal Simple | [PDF](clases_econometria/sesion2_regresion_simple.pdf) | [QMD](clases_econometria/sesion2_regresion_simple.qmd) | [R](clases_econometria/sesion2_regresion_simple.R) |
+| 3 | Regresion Lineal Multiple | [PDF](clases_econometria/sesion3_regresion_multiple.pdf) | [QMD](clases_econometria/sesion3_regresion_multiple.qmd) | [R](clases_econometria/sesion3_regresion_multiple.R) |
+| 4 | Practica Integradora en R (Parte 1) | [PDF](clases_econometria/sesion4_practica_r1.pdf) | [QMD](clases_econometria/sesion4_practica_r1.qmd) | [R](clases_econometria/sesion4_practica_r1.R) |
+| 5 | Practica Integradora en R (Parte 2) | [PDF](clases_econometria/sesion5_practica_r2.pdf) | [QMD](clases_econometria/sesion5_practica_r2.qmd) | [R](clases_econometria/sesion5_practica_r2.R) |
 
 **Contenidos:** Pruebas t, chi-cuadrado, valor-p, errores Tipo I/II, potencia estadistica, MCO, R-cuadrado, supuestos Gauss-Markov, sesgo de variable omitida, estructuras causales (confusora, collider, modificadora de efecto), modelos anidados, variables dummy, interacciones, multicolinealidad (VIF), pruebas F, diagnosticos de residuos, errores estandar robustos.
 
@@ -34,12 +34,12 @@ Material docente para los cursos de nivelacion del **Doctorado en Ciencias de la
 
 ## Documentos adicionales
 
-| Documento | PDF | Word |
-|-----------|:---:|:----:|
-| Syllabus Estadistica | [PDF](Syllabus_Nivelacion_Estadistica_2026.pdf) | [DOCX](Syllabus_Nivelacion_Estadistica_2026.docx) |
-| Syllabus Econometria | [PDF](Syllabus_Nivelacion_Econometria_2026.pdf) | [DOCX](Syllabus_Nivelacion_Econometria_2026.docx) |
-| Prueba Diagnostica | [PDF](Prueba_Diagnostica_Nivelacion_2026_v2.pdf) | [DOCX](Prueba_Diagnostica_Nivelacion_2026.docx) |
-| Pauta de Correccion | [PDF](Pauta_Correccion_Diagnostica_2026_v2.pdf) | — |
+| Documento | PDF |
+|-----------|:---:|
+| Syllabus Estadistica | [PDF](Syllabus_Nivelacion_Estadistica_2026.pdf) |
+| Syllabus Econometria | [PDF](Syllabus_Nivelacion_Econometria_2026.pdf) |
+| Prueba Diagnostica | [PDF](Prueba_Diagnostica_Nivelacion_2026_v2.pdf) |
+| Pauta de Correccion | [PDF](Pauta_Correccion_Diagnostica_2026_v2.pdf) |
 
 ---
 
