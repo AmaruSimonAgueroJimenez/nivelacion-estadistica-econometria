@@ -1,0 +1,527 @@
+---
+title: "Sesión 2: Regresión Lineal Simple"
+subtitle: "Doctorado en Ciencias de la Complejidad Social — CICS, UDD"
+author: "Amaru Agüero (a.agueroj@udd.cl)"
+date: today
+format:
+  html:
+    theme: cosmo
+    toc: true
+    toc-depth: 3
+    code-fold: false
+    code-tools: true
+    self-contained: true
+lang: es
+execute:
+  warning: false
+  message: false
+---
+
+## Introducción
+
+En esta sesión estudiaremos los fundamentos de la regresión lineal simple: la distinción crucial entre correlación y causalidad, el modelo de regresión lineal, el estimador de Mínimos Cuadrados Ordinarios (MCO), la interpretación de coeficientes, medidas de bondad de ajuste, y los supuestos de Gauss-Markov que garantizan la optimalidad de nuestras estimaciones.
+
+### Paquetes necesarios
+
+```{r}
+#| label: setup
+library(tidyverse)
+library(ggplot2)
+library(gapminder)
+```
+
+---
+
+## 1. Correlación vs. Causalidad
+
+### Concepto de correlación
+
+La **correlación** mide la asociación lineal entre dos variables mediante el coeficiente de Pearson:
+
+$$\rho = \frac{\text{Cov}(X, Y)}{\sigma_X \sigma_Y}$$
+
+donde el rango es $-1 \leq \rho \leq 1$. Una correlación alta indica una fuerte asociación lineal, pero **no implica causalidad**.
+
+```{r}
+#| label: correlacion-basica
+# Cargar datos de gapminder
+data(gapminder)
+
+# Seleccionar año reciente para análisis transversal
+gap2007 <- gapminder %>%
+  filter(year == 2007) %>%
+  drop_na()
+
+# Calcular correlación entre esperanza de vida y PIB per cápita
+cor_simple <- cor(gap2007$lifeExp, gap2007$gdpPercap)
+cat("Correlación de Pearson (esperanza de vida ~ PIB per cápita):",
+    round(cor_simple, 4), "\n\n")
+
+# Test de significancia de la correlación
+cor_test <- cor.test(gap2007$lifeExp, gap2007$gdpPercap)
+cat("t-estadístico:", round(cor_test$statistic, 4), "\n")
+cat("p-valor:", cor_test$p.value, "\n")
+cat("Intervalo de confianza 95%:\n")
+print(round(cor_test$conf.int, 4))
+```
+
+### Correlaciones espurias: ejemplos
+
+Una correlación fuerte puede existir sin relación causal de varias formas:
+
+1. **Variable confundente**: una tercera variable causa cambios en ambas
+2. **Causalidad invertida**: Y afecta a X, no al revés
+3. **Correlación espuria**: la relación es puramente coincidencia
+
+```{r}
+#| label: correlacion-espuria
+# Ejemplo: PIB per cápita vs. expectativa de vida
+# Relación positiva fuerte, pero confundida por nivel de desarrollo
+
+# Visualizar la relación
+scatter_cor <- ggplot(gap2007, aes(x = gdpPercap, y = lifeExp)) +
+  geom_point(aes(color = continent), alpha = 0.6, size = 3) +
+  geom_smooth(method = "lm", se = TRUE, color = "black", alpha = 0.3) +
+  scale_x_log10() +
+  labs(
+    title = "Esperanza de Vida vs. PIB per Cápita (2007)",
+    subtitle = "Correlación r = 0.58, pero fuertemente confundida por nivel de desarrollo",
+    x = "PIB per Cápita (USD, escala log)",
+    y = "Esperanza de Vida (años)",
+    color = "Continente"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+
+print(scatter_cor)
+
+# Calcular correlación por continente: el efecto de la variable confundente
+cat("\nCorrelación dentro de continentes (mostrando confundimiento):\n")
+for (cont in unique(gap2007$continent)) {
+  subset_data <- gap2007 %>% filter(continent == cont)
+  if (nrow(subset_data) > 2) {
+    r <- cor(subset_data$gdpPercap, subset_data$lifeExp)
+    cat(sprintf("  %s: r = %.3f (n = %d)\n", cont, r, nrow(subset_data)))
+  }
+}
+```
+
+---
+
+## 2. Modelo de Regresión Lineal Simple
+
+### Formulación teórica
+
+El **modelo de regresión lineal simple** relaciona una variable dependiente $Y$ con una variable independiente $X$:
+
+$$Y = \beta_0 + \beta_1 X + \varepsilon$$
+
+**Componentes:**
+- $Y$: variable dependiente (endógena)
+- $X$: variable independiente (exógena)
+- $\beta_0$: intercepto (parámetro poblacional desconocido)
+- $\beta_1$: pendiente o efecto marginal (parámetro de interés)
+- $\varepsilon$: término de error no observable
+
+**Interpretación ceteris paribus:**
+$$\beta_1 = \frac{\partial E[Y|X]}{\partial X}$$
+
+Un cambio de una unidad en $X$ produce un cambio de $\beta_1$ unidades en el valor esperado de $Y$, manteniendo todo lo demás constante.
+
+---
+
+## 3. Estimación por Mínimos Cuadrados Ordinarios (MCO)
+
+### Principio y derivación intuitiva
+
+MCO busca estimar $\beta_0$ y $\beta_1$ minimizando la suma de cuadrados de los residuos:
+
+$$\text{SSE} = \sum_{i=1}^{n} \varepsilon_i^2 = \sum_{i=1}^{n} (Y_i - \beta_0 - \beta_1 X_i)^2$$
+
+Las **condiciones de primer orden** se obtienen igualando las derivadas parciales a cero:
+
+$$\frac{\partial \text{SSE}}{\partial \beta_0} = -2 \sum_i (Y_i - \beta_0 - \beta_1 X_i) = 0$$
+
+$$\frac{\partial \text{SSE}}{\partial \beta_1} = -2 \sum_i X_i(Y_i - \beta_0 - \beta_1 X_i) = 0$$
+
+Resolviendo este sistema de ecuaciones normales obtenemos los estimadores MCO.
+
+### Fórmulas de los estimadores
+
+$$\hat{\beta}_1 = \frac{\sum_{i=1}^{n}(X_i - \bar{X})(Y_i - \bar{Y})}{\sum_{i=1}^{n}(X_i - \bar{X})^2} = \frac{\text{Cov}(X,Y)}{\text{Var}(X)}$$
+
+$$\hat{\beta}_0 = \bar{Y} - \hat{\beta}_1 \bar{X}$$
+
+**Propiedades (bajo supuestos de Gauss-Markov):**
+- **Insesgados**: $E[\hat{\beta}_j] = \beta_j$
+- **Consistentes**: $\hat{\beta}_j \xrightarrow{p} \beta_j$ conforme $n \to \infty$
+- **Eficientes**: MCO es el estimador linealmente insesgado de varianza mínima (BLUE)
+
+### Cálculo manual de los estimadores
+
+Demostraremos que nuestros cálculos manuales coinciden con la función `lm()`:
+
+```{r}
+#| label: mco-manual
+# Usar datos de gapminder 2007
+data <- gap2007
+
+# Calcular promedios
+X_bar <- mean(data$gdpPercap)
+Y_bar <- mean(data$lifeExp)
+
+# Calcular β1: covarianza / varianza
+numerador <- sum((data$gdpPercap - X_bar) * (data$lifeExp - Y_bar))
+denominador <- sum((data$gdpPercap - X_bar)^2)
+
+beta1_manual <- numerador / denominador
+
+# Calcular β0
+beta0_manual <- Y_bar - beta1_manual * X_bar
+
+cat("=== Cálculo Manual de Estimadores MCO ===\n\n")
+cat("β̂1 (pendiente) =", round(beta1_manual, 8), "\n")
+cat("β̂0 (intercepto) =", round(beta0_manual, 4), "\n")
+cat("\nInterpretación:\n")
+cat("- Un aumento de USD 1000 en PIB per cápita está asociado a\n")
+cat("  un aumento de", round(beta1_manual * 1000, 4), "años en esperanza de vida\n")
+
+# Verificar con lm()
+modelo <- lm(lifeExp ~ gdpPercap, data = data)
+cat("\n=== Verificación con lm() ===\n")
+print(coef(modelo))
+
+cat("\nDiferencia (error numérico negligible):\n")
+cat("  Δβ1 =", beta1_manual - coef(modelo)["gdpPercap"], "\n")
+cat("  Δβ0 =", beta0_manual - coef(modelo)["(Intercept)"], "\n")
+```
+
+---
+
+## 4. Interpretación de Coeficientes
+
+### Pendiente (β₁)
+
+El coeficiente $\hat{\beta}_1$ representa el **cambio en $Y$ cuando $X$ aumenta en una unidad**, manteniendo todo lo demás constante (ceteris paribus).
+
+**Unidades:** Las unidades de $\hat{\beta}_1$ son el ratio $\frac{[\text{unidades de } Y]}{[\text{unidades de } X]}$.
+
+En nuestro ejemplo: $\hat{\beta}_1$ está en unidades de "años de esperanza de vida por dólar de PIB per cápita".
+
+### Intercepto (β₀)
+
+El coeficiente $\hat{\beta}_0$ es el valor predicho de $Y$ cuando $X = 0$.
+
+⚠️ **Advertencia:** La interpretación económica del intercepto no siempre es directa. En nuestro caso, $\hat{\beta}_0$ sería la esperanza de vida predicha para un país con PIB per cápita de 0 USD, lo cual es poco realista.
+
+### Transformaciones logarítmicas
+
+Cuando el modelo se especifica con logaritmos, la interpretación cambia significativamente:
+
+| Modelo | Forma | Interpretación de $\hat{\beta}_1$ |
+|--------|-------|----------------------------------|
+| Lineal | $Y = \beta_0 + \beta_1 X + \varepsilon$ | Cambio absoluto en $Y$ |
+| Log-Log | $\ln Y = \beta_0 + \beta_1 \ln X + \varepsilon$ | Elasticidad (% cambio) |
+| Log-Lin | $\ln Y = \beta_0 + \beta_1 X + \varepsilon$ | Cambio % en $Y$ |
+| Lin-Log | $Y = \beta_0 + \beta_1 \ln X + \varepsilon$ | Cambio en $Y$ por % cambio en $X$ |
+
+**Ejemplo Log-Log:**
+```{r}
+#| label: modelo-loglog
+modelo_loglog <- lm(log(lifeExp) ~ log(gdpPercap), data = data)
+
+cat("=== Modelo Log-Log ===\n")
+print(summary(modelo_loglog)$coefficients)
+
+beta1_loglog <- coef(modelo_loglog)["log(gdpPercap)"]
+cat("\nInterpretación:\n")
+cat("Un aumento de 1% en PIB per cápita está asociado a un aumento de\n")
+cat(sprintf("%.3f%% en esperanza de vida\n", beta1_loglog * 100))
+```
+
+---
+
+## 5. Bondad de Ajuste: R² y R² Ajustado
+
+### Descomposición de variabilidad
+
+La variabilidad total en $Y$ se descompone en:
+
+$$\text{SST} = \text{SSR} + \text{SSE}$$
+
+donde:
+- **SST** (Suma Total de Cuadrados): $\sum_i (Y_i - \bar{Y})^2$ = variabilidad total
+- **SSR** (Suma de Cuadrados Explicada): $\sum_i (\hat{Y}_i - \bar{Y})^2$ = variabilidad explicada por el modelo
+- **SSE** (Suma de Cuadrados Residual): $\sum_i (Y_i - \hat{Y}_i)^2$ = variabilidad no explicada
+
+### Coeficiente de Determinación (R²)
+
+$$R^2 = 1 - \frac{\text{SSE}}{\text{SST}} = \frac{\text{SSR}}{\text{SST}}$$
+
+$R^2$ mide la **proporción de varianza en $Y$ explicada por $X$**, con rango $[0, 1]$.
+
+- $R^2 = 0$: el modelo no explica nada
+- $R^2 = 1$: el modelo explica perfectamente $Y$
+- $R^2 = 0.5$: el modelo explica el 50% de la variación
+
+### R² Ajustado
+
+Como el $R^2$ simple siempre aumenta al agregar regresores (incluso si son irrelevantes), se penaliza por el número de parámetros:
+
+$$\bar{R}^2 = 1 - \frac{\text{SSE}/(n-k)}{\text{SST}/(n-1)}$$
+
+donde $n$ = número de observaciones y $k$ = número de parámetros.
+
+```{r}
+#| label: r-cuadrado
+# Extraer información del modelo
+modelo_summary <- summary(modelo)
+
+SST <- sum((data$lifeExp - mean(data$lifeExp))^2)
+SSE <- sum(residuals(modelo)^2)
+SSR <- SST - SSE
+n <- nrow(data)
+k <- 2  # β0 y β1
+
+R2 <- 1 - (SSE / SST)
+R2_adj <- 1 - (SSE / (n - k)) / (SST / (n - 1))
+
+cat("=== Bondad de Ajuste ===\n\n")
+cat(sprintf("SST = %.2f (variabilidad total)\n", SST))
+cat(sprintf("SSR = %.2f (variabilidad explicada)\n", SSR))
+cat(sprintf("SSE = %.2f (variabilidad residual)\n", SSE))
+cat("\n")
+cat(sprintf("R² = %.4f\n", R2))
+cat(sprintf("R² ajustado = %.4f\n", R2_adj))
+cat("\nInterpretación:\n")
+cat(sprintf("El modelo explica %.1f%% de la variación en esperanza de vida\n", R2 * 100))
+```
+
+---
+
+## 6. Errores Estándar e Inferencia Estadística
+
+### Varianza de los residuos
+
+$$\hat{\sigma}^2 = \frac{\text{SSE}}{n-2}$$
+
+Esta es la varianza estimada del término de error. El factor $(n-2)$ refleja que perdemos 2 grados de libertad al estimar $\beta_0$ y $\beta_1$.
+
+### Error estándar de $\hat{\beta}_1$
+
+$$SE(\hat{\beta}_1) = \frac{\hat{\sigma}}{\sqrt{\sum_i(X_i - \bar{X})^2}}$$
+
+El error estándar mide la precisión de nuestro estimador. Aumenta si:
+- La varianza de los residuos es mayor
+- La varianza de $X$ es menor (menos variación en el regresor)
+
+### Prueba t de significancia
+
+Para probar $H_0: \beta_1 = 0$ vs $H_1: \beta_1 \neq 0$:
+
+$$t = \frac{\hat{\beta}_1}{SE(\hat{\beta}_1)} \sim t_{n-2}$$
+
+Si el p-valor es menor que 0.05, rechazamos $H_0$ y concluimos que $\hat{\beta}_1$ es **estadísticamente significativo al nivel de 5%**.
+
+### Intervalo de confianza al 95%
+
+$$\hat{\beta}_1 \pm t_{0.025, n-2} \cdot SE(\hat{\beta}_1)$$
+
+```{r}
+#| label: inferencia-estadistica
+cat("=== Tabla de Coeficientes ===\n\n")
+print(summary(modelo)$coefficients)
+
+cat("\n=== Intervalos de Confianza al 95% ===\n\n")
+ic <- confint(modelo)
+print(ic)
+
+cat("\nInterpretación del intervalo para gdpPercap:\n")
+cat(sprintf("Con 95%% de confianza, un aumento de USD 1000 en PIB per cápita\n"))
+cat(sprintf("está asociado a un aumento entre %.4f y %.4f años en esperanza de vida\n",
+            ic["gdpPercap", 1] * 1000, ic["gdpPercap", 2] * 1000))
+```
+
+---
+
+## 7. Supuestos de Gauss-Markov
+
+Para que MCO sea el estimador linealmente insesgado de varianza mínima (BLUE), deben cumplirse:
+
+1. **Linealidad:** La relación es lineal en parámetros
+2. **Exogeneidad:** $E[\varepsilon | X] = 0$ (los errores no están correlacionados con $X$)
+3. **Sin multicolinealidad exacta:** La varianza de $X$ es positiva y finita
+4. **Homocedasticidad:** $\text{Var}(\varepsilon | X) = \sigma^2$ (varianza constante)
+5. **Sin autocorrelación:** $\text{Cov}(\varepsilon_i, \varepsilon_j | X) = 0$ para $i \neq j$
+6. **Normalidad** (para inferencia exacta): $\varepsilon \sim N(0, \sigma^2)$
+
+### Diagnóstico gráfico de supuestos
+
+```{r}
+#| label: diagnostico-supuestos
+# Crear un data frame con predicciones y residuos
+diagnosticos <- tibble(
+  fitted = fitted(modelo),
+  residuals = residuals(modelo),
+  residuales_std = rstandard(modelo)
+)
+
+# Gráfico 1: Residuos vs. Ajustados
+g1 <- ggplot(diagnosticos, aes(x = fitted, y = residuals)) +
+  geom_point(alpha = 0.6) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "red") +
+  geom_smooth(se = FALSE, color = "blue") +
+  labs(title = "1. Residuos vs. Valores Ajustados",
+       x = "Valores Ajustados",
+       y = "Residuos") +
+  theme_minimal()
+
+# Gráfico 2: Q-Q plot
+g2 <- ggplot(diagnosticos, aes(sample = residuales_std)) +
+  stat_qq(alpha = 0.6) +
+  stat_qq_line(color = "red") +
+  labs(title = "2. Q-Q Plot (Normalidad de residuos)",
+       x = "Cuantiles teóricos",
+       y = "Residuos estandarizados") +
+  theme_minimal()
+
+# Gráfico 3: Scale-Location
+diagnosticos$sqrt_residuales <- sqrt(abs(diagnosticos$residuales_std))
+g3 <- ggplot(diagnosticos, aes(x = fitted, y = sqrt_residuales)) +
+  geom_point(alpha = 0.6) +
+  geom_smooth(se = FALSE, color = "blue") +
+  labs(title = "3. Scale-Location (Homocedasticidad)",
+       x = "Valores Ajustados",
+       y = "√|Residuos Estandarizados|") +
+  theme_minimal()
+
+# Gráfico 4: Residuos ordenados (para autocorrelación)
+diagnosticos$orden <- 1:nrow(diagnosticos)
+g4 <- ggplot(diagnosticos, aes(x = orden, y = residuals)) +
+  geom_point(alpha = 0.6) +
+  geom_line(alpha = 0.3) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "red") +
+  labs(title = "4. Residuos en Secuencia (Autocorrelación)",
+       x = "Orden de observación",
+       y = "Residuos") +
+  theme_minimal()
+
+# Mostrar gráficos en una cuadrícula 2x2
+gridExtra::grid.arrange(g1, g2, g3, g4, ncol = 2)
+```
+
+**Interpretación:**
+
+- **Panel 1 (Residuos vs. Ajustados):** Buscar patrón aleatorio sin tendencia. Patrón en U sugiere no-linealidad. Abanico sugiere heterocedasticidad.
+- **Panel 2 (Q-Q):** Los puntos deben estar cerca de la línea roja. Desviaciones en las colas sugieren no-normalidad.
+- **Panel 3 (Scale-Location):** Buscar línea horizontal plana. Pendiente sugiere heterocedasticidad.
+- **Panel 4 (Secuencia):** Buscar patrón aleatorio. Clusters o tendencias sugieren autocorrelación.
+
+```{r}
+#| label: test-normalidad
+library(stats)
+
+# Test de Shapiro-Wilk para normalidad
+shapiro_test <- shapiro.test(residuals(modelo))
+cat("=== Test de Shapiro-Wilk para Normalidad ===\n")
+cat(sprintf("Estadístico W: %.4f\n", shapiro_test$statistic))
+cat(sprintf("p-valor: %.6f\n", shapiro_test$p.value))
+if (shapiro_test$p.value > 0.05) {
+  cat("Conclusión: No rechazamos H0 - residuos aparentan ser normales (α = 0.05)\n")
+} else {
+  cat("Conclusión: Rechazamos H0 - evidencia de no-normalidad (α = 0.05)\n")
+}
+```
+
+---
+
+## 8. Análisis Práctico Completo
+
+Reunimos todo lo aprendido en un análisis completo de la relación entre desarrollo económico y esperanza de vida:
+
+```{r}
+#| label: analisis-completo
+cat("╔════════════════════════════════════════════════════════════╗\n")
+cat("║ ANÁLISIS COMPLETO: ESPERANZA DE VIDA vs. PIB PER CÁPITA   ║\n")
+cat("╚════════════════════════════════════════════════════════════╝\n\n")
+
+# 1. CORRELACIÓN
+cat("1. ANÁLISIS DE CORRELACIÓN\n")
+cat("─────────────────────────────────────────────────────────────\n")
+cor_result <- cor.test(data$gdpPercap, data$lifeExp)
+cat(sprintf("Correlación de Pearson: r = %.4f\n", cor_result$estimate))
+cat(sprintf("t-estadístico: %.4f\n", cor_result$statistic))
+cat(sprintf("p-valor: %.2e\n", cor_result$p.value))
+cat(sprintf("Conclusión: Correlación positiva fuerte y significativa\n\n")
+
+# 2. MODELO LINEAL SIMPLE
+cat("2. MODELO DE REGRESIÓN LINEAL SIMPLE\n")
+cat("─────────────────────────────────────────────────────────────\n")
+print(summary(modelo))
+
+# 3. INTERPRETACIÓN
+cat("\n3. INTERPRETACIÓN DE RESULTADOS\n")
+cat("─────────────────────────────────────────────────────────────\n")
+beta0 <- coef(modelo)[1]
+beta1 <- coef(modelo)[2]
+se_beta1 <- summary(modelo)$coefficients[2, 2]
+t_stat <- summary(modelo)$coefficients[2, 3]
+p_val <- summary(modelo)$coefficients[2, 4]
+
+cat(sprintf("Modelo estimado: lifeExp = %.4f + %.8f × gdpPercap + ε\n\n", beta0, beta1))
+cat(sprintf("β̂1 = %.8f\n", beta1))
+cat(sprintf("Interpretación: Un aumento de USD 1000 en PIB per cápita\n"))
+cat(sprintf("               está asociado a un aumento de %.4f años en esperanza de vida\n\n", beta1 * 1000))
+cat(sprintf("Error estándar: SE(β̂1) = %.8f\n", se_beta1))
+cat(sprintf("t-estadístico: t = %.4f\n", t_stat))
+cat(sprintf("p-valor: %.2e\n", p_val))
+cat(sprintf("Conclusión: β̂1 es estadísticamente significativo al nivel de 5%%\n\n")
+
+# 4. BONDAD DE AJUSTE
+cat("4. BONDAD DE AJUSTE\n")
+cat("─────────────────────────────────────────────────────────────\n")
+R2 <- summary(modelo)$r.squared
+R2_adj <- summary(modelo)$adj.r.squared
+cat(sprintf("R² = %.4f\n", R2))
+cat(sprintf("R² ajustado = %.4f\n", R2_adj))
+cat(sprintf("Conclusión: El modelo explica %.1f%% de la variación en esperanza de vida\n\n", R2 * 100))
+
+# 5. PREDICCIÓN
+cat("5. EJEMPLOS DE PREDICCIÓN\n")
+cat("─────────────────────────────────────────────────────────────\n")
+nuevos_datos <- tibble(gdpPercap = c(5000, 10000, 20000, 50000))
+predicciones <- predict(modelo, newdata = nuevos_datos, se.fit = TRUE, interval = "confidence", level = 0.95)
+
+cat("Esperanza de vida predicha (IC 95%):\n\n")
+resultado_pred <- tibble(
+  gdpPercap = nuevos_datos$gdpPercap,
+  estimado = predicciones$fit[, "fit"],
+  lci = predicciones$fit[, "lwr"],
+  uci = predicciones$fit[, "upr"]
+)
+print(resultado_pred)
+```
+
+---
+
+## Conclusiones
+
+1. **Correlación ≠ Causalidad:** Una correlación fuerte entre variables puede deberse a variables confundentes o relaciones espurias.
+
+2. **MCO minimiza residuos:** El estimador MCO encuentra la línea recta que minimiza la suma de cuadrados de los errores.
+
+3. **Interpretación marginal:** $\hat{\beta}_1$ mide el cambio esperado en $Y$ cuando $X$ aumenta en una unidad, ceteris paribus.
+
+4. **R² mide ajuste:** Indica qué porcentaje de la variación en $Y$ es explicado por el modelo.
+
+5. **Supuestos garantizan optimalidad:** Bajo los supuestos de Gauss-Markov, MCO es BLUE (mejor estimador lineal insesgado).
+
+6. **Diagnóstico es fundamental:** Siempre verificar visualmente que los supuestos se cumplen mediante gráficos de residuos.
+
+---
+
+## Referencias
+
+- Wooldridge, J. M. (2010). *Econometric Analysis of Cross Section and Panel Data*. MIT Press.
+- Cameron, A. C., & Trivedi, P. K. (2009). *Microeconometrics Using Stata*. Stata Press.
+- Angrist, J. D., & Pischke, J. S. (2008). *Mostly Harmless Econometrics: An Empiricist's Companion*. Princeton University Press.

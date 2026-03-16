@@ -1,0 +1,607 @@
+---
+title: "Sesión 3: Regresión Lineal Múltiple"
+subtitle: "Doctorado en Ciencias de la Complejidad Social — CICS, UDD"
+author: "Amaru Agüero (a.agueroj@udd.cl)"
+date: today
+format:
+  html:
+    theme: cosmo
+    toc: true
+    toc-depth: 3
+    code-fold: false
+    code-tools: true
+    self-contained: true
+lang: es
+execute:
+  warning: false
+  message: false
+---
+
+## Introducción
+
+En esta sesión extendemos la regresión simple a múltiples regresores. Estudiaremos el sesgo de variable omitida (OVB), las estructuras causales que determinan cuándo controlar por variables, variables categóricas (dummy), términos de interacción, y pruebas de significancia tanto individual como conjunta.
+
+### Paquetes necesarios
+
+```{r}
+#| label: setup
+library(tidyverse)
+library(ggplot2)
+library(broom)
+```
+
+---
+
+## 1. De la Regresión Simple a la Múltiple
+
+### Conceptos básicos
+
+**Regresión Simple:**
+$$Y = \beta_0 + \beta_1 X + \varepsilon$$
+
+**Regresión Múltiple:**
+$$Y = \beta_0 + \beta_1 X_1 + \beta_2 X_2 + \cdots + \beta_k X_k + \varepsilon$$
+
+La interpretación clave: $\beta_j$ es el **efecto parcial** de $X_j$ en $Y$, manteniendo todos los otros regresores constantes (ceteris paribus).
+
+### Datos de ejemplo: ingreso y educación
+
+Crearemos un dataset simulado con relaciones realistas entre educación, experiencia y salario.
+
+```{r}
+#| label: datos-simulados
+set.seed(42)
+n <- 200
+
+datos <- tibble(
+  id = 1:n,
+  # Años de educación (8-20 años)
+  educacion = rnorm(n, mean = 13, sd = 3) %>% pmax(8),
+
+  # Años de experiencia (0-40 años)
+  experiencia = rnorm(n, mean = 15, sd = 10) %>% pmax(0),
+
+  # Género (1 = mujer, 0 = hombre)
+  mujer = rbinom(n, size = 1, prob = 0.5),
+
+  # Log-ingreso mensual (miles CLP)
+  # Modelo verdadero: log(ingreso) = 9 + 0.15*educacion + 0.08*experiencia - 0.25*mujer + error
+  log_ingreso = 9 + 0.15 * educacion + 0.08 * experiencia - 0.25 * mujer + rnorm(n, sd = 0.3),
+
+  ingreso = exp(log_ingreso)
+)
+
+head(datos, 10)
+```
+
+---
+
+## 2. Sesgo de Variable Omitida (OVB)
+
+### Concepto
+
+El **sesgo de variable omitida** ocurre cuando:
+1. Omitimos una variable $X_2$ que afecta a $Y$ ($\beta_2 \neq 0$)
+2. $X_2$ está correlacionada con $X_1$ ($\text{Cov}(X_1, X_2) \neq 0$)
+
+**Magnitud del sesgo:**
+$$\text{Sesgo}(\hat{\beta}_1) = \beta_2 \cdot \frac{\text{Cov}(X_1, X_2)}{\text{Var}(X_1)}$$
+
+### Demostración empírica
+
+```{r}
+#| label: ovb-comparacion
+# Modelo 1: Solo educación (modelo sesgado)
+m1 <- lm(log_ingreso ~ educacion, data = datos)
+
+# Modelo 2: Educación + Experiencia (modelo menos sesgado)
+m2 <- lm(log_ingreso ~ educacion + experiencia, data = datos)
+
+# Modelo 3: Completo (con género)
+m3 <- lm(log_ingreso ~ educacion + experiencia + mujer, data = datos)
+
+# Comparar coeficientes de educación
+cat("=== EFECTO DE EDUCACIÓN EN LOG(INGRESO) ===\n")
+cat("M1 (solo educación):           ", round(coef(m1)[2], 4), "\n")
+cat("M2 (+ experiencia):            ", round(coef(m2)[2], 4), "\n")
+cat("M3 (+ experiencia + género):   ", round(coef(m3)[2], 4), "\n")
+cat("\nCambio M1→M2:                  ",
+    round((coef(m2)[2] - coef(m1)[2]) / coef(m1)[2] * 100, 2), "%\n")
+
+# Correlaciones
+cat("\n=== CORRELACIONES ===\n")
+cat("Cor(educación, experiencia):",
+    round(cor(datos$educacion, datos$experiencia), 3), "\n")
+cat("Cor(educación, mujer):      ",
+    round(cor(datos$educacion, datos$mujer), 3), "\n")
+```
+
+**Interpretación:** El coeficiente de educación cae cuando agregamos experiencia, indicando OVB en M1. La experiencia actuaba como variable confusora.
+
+---
+
+## 3. Estructuras Causales: Confusoras, Colisionadores, Modificadoras
+
+### Variable Confusora (Confounder)
+
+**Estructura:** $X \leftarrow Z \rightarrow Y$
+
+Una confusora causa tanto al regresor como al resultado, generando asociación espuria.
+
+**Acción correcta:** **Controlar por Z** (incluirla en el modelo)
+
+**Ejemplo:** Nivel socioeconómico familiar es confusora del efecto de educación en ingreso (familias ricas dan más educación Y más oportunidades).
+
+### Variable Colisionadora (Collider)
+
+**Estructura:** $X \rightarrow Z \leftarrow Y$
+
+Una colisionadora es causada tanto por X como por Y. Controlar por ella abre un camino espurio (paradoja de Berkson).
+
+**Acción correcta:** **NO controlar por Z**
+
+**Ejemplo:** Talento y belleza son independientes, pero ambos causan fama. Si analizamos solo famosos, aparece correlación negativa espuria.
+
+### Variable Modificadora de Efecto (Effect Modifier)
+
+**Estructura:** Z cambia la relación $X \rightarrow Y$
+
+El efecto de X en Y cambia según el valor de Z.
+
+**Acción correcta:** **Incluir interacción $X \times Z$**
+
+**Ejemplo:** El retorno a la educación difiere por género.
+
+### Resumen comparativo
+
+| Característica | Confusora | Colisionadora | Modificadora |
+|---|---|---|---|
+| Estructura | $X \leftarrow Z \rightarrow Y$ | $X \rightarrow Z \leftarrow Y$ | Z modifica $X \rightarrow Y$ |
+| Si NO controlas | Sesgo | Sin sesgo | Efecto promedio |
+| Si controlas | Sin sesgo | **Introduce sesgo** | Efectos por grupo |
+| Acción | **Controlar** | **No controlar** | **Interacción** |
+
+---
+
+## 4. Variables Categóricas (Dummy Variables)
+
+### Concepto y codificación
+
+Para incluir variables cualitativas, las convertimos en binarias (0/1). **Regla:** Para $C$ categorías, crear $C-1$ dummies (la categoría omitida es la referencia).
+
+```{r}
+#| label: dummy-ejemplo
+# Crear tabla de contingencia
+tabla_genero <- table(datos$mujer)
+cat("Conteos originales:\n")
+print(tabla_genero)
+
+# Los valores 0 y 1 ya son dummies, pero veamos con factor
+datos <- datos %>%
+  mutate(genero = factor(mujer, levels = c(0, 1), labels = c("Hombre", "Mujer")))
+
+# Ver niveles
+cat("\nNiveles de factor genero:\n")
+levels(datos$genero)
+```
+
+### Interpretación de coeficientes
+
+```{r}
+#| label: modelo-dummy
+# Modelo con dummy variable
+m_dummy <- lm(log_ingreso ~ educacion + experiencia + mujer, data = datos)
+
+summary(m_dummy)
+
+# Interpretación
+beta_mujer <- coef(m_dummy)["mujer"]
+cat("\n=== INTERPRETACIÓN ===\n")
+cat("Coeficiente de 'mujer':", round(beta_mujer, 4), "\n")
+cat("Interpretación: Las mujeres ganan en promedio",
+    round(exp(beta_mujer) - 1, 4) * 100,
+    "% MENOS que los hombres\n")
+cat("(controlando por educación y experiencia)\n")
+```
+
+### Cambio de categoría de referencia con relevel()
+
+```{r}
+#| label: relevel-ejemplo
+# Cambiar categoría de referencia a "Mujer"
+datos <- datos %>%
+  mutate(genero = relevel(genero, ref = "Mujer"))
+
+m_dummy_rev <- lm(log_ingreso ~ educacion + experiencia + genero, data = datos)
+
+cat("Coeficiente de generoHombre:", round(coef(m_dummy_rev)["generoHombre"], 4), "\n")
+cat("Interpretación: Los hombres ganan",
+    round(exp(coef(m_dummy_rev)["generoHombre"]) - 1, 4) * 100,
+    "% MÁS que las mujeres\n")
+cat("(mismo efecto, pero interpretado desde otra base)\n")
+```
+
+---
+
+## 5. Términos de Interacción
+
+### Motivación y especificación
+
+La pregunta es: ¿El efecto de X en Y cambia según el valor de Z?
+
+```{r}
+#| label: interaccion-modelo
+# Cambiar genero de nuevo a referencia "Hombre"
+datos <- datos %>%
+  mutate(genero = relevel(genero, ref = "Hombre"))
+
+# Modelo sin interacción
+m_sin_int <- lm(log_ingreso ~ educacion + mujer + experiencia, data = datos)
+
+# Modelo con interacción (educacion x mujer)
+m_con_int <- lm(log_ingreso ~ educacion * mujer + experiencia, data = datos)
+
+# Comparar
+cat("=== SIN INTERACCIÓN ===\n")
+print(coef(m_sin_int))
+
+cat("\n=== CON INTERACCIÓN (educacion * mujer) ===\n")
+print(coef(m_con_int))
+```
+
+### Interpretación de interacciones continua × dummy
+
+En el modelo con interacción $Y = \beta_0 + \beta_1 \text{Educ} + \beta_2 \text{Mujer} + \beta_3 (\text{Educ} \times \text{Mujer}) + \beta_4 \text{Exp} + \varepsilon$:
+
+- $\beta_1$: Retorno a educación para **hombres** (grupo base)
+- $\beta_2$: Diferencia de intercepto (mujeres vs hombres cuando Educ=0)
+- $\beta_3$: **Diferencia en retorno** de educación (mujeres vs hombres)
+- Retorno para mujeres: $\beta_1 + \beta_3$
+
+```{r}
+#| label: interpretacion-interaccion
+beta <- coef(m_con_int)
+
+retorno_hombres <- beta["educacion"]
+retorno_mujeres <- beta["educacion"] + beta["educacion:mujer"]
+
+cat("Retorno a educación para hombres:", round(retorno_hombres, 4), "\n")
+cat("Retorno a educación para mujeres:", round(retorno_mujeres, 4), "\n")
+cat("Diferencia:", round(beta["educacion:mujer"], 4), "\n")
+cat("\nInterpretación: Cada año adicional de educación aumenta\n")
+cat("el ingreso en", round(retorno_hombres * 100, 2), "% para hombres\n")
+cat("y", round(retorno_mujeres * 100, 2), "% para mujeres\n")
+```
+
+### Visualización de efectos heterogéneos
+
+```{r}
+#| label: fig-interaccion
+#| fig-cap: "Efecto heterogéneo de educación por género"
+
+# Predicciones a diferentes niveles de educación
+educ_rango <- seq(8, 20, by = 0.5)
+
+pred_hombre <- tibble(
+  educacion = educ_rango,
+  mujer = 0,
+  experiencia = mean(datos$experiencia),
+  genero = "Hombre"
+)
+
+pred_mujer <- tibble(
+  educacion = educ_rango,
+  mujer = 1,
+  experiencia = mean(datos$experiencia),
+  genero = "Mujer"
+)
+
+# Predecir con el modelo con interacción
+pred <- bind_rows(pred_hombre, pred_mujer) %>%
+  mutate(
+    log_ingreso_pred = predict(m_con_int, newdata = .),
+    ingreso_pred = exp(log_ingreso_pred)
+  )
+
+ggplot(pred, aes(x = educacion, y = ingreso_pred, color = genero)) +
+  geom_line(size = 1) +
+  scale_color_manual(values = c("#1F4E79", "#E74C3C")) +
+  labs(
+    title = "Efecto Heterogéneo de Educación por Género",
+    subtitle = "Con término de interacción educación × mujer",
+    x = "Años de educación",
+    y = "Ingreso predicho (miles CLP)",
+    color = "Género"
+  ) +
+  theme_minimal()
+```
+
+---
+
+## 6. Interacción continua × continua
+
+Cuando ambos regresores son continuos, la interacción se interpreta como cambio en pendiente.
+
+```{r}
+#| label: interaccion-continua
+# Modelo con interacción educación × experiencia
+m_cont <- lm(log_ingreso ~ educacion * experiencia + mujer, data = datos)
+
+summary(m_cont)
+
+beta_cont <- coef(m_cont)
+cat("Efecto parcial de educación:\n")
+cat("∂Y/∂Educ = ", round(beta_cont["educacion"], 4),
+    "+ ", round(beta_cont["educacion:experiencia"], 6),
+    " × Exp\n", sep = "")
+
+cat("\nInterpretación: El retorno a la educación AUMENTA con experiencia.\n")
+cat("A 10 años de experiencia:\n")
+cat("Retorno a educación =",
+    round(beta_cont["educacion"] + beta_cont["educacion:experiencia"] * 10, 4), "\n")
+
+cat("A 20 años de experiencia:\n")
+cat("Retorno a educación =",
+    round(beta_cont["educacion"] + beta_cont["educacion:experiencia"] * 20, 4), "\n")
+```
+
+---
+
+## 7. Pruebas de Significancia
+
+### Test t individual
+
+```{r}
+#| label: test-t-individual
+# Usar summary para ver todos los t-tests
+summary(m3)
+
+# Extraer manualmente
+resumen_m3 <- tidy(m3)
+print(resumen_m3)
+
+cat("\n=== INTERPRETACIÓN ===\n")
+cat("Educación: t =", round(resumen_m3$statistic[2], 3),
+    ", p-value =", round(resumen_m3$p.value[2], 4), "\n")
+cat("Conclusión: El efecto de educación es estadísticamente significativo (p < 0.05)\n")
+```
+
+### Test F global
+
+```{r}
+#| label: test-f-global
+# Test F para modelo completo vs modelo nulo
+m_nulo <- lm(log_ingreso ~ 1, data = datos)
+
+# Obtener el F-stat global del summary
+glance_m3 <- glance(m3)
+cat("F-statistic global del modelo M3:\n")
+cat("F =", round(glance_m3$statistic, 3), "\n")
+cat("p-value =", round(glance_m3$p.value, 2e-16), "\n")
+cat("Conclusión: El modelo es conjuntamente significativo\n")
+```
+
+### Test F para comparar modelos anidados
+
+```{r}
+#| label: test-f-anidado
+# Comparar M1 vs M2 (¿es experiencia significativa?)
+anova_1_2 <- anova(m1, m2)
+print(anova_1_2)
+
+cat("\n=== INTERPRETACIÓN ===\n")
+cat("F-statistic:", round(anova_1_2$F[2], 3), "\n")
+cat("p-value:", round(anova_1_2$`Pr(>F)`[2], 4), "\n")
+cat("Conclusión: La experiencia es conjuntamente significativa.\n")
+cat("El modelo M2 es mejor que M1.\n")
+
+# Comparar M3 vs M2 (¿es género significativo?)
+anova_2_3 <- anova(m2, m3)
+print(anova_2_3)
+```
+
+---
+
+## 8. Modelos Anidados y Criterios de Selección
+
+### Comparación de modelos completos
+
+```{r}
+#| label: comparacion-modelos
+# Tabla comparativa
+modelos_info <- tibble(
+  Modelo = c("M1", "M2", "M3", "M_con_int"),
+  Especificacion = c(
+    "log_ingreso ~ educacion",
+    "log_ingreso ~ educacion + experiencia",
+    "log_ingreso ~ educacion + experiencia + mujer",
+    "log_ingreso ~ educacion * mujer + experiencia"
+  ),
+  R2 = c(
+    round(glance(m1)$r.squared, 4),
+    round(glance(m2)$r.squared, 4),
+    round(glance(m3)$r.squared, 4),
+    round(glance(m_con_int)$r.squared, 4)
+  ),
+  R2_adj = c(
+    round(glance(m1)$adj.r.squared, 4),
+    round(glance(m2)$adj.r.squared, 4),
+    round(glance(m3)$adj.r.squared, 4),
+    round(glance(m_con_int)$adj.r.squared, 4)
+  ),
+  AIC = c(
+    round(AIC(m1), 2),
+    round(AIC(m2), 2),
+    round(AIC(m3), 2),
+    round(AIC(m_con_int), 2)
+  ),
+  BIC = c(
+    round(BIC(m1), 2),
+    round(BIC(m2), 2),
+    round(BIC(m3), 2),
+    round(BIC(m_con_int), 2)
+  )
+)
+
+print(modelos_info)
+
+cat("\n=== CRITERIOS DE SELECCIÓN ===\n")
+cat("- R²: mayor es mejor (sube con más variables)\n")
+cat("- R² ajustado: penaliza por número de variables\n")
+cat("- AIC/BIC: menor es mejor (balancean ajuste y parsimonia)\n")
+```
+
+### Análisis de cambios en coeficientes
+
+```{r}
+#| label: cambios-coeficientes
+# Comparar coeficiente de educación
+cat("=== CAMBIO EN COEFICIENTE DE EDUCACIÓN ===\n")
+coef_educ <- c(
+  M1 = coef(m1)["educacion"],
+  M2 = coef(m2)["educacion"],
+  M3 = coef(m3)["educacion"]
+)
+
+print(coef_educ)
+
+cambio_1_2 <- (coef_educ["M2"] - coef_educ["M1"]) / coef_educ["M1"] * 100
+cambio_2_3 <- (coef_educ["M3"] - coef_educ["M2"]) / coef_educ["M2"] * 100
+
+cat("\nCambio M1→M2:", round(cambio_1_2, 2), "%\n")
+cat("Cambio M2→M3:", round(cambio_2_3, 2), "%\n")
+
+cat("\nInterpretación: Cambios > 20% sugieren OVB.\n")
+cat("Aquí vemos que agregar experiencia produce un cambio >20%,\n")
+cat("evidencia de que experiencia era una confusora.\n")
+```
+
+---
+
+## 9. Residuos y diagnósticos
+
+### Análisis de residuos
+
+```{r}
+#| label: fig-residuos
+#| fig-cap: "Diagnósticos de residuos para M3"
+
+# Obtener residuos y valores predichos
+diag_data <- tibble(
+  fitted = fitted(m3),
+  residuos = residuals(m3),
+  std_residuos = rstandard(m3)
+)
+
+# Gráfico: Residuos vs Fitted
+p1 <- ggplot(diag_data, aes(x = fitted, y = residuos)) +
+  geom_point(alpha = 0.5, color = "#2E86C1") +
+  geom_hline(yintercept = 0, color = "red", linetype = "dashed") +
+  labs(title = "Residuos vs Valores Predichos",
+       x = "Valores predichos", y = "Residuos") +
+  theme_minimal()
+
+# Q-Q plot
+p2 <- ggplot(diag_data, aes(sample = std_residuos)) +
+  geom_qq(alpha = 0.5, color = "#2E86C1") +
+  geom_qq_line(color = "red") +
+  labs(title = "Q-Q Plot",
+       x = "Cuantiles teóricos", y = "Cuantiles de muestra") +
+  theme_minimal()
+
+# Histograma de residuos
+p3 <- ggplot(diag_data, aes(x = residuos)) +
+  geom_histogram(bins = 20, fill = "#2E86C1", alpha = 0.7) +
+  labs(title = "Distribución de Residuos",
+       x = "Residuos", y = "Frecuencia") +
+  theme_minimal()
+
+# Escala-ubicación
+p4 <- ggplot(diag_data, aes(x = fitted, y = sqrt(abs(std_residuos)))) +
+  geom_point(alpha = 0.5, color = "#2E86C1") +
+  geom_smooth(se = FALSE, color = "red") +
+  labs(title = "Scale-Location",
+       x = "Valores predichos", y = "√|Residuos estandarizados|") +
+  theme_minimal()
+
+# Combinar
+gridExtra::grid.arrange(p1, p2, p3, p4, nrow = 2)
+```
+
+---
+
+## 10. Multicolinealidad: VIF
+
+```{r}
+#| label: vif-diagnostico
+# Instalar si es necesario: install.packages("car")
+library(car)
+
+# Calcular VIF para M3
+vif_m3 <- vif(m3)
+print(vif_m3)
+
+cat("\n=== INTERPRETACIÓN ===\n")
+cat("VIF < 5: Sin multicolinealidad problemática\n")
+cat("VIF > 10: Multicolinealidad problemática\n\n")
+
+for (var in names(vif_m3)) {
+  if (vif_m3[var] < 5) {
+    cat(var, ":", round(vif_m3[var], 2), "— OK\n")
+  } else {
+    cat(var, ":", round(vif_m3[var], 2), "— PROBLEMÁTICO\n")
+  }
+}
+```
+
+---
+
+## 11. Resumen y recomendaciones
+
+### Checklist de decisiones causales
+
+```{r}
+#| label: checklist-causal
+cat("=== ¿CUÁNDO INCLUIR UNA VARIABLE? ===\n\n")
+
+checklist <- tibble(
+  Variable = c("Confusora", "Colisionadora", "Mediadora", "Modificadora"),
+  Estructura = c(
+    "X ← Z → Y",
+    "X → Z ← Y",
+    "X → Z → Y",
+    "Z modifica X → Y"
+  ),
+  Accion = c(
+    "INCLUIR",
+    "NO INCLUIR",
+    "NO INCLUIR*",
+    "INCLUIR + INTERACCIÓN"
+  ),
+  Razon = c(
+    "Elimina sesgo",
+    "Introduce sesgo",
+    "Absorbe efecto",
+    "Captura heterogeneidad"
+  )
+)
+
+print(checklist)
+
+cat("\n* Mediadora: solo NO incluir si el interés es en efecto total.\n")
+cat("  Si el interés es en efecto directo, incluir mediadora.\n")
+```
+
+### Buenas prácticas
+
+1. **Dibujar el DAG** antes de estimar: ¿cuál es la estructura causal?
+2. **Reportar modelos anidados**: mostrar cómo cambian coeficientes
+3. **Usar criterios múltiples**: no depender solo de p-values
+4. **Documentar hipótesis**: explicar por qué controlar por Z
+5. **Verificar supuestos**: revisar residuos, VIF, outliers
+
+---
+
+## Conclusiones
+
+La regresión múltiple es la herramienta central en econometría. El desafío principal es **causal**: entender qué variables incluir basándose en la estructura causal del problema, no solo en significancia estadística. Las tres estructuras (confusoras, colicionadores, modificadoras) requieren estrategias diferentes. Los modelos anidados y los criterios de selección (AIC, BIC, $R^2$ ajustado) ayudan a evaluar robustez.

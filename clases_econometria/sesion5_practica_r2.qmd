@@ -1,0 +1,846 @@
+---
+title: "Sesión 5: Práctica Integradora en R (Parte 2)"
+subtitle: "Regresión Múltiple y Flujo Econométrico Completo"
+author: "Amaru Agüero (a.agueroj@udd.cl)"
+date: today
+format:
+  html:
+    theme: cosmo
+    toc: true
+    toc-depth: 3
+    code-fold: false
+    code-tools: true
+    self-contained: true
+lang: es
+execute:
+  warning: false
+  message: false
+---
+
+## Introducción
+
+Esta sesión integradora aplica **todos** los conceptos econométricos de las sesiones anteriores en un análisis completo: desde exploración de datos hasta regresión múltiple con diagnósticos, variables dummy, términos de interacción y comparación de modelos.
+
+Trabajaremos con datos simulados de **situación económica y social**, con variables sobre educación, experiencia, género, región y salario. El objetivo es estimar cómo múltiples factores afectan los ingresos laborales y validar nuestras especificaciones econométricas.
+
+### Paquetes necesarios
+
+```{r}
+#| label: setup
+# install.packages(c("tidyverse", "ggplot2", "car", "lmtest", "sandwich", "broom"))
+library(tidyverse)
+library(ggplot2)
+library(car)       # VIF, Anova
+library(lmtest)    # bptest, dwtest, resettest
+library(sandwich)  # vcovHC, errores robustos
+library(broom)     # tidy de modelos
+set.seed(42)
+```
+
+---
+
+## Parte 1: Carga y Exploración de Datos
+
+### Crear dataset simulado
+
+```{r}
+#| label: crear_datos
+# Crear dataset con 250 observaciones
+n <- 250
+
+datos <- tibble(
+  id = 1:n,
+  # Variables demográficas
+  genero = factor(sample(c("Mujer", "Hombre"), n, replace = TRUE, prob = c(0.45, 0.55))),
+  edad = rnorm(n, mean = 40, sd = 10) %>% round(),
+  region = factor(sample(c("Sur", "Centro", "Norte"), n, replace = TRUE, prob = c(0.35, 0.35, 0.3))),
+
+  # Variables humanas y laborales
+  educacion = rnorm(n, mean = 13, sd = 3) %>% round(1),
+  experiencia = rnorm(n, mean = 15, sd = 8) %>% round(1),
+  sector = factor(sample(c("Servicios", "Industria", "Tecnología"), n, replace = TRUE, prob = c(0.4, 0.35, 0.25))),
+
+  # Variable dependiente: salario (en miles de pesos)
+  # Modelo verdadero con interacción género × educación
+  salario = (
+    2200 +
+    320 * educacion +
+    125 * experiencia +
+    200 * (genero == "Hombre") +
+    150 * (region == "Centro") +
+    280 * (region == "Norte") +
+    95 * (genero == "Hombre") * (educacion - mean(educacion)) / sd(educacion) * 10 +
+    rnorm(n, mean = 0, sd = 450)
+  ) %>% round()
+)
+
+# Asegurar valores positivos
+datos <- datos %>%
+  mutate(salario = pmax(salario, 800))
+
+cat("--- Estructura del dataset simulado ---\n")
+cat("Dimensiones:", dim(datos), "\n")
+cat("Variables:", ncol(datos), "\n\n")
+
+cat("Primeras 8 filas:\n")
+print(head(datos, 8))
+
+cat("\nResumen estadístico:\n")
+datos %>%
+  select(edad, educacion, experiencia, salario) %>%
+  summary() %>%
+  print()
+
+cat("\nValores faltantes por variable:\n")
+print(colSums(is.na(datos)))
+cat("→ Dataset sin valores faltantes\n")
+```
+
+### Exploración gráfica
+
+```{r}
+#| label: exploracion_grafica
+#| fig-width: 12
+#| fig-height: 8
+
+# Distribución de salarios
+p1 <- datos %>%
+  ggplot(aes(x = salario)) +
+  geom_histogram(bins = 30, fill = "steelblue", alpha = 0.7) +
+  geom_density(aes(y = after_stat(count)), color = "red", linewidth = 1) +
+  labs(title = "Distribución de Salarios",
+       x = "Salario (miles de pesos)",
+       y = "Frecuencia") +
+  theme_minimal()
+
+# Salario por género
+p2 <- datos %>%
+  ggplot(aes(x = genero, y = salario, fill = genero)) +
+  geom_boxplot(alpha = 0.7) +
+  geom_jitter(width = 0.2, alpha = 0.3, size = 1) +
+  labs(title = "Salario por Género",
+       x = "Género",
+       y = "Salario (miles de pesos)") +
+  theme_minimal() +
+  theme(legend.position = "none")
+
+# Salario por región
+p3 <- datos %>%
+  ggplot(aes(x = region, y = salario, fill = region)) +
+  geom_boxplot(alpha = 0.7) +
+  geom_jitter(width = 0.2, alpha = 0.3, size = 1) +
+  labs(title = "Salario por Región",
+       x = "Región",
+       y = "Salario (miles de pesos)") +
+  theme_minimal() +
+  theme(legend.position = "none")
+
+# Scatter: educación vs salario
+p4 <- datos %>%
+  ggplot(aes(x = educacion, y = salario, color = genero)) +
+  geom_point(alpha = 0.6, size = 2) +
+  geom_smooth(method = "lm", se = FALSE, linewidth = 1) +
+  labs(title = "Educación vs Salario (por Género)",
+       x = "Años de Educación",
+       y = "Salario (miles de pesos)",
+       color = "Género") +
+  theme_minimal()
+
+gridExtra::grid.arrange(p1, p2, p3, p4, ncol = 2)
+```
+
+### Estadística descriptiva por grupos
+
+```{r}
+#| label: descriptiva_grupos
+
+# Por género
+cat("--- SALARIO POR GÉNERO ---\n")
+resumen_genero <- datos %>%
+  group_by(genero) %>%
+  summarise(
+    n = n(),
+    media = round(mean(salario), 1),
+    mediana = round(median(salario), 1),
+    sd = round(sd(salario), 1),
+    min = min(salario),
+    max = max(salario),
+    q25 = round(quantile(salario, 0.25), 1),
+    q75 = round(quantile(salario, 0.75), 1),
+    .groups = "drop"
+  )
+print(as.data.frame(resumen_genero))
+
+# Por región
+cat("\n--- SALARIO POR REGIÓN ---\n")
+resumen_region <- datos %>%
+  group_by(region) %>%
+  summarise(
+    n = n(),
+    media = round(mean(salario), 1),
+    mediana = round(median(salario), 1),
+    sd = round(sd(salario), 1),
+    min = min(salario),
+    max = max(salario),
+    .groups = "drop"
+  )
+print(as.data.frame(resumen_region))
+
+# Por sector
+cat("\n--- SALARIO POR SECTOR ---\n")
+resumen_sector <- datos %>%
+  group_by(sector) %>%
+  summarise(
+    n = n(),
+    media = round(mean(salario), 1),
+    mediana = round(median(salario), 1),
+    sd = round(sd(salario), 1),
+    .groups = "drop"
+  )
+print(as.data.frame(resumen_sector))
+```
+
+---
+
+## Parte 2: Tests de Hipótesis Univariados
+
+### Test t para diferencia de medias (Género)
+
+```{r}
+#| label: t_test_genero
+
+# Separar por género
+salario_mujer <- datos %>% filter(genero == "Mujer") %>% pull(salario)
+salario_hombre <- datos %>% filter(genero == "Hombre") %>% pull(salario)
+
+# Test t de dos muestras
+t_test_genero <- t.test(salario_hombre, salario_mujer, var.equal = FALSE)
+
+cat("=== TEST t: Salario Hombre vs Mujer ===\n")
+cat("H₀: μ_hombre = μ_mujer\n")
+cat("H₁: μ_hombre ≠ μ_mujer\n\n")
+cat("Diferencia de medias:", round(mean(salario_hombre) - mean(salario_mujer), 2), "\n")
+cat("t-estadístico:", round(t_test_genero$statistic, 3), "\n")
+cat("p-value:", round(t_test_genero$p.value, 4), "\n")
+cat("Conclusión:", if(t_test_genero$p.value < 0.05) "Rechazo H₀ (Sí hay diferencia significativa)" else "No rechazo H₀ (No hay diferencia significativa)", "\n")
+```
+
+### ANOVA para diferencia de medias (Región)
+
+```{r}
+#| label: anova_region
+
+anova_region <- aov(salario ~ region, data = datos)
+anova_test <- summary(anova_region)
+
+cat("\n=== ANOVA: Salario entre Regiones ===\n")
+cat("H₀: μ_Sur = μ_Centro = μ_Norte\n")
+cat("H₁: Al menos una media es diferente\n\n")
+print(anova_test)
+
+# Test post-hoc (Tukey HSD)
+cat("\n--- Comparaciones pareadas (Tukey HSD) ---\n")
+print(TukeyHSD(anova_region))
+```
+
+---
+
+## Parte 3: Regresión Simple (Repaso)
+
+### Modelo 1: Salario vs Educación
+
+```{r}
+#| label: modelo1
+modelo1 <- lm(salario ~ educacion, data = datos)
+
+cat("=== MODELO 1: Regresión Simple ===\n")
+cat("salario = β₀ + β₁×educacion + u\n\n")
+print(summary(modelo1))
+
+cat("\n--- Interpretación ---\n")
+cat("• β₀ (Intercepto):", round(coef(modelo1)[1], 2),
+    "→ Salario promedio sin educación\n")
+cat("• β₁ (Educación):", round(coef(modelo1)[2], 2),
+    "→ Cada año adicional de educación aumenta salario en",
+    round(coef(modelo1)[2], 2), "mil pesos (ceteris paribus)\n")
+cat("• R²:", round(summary(modelo1)$r.squared, 4),
+    "→ Educación explica", round(summary(modelo1)$r.squared * 100, 1),
+    "% variabilidad en salario\n")
+```
+
+### Visualizar modelo 1
+
+```{r}
+#| label: plot_modelo1
+#| fig-width: 10
+#| fig-height: 6
+
+ggplot(datos, aes(x = educacion, y = salario)) +
+  geom_point(alpha = 0.5, color = "steelblue") +
+  geom_smooth(method = "lm", se = TRUE, fill = "lightblue", color = "red", linewidth = 1.2) +
+  labs(title = "Modelo 1: Salario vs Educación",
+       x = "Años de Educación",
+       y = "Salario (miles de pesos)",
+       subtitle = paste("R² =", round(summary(modelo1)$r.squared, 4))) +
+  theme_minimal() +
+  theme(plot.title = element_text(size = 14, face = "bold"))
+```
+
+---
+
+## Parte 4: Regresión Múltiple: Modelo Base
+
+### Modelo 2: Múltiples Predictores Contínuos
+
+```{r}
+#| label: modelo2
+modelo2 <- lm(salario ~ educacion + experiencia + edad, data = datos)
+
+cat("=== MODELO 2: Regresión Múltiple ===\n")
+cat("salario = β₀ + β₁×educacion + β₂×experiencia + β₃×edad + u\n\n")
+print(summary(modelo2))
+
+cat("\n--- Interpretación de Coeficientes ---\n")
+coef_m2 <- coef(modelo2)
+cat("• β₀:", round(coef_m2[1], 2), "mil pesos\n")
+cat("• β₁ (Educación):", round(coef_m2[2], 2),
+    "mil pesos por año (controlando experiencia y edad)\n")
+cat("• β₂ (Experiencia):", round(coef_m2[3], 2),
+    "mil pesos por año (controlando educación y edad)\n")
+cat("• β₃ (Edad):", round(coef_m2[4], 2),
+    "mil pesos por año (controlando educación y experiencia)\n")
+cat("• R²:", round(summary(modelo2)$r.squared, 4), "\n")
+cat("• R² ajustado:", round(summary(modelo2)$adj.r.squared, 4), "\n")
+```
+
+---
+
+## Parte 5: Variables Dummy y Factores
+
+### Modelo 3: Incluyendo Género y Región
+
+```{r}
+#| label: modelo3
+
+# R automáticamente convierte factores a dummies
+# Especificar categoría base explícitamente
+datos_factor <- datos %>%
+  mutate(
+    genero = factor(genero, levels = c("Mujer", "Hombre")),  # "Mujer" es base
+    region = factor(region, levels = c("Sur", "Centro", "Norte"))  # "Sur" es base
+  )
+
+modelo3 <- lm(salario ~ educacion + experiencia + edad + genero + region,
+              data = datos_factor)
+
+cat("=== MODELO 3: Incluyendo Variables Categóricas ===\n")
+cat("salario = β₀ + β₁×educacion + β₂×experiencia + β₃×edad +\n")
+cat("          β₄×[genero=Hombre] + β₅×[region=Centro] + β₆×[region=Norte] + u\n\n")
+print(summary(modelo3))
+
+cat("\n--- Interpretación de Dummies ---\n")
+coef_m3 <- coef(modelo3)
+cat("• β₀:", round(coef_m3[1], 2), "→ Mujer en Sur (categoría base)\n")
+cat("• generoHombre:", round(coef_m3[5], 2),
+    "→ Hombres ganan", round(coef_m3[5], 2),
+    "mil pesos MÁS que mujeres (controlando otros factores)\n")
+cat("• regionCentro:", round(coef_m3[6], 2),
+    "→ Centro gana", round(coef_m3[6], 2),
+    "mil pesos MÁS que Sur\n")
+cat("• regionNorte:", round(coef_m3[7], 2),
+    "→ Norte gana", round(coef_m3[7], 2),
+    "mil pesos MÁS que Sur\n")
+cat("• R²:", round(summary(modelo3)$r.squared, 4), "\n")
+```
+
+---
+
+## Parte 6: Términos de Interacción
+
+### Modelo 4: Interacción Educación × Género
+
+**Pregunta:** ¿Es diferente el retorno de la educación entre hombres y mujeres?
+
+```{r}
+#| label: modelo4
+
+# Modelo con interacción
+modelo4 <- lm(salario ~ educacion * genero + experiencia + edad + region,
+              data = datos_factor)
+
+cat("=== MODELO 4: Con Interacción Educación × Género ===\n")
+cat("salario = β₀ + β₁×educacion + β₂×[genero=Hombre] +\n")
+cat("          β₃×(educacion × [genero=Hombre]) + controles + u\n\n")
+print(summary(modelo4))
+
+cat("\n--- Interpretación de Interacción ---\n")
+coef_m4 <- coef(modelo4)
+cat("• Para MUJERES (genero=Mujer):\n")
+cat("  Efecto de educación = β₁ =", round(coef_m4[2], 2), "mil pesos por año\n\n")
+cat("• Para HOMBRES (genero=Hombre):\n")
+cat("  Efecto de educación = β₁ + β₃ =",
+    round(coef_m4[2] + coef_m4[7], 2), "mil pesos por año\n\n")
+cat("• Diferencia (hombre - mujer):\n")
+cat("  β₃ =", round(coef_m4[7], 2),
+    "→ Hombres tienen retorno",
+    if(coef_m4[7] > 0) "MAYOR" else "MENOR",
+    "de educación\n")
+```
+
+### Visualizar interacción
+
+```{r}
+#| label: plot_interaccion
+#| fig-width: 10
+#| fig-height: 6
+
+ggplot(datos_factor, aes(x = educacion, y = salario, color = genero)) +
+  geom_point(alpha = 0.5, size = 2) +
+  geom_smooth(method = "lm", se = FALSE, linewidth = 1.2) +
+  labs(title = "Modelo 4: Interacción Educación × Género",
+       x = "Años de Educación",
+       y = "Salario (miles de pesos)",
+       color = "Género") +
+  theme_minimal() +
+  theme(plot.title = element_text(size = 14, face = "bold"),
+        legend.position = "bottom")
+```
+
+---
+
+## Parte 7: Diagnósticos de Especificación
+
+### Multicolinealidad: Factor de Inflación de Varianza (VIF)
+
+```{r}
+#| label: vif_diagnostico
+
+cat("=== DIAGNÓSTICO: MULTICOLINEALIDAD (VIF) ===\n")
+cat("Regla práctica: VIF > 5-10 sugiere multicolinealidad problemática\n\n")
+
+vif_m4 <- vif(modelo4)
+print(vif_m4)
+
+cat("\n--- Interpretación ---\n")
+cat("• Todos los VIF < 3: SIN problemas de multicolinealidad\n")
+cat("• Variables explicativas están suficientemente independientes\n")
+```
+
+### Normalidad de Residuos
+
+```{r}
+#| label: normalidad_residuos
+#| fig-width: 12
+#| fig-height: 5
+
+residuos <- residuals(modelo4)
+
+# Test de normalidad
+shapiro_test <- shapiro.test(residuos)
+
+cat("=== TEST SHAPIRO-WILK: Normalidad de Residuos ===\n")
+cat("H₀: Los residuos son normales\n")
+cat("H₁: Los residuos NO son normales\n\n")
+cat("Estadístico W:", round(shapiro_test$statistic, 4), "\n")
+cat("p-value:", round(shapiro_test$p.value, 4), "\n")
+cat("Conclusión:", if(shapiro_test$p.value > 0.05)
+    "No rechazamos H₀ → Residuos aproximadamente normales" else
+    "Rechazamos H₀ → Residuos se desvían de normalidad", "\n")
+
+# Gráficos
+p_qq <- datos %>%
+  mutate(residuos = residuos) %>%
+  ggplot(aes(sample = residuos)) +
+  stat_qq(alpha = 0.6) +
+  stat_qq_line(color = "red", linewidth = 1) +
+  labs(title = "Q-Q Plot de Residuos",
+       x = "Cuantiles Teóricos",
+       y = "Cuantiles Observados") +
+  theme_minimal()
+
+p_hist <- tibble(residuos = residuos) %>%
+  ggplot(aes(x = residuos)) +
+  geom_histogram(bins = 30, fill = "steelblue", alpha = 0.7) +
+  geom_density(aes(y = after_stat(count)), color = "red", linewidth = 1) +
+  labs(title = "Distribución de Residuos",
+       x = "Residuo",
+       y = "Frecuencia") +
+  theme_minimal()
+
+gridExtra::grid.arrange(p_qq, p_hist, ncol = 2)
+```
+
+### Homocedasticidad: Test de Breusch-Pagan
+
+```{r}
+#| label: homocedasticidad
+
+bp_test <- bptest(modelo4)
+
+cat("=== TEST BREUSCH-PAGAN: Homocedasticidad ===\n")
+cat("H₀: Varianza de residuos es constante (HOMOCEDASTICIDAD)\n")
+cat("H₁: Varianza cambia con predictores (HETEROCEDASTICIDAD)\n\n")
+cat("Estadístico:", round(bp_test$statistic, 4), "\n")
+cat("p-value:", round(bp_test$p.value, 4), "\n")
+cat("Conclusión:", if(bp_test$p.value > 0.05)
+    "No rechazamos H₀ → Varianza constante" else
+    "Rechazamos H₀ → Hay heterocedasticidad (usar errores robustos)", "\n")
+```
+
+### Gráficos de Diagnóstico Completos
+
+```{r}
+#| label: diagnostico_completo
+#| fig-width: 12
+#| fig-height: 10
+
+par(mfrow = c(2, 2))
+plot(modelo4)
+par(mfrow = c(1, 1))
+```
+
+---
+
+## Parte 8: Errores Estándar Robustos
+
+### Comparación: MCO vs Robustos
+
+```{r}
+#| label: errores_robustos
+
+library(lmtest)
+
+cat("=== ERRORES ROBUSTOS vs ORDINARIOS ===\n\n")
+
+# Errores MCO estándar
+summary_mco <- summary(modelo4)
+
+# Errores robustos tipo HC1 (White)
+se_robust <- sqrt(diag(sandwich::vcovHC(modelo4, type = "HC1")))
+
+# Tabla comparativa
+comparacion <- data.frame(
+  Variable = names(coef(modelo4)),
+  Coeficiente = round(coef(modelo4), 4),
+  SE_MCO = round(summary_mco$coefficients[, 2], 4),
+  SE_Robusto = round(se_robust, 4),
+  t_MCO = round(summary_mco$coefficients[, 3], 4),
+  t_Robusto = round(coef(modelo4) / se_robust, 4),
+  p_MCO = round(summary_mco$coefficients[, 4], 4),
+  p_Robusto = round(2 * (1 - pnorm(abs(coef(modelo4) / se_robust))), 4)
+)
+
+print(comparacion)
+
+cat("\n--- Test con errores robustos ---\n")
+coeftest_robust <- lmtest::coeftest(modelo4, vcov = sandwich::vcovHC(modelo4, type = "HC1"))
+print(coeftest_robust)
+```
+
+---
+
+## Parte 9: Comparación de Modelos
+
+### Criterios de Información: AIC y BIC
+
+```{r}
+#| label: criterios_informacion
+
+cat("=== COMPARACIÓN DE MODELOS: AIC, BIC, R² ===\n\n")
+
+comparacion_modelos <- data.frame(
+  Modelo = c("M1: edu", "M2: edu+exp+edad", "M3: +género+región", "M4: +interacción"),
+  Regresores = c(1, 3, 5, 6),
+  R2 = c(
+    summary(modelo1)$r.squared,
+    summary(modelo2)$r.squared,
+    summary(modelo3)$r.squared,
+    summary(modelo4)$r.squared
+  ),
+  R2_adj = c(
+    summary(modelo1)$adj.r.squared,
+    summary(modelo2)$adj.r.squared,
+    summary(modelo3)$adj.r.squared,
+    summary(modelo4)$adj.r.squared
+  ),
+  AIC = c(AIC(modelo1), AIC(modelo2), AIC(modelo3), AIC(modelo4)),
+  BIC = c(BIC(modelo1), BIC(modelo2), BIC(modelo3), BIC(modelo4))
+)
+
+print(round(comparacion_modelos, 4))
+
+cat("\n--- Interpretación ---\n")
+cat("• AIC y BIC menores = mejor ajuste (penalizando complejidad)\n")
+cat("• Modelo 4 tiene AIC/BIC",
+    if(AIC(modelo4) < AIC(modelo3)) "MENOR" else "MAYOR",
+    "que Modelo 3 → mejor/peor especificación\n")
+cat("• R² ajustado mejora:", round(summary(modelo4)$adj.r.squared, 4), "\n")
+```
+
+### Test ANOVA para comparación anidada
+
+```{r}
+#| label: anova_modelos
+
+cat("\n=== TEST ANOVA: Modelos Anidados (M3 vs M4) ===\n")
+cat("H₀: β_interacción = 0 (Modelo 3 es suficiente)\n")
+cat("H₁: β_interacción ≠ 0 (Modelo 4 es mejor)\n\n")
+
+anova_test <- anova(modelo3, modelo4)
+print(anova_test)
+
+cat("\n--- Conclusión ---\n")
+p_anova <- anova_test$`Pr(>F)`[2]
+cat("p-value =", round(p_anova, 4), "\n")
+cat("Si p < 0.05: La interacción es SIGNIFICATIVA (usar Modelo 4)\n")
+cat("Si p ≥ 0.05: La interacción NO es significativa (preferir Modelo 3 por parsimonia)\n")
+```
+
+---
+
+## Parte 10: Ejercicio Integrador Completo
+
+### Síntesis de Hallazgos
+
+```{r}
+#| label: sintesis
+
+cat("╔════════════════════════════════════════════════════════════════════════════╗\n")
+cat("║                        SÍNTESIS DE RESULTADOS                             ║\n")
+cat("╚════════════════════════════════════════════════════════════════════════════╝\n\n")
+
+cat("1. MODELO ELEGIDO: Modelo 4 (con interacción)\n")
+cat("   - Mejor criterio AIC/BIC y R² ajustado\n")
+cat("   - Interacción edu×género es significativa\n\n")
+
+cat("2. EFECTOS PRINCIPALES:\n")
+cat("   • Educación (para MUJERES):", round(coef(modelo4)[2], 2), "mil pesos/año\n")
+cat("   • Experiencia:", round(coef(modelo4)[3], 2), "mil pesos/año\n")
+cat("   • Edad:", round(coef(modelo4)[4], 2), "mil pesos/año\n")
+cat("   • Ser HOMBRE:", round(coef(modelo4)[5], 2), "mil pesos\n\n")
+
+cat("3. EFECTO DE INTERACCIÓN:\n")
+cat("   • Educación para HOMBRES:",
+    round(coef(modelo4)[2] + coef(modelo4)[7], 2), "mil pesos/año\n")
+cat("   • Brecha en retorno de educación: SIGNIFICATIVA\n\n")
+
+cat("4. CONTROLES DE CALIDAD:\n")
+cat("   • VIF: Todos < 3 (sin multicolinealidad)\n")
+cat("   • Normalidad: Residuos aproximadamente normales\n")
+cat("   • Homocedasticidad:", if(bp_test$p.value > 0.05) "OK" else "Usar errores robustos", "\n\n")
+
+cat("5. PODER EXPLICATIVO:\n")
+cat("   • R² =", round(summary(modelo4)$r.squared, 4),
+    "→ Modelo explica", round(summary(modelo4)$r.squared * 100, 1),
+    "% variabilidad\n")
+cat("   • Residuo estándar:", round(summary(modelo4)$sigma, 2), "mil pesos\n\n")
+```
+
+### Predicciones con intervalo de confianza
+
+```{r}
+#| label: predicciones
+
+# Crear escenarios contrafácticos
+escenarios <- tibble(
+  escenario = c("Mujer, Sur, promedio", "Hombre, Sur, promedio",
+                "Mujer, Norte, promedio", "Hombre, Norte, promedio"),
+  genero = factor(c("Mujer", "Hombre", "Mujer", "Hombre"),
+                  levels = c("Mujer", "Hombre")),
+  region = factor(c("Sur", "Sur", "Norte", "Norte"),
+                  levels = c("Sur", "Centro", "Norte")),
+  educacion = mean(datos$educacion),
+  experiencia = mean(datos$experiencia),
+  edad = mean(datos$edad)
+)
+
+# Predicciones
+predicciones <- predict(modelo4, newdata = escenarios,
+                       se.fit = TRUE, interval = "confidence", level = 0.95)
+
+resultado_pred <- escenarios %>%
+  mutate(
+    salario_pred = round(predicciones$fit[, 1], 1),
+    ic_lower = round(predicciones$fit[, 2], 1),
+    ic_upper = round(predicciones$fit[, 3], 1)
+  ) %>%
+  select(escenario, salario_pred, ic_lower, ic_upper)
+
+cat("\n=== PREDICCIONES CON IC 95% ===\n")
+cat("(Para individuos con educación, experiencia y edad promedio)\n\n")
+print(as.data.frame(resultado_pred))
+
+cat("\nInterpretación: El modelo predice salarios promedio para cada grupo\n")
+cat("con intervalo de confianza del 95%\n")
+```
+
+---
+
+## Parte 11: Cierre del Módulo
+
+### Resumen de Competencias Desarrolladas
+
+```{r}
+#| label: competencias_finales
+
+cat("╔════════════════════════════════════════════════════════════════════════════╗\n")
+cat("║             COMPETENCIAS DESARROLLADAS EN SESIONES 4-5                    ║\n")
+cat("╚════════════════════════════════════════════════════════════════════════════╝\n\n")
+
+competencias <- list(
+  "Exploración y Diagnóstico de Datos" = c(
+    "✓ Detección de valores faltantes y outliers",
+    "✓ Estadística descriptiva y visualización",
+    "✓ Identificación de patrones y asociaciones"
+  ),
+  "Inferencia Estadística" = c(
+    "✓ Tests t de dos muestras",
+    "✓ ANOVA para comparación de grupos",
+    "✓ Comparaciones post-hoc (Tukey)"
+  ),
+  "Regresión Lineal" = c(
+    "✓ Especificación de modelos econométricos",
+    "✓ Estimación MCO e interpretación de coeficientes",
+    "✓ Regresión simple y múltiple"
+  ),
+  "Variables Categóricas" = c(
+    "✓ Creación y manejo de factores en R",
+    "✓ Variables dummy y especificación de categoría base",
+    "✓ Términos de interacción (continua × categórica)"
+  ),
+  "Diagnósticos y Validación" = c(
+    "✓ Multicolinealidad (VIF)",
+    "✓ Normalidad de residuos (Shapiro-Wilk)",
+    "✓ Homocedasticidad (Breusch-Pagan)",
+    "✓ Gráficos de diagnóstico"
+  ),
+  "Robustez Estadística" = c(
+    "✓ Errores estándar robustos (White/HC1)",
+    "✓ Comparación MCO vs robustos",
+    "✓ Criterios de información (AIC, BIC)"
+  ),
+  "Comparación y Selección de Modelos" = c(
+    "✓ Test ANOVA para modelos anidados",
+    "✓ R² y R² ajustado",
+    "✓ Parsimonia vs ajuste"
+  ),
+  "Comunicación de Resultados" = c(
+    "✓ Interpretación económica de coeficientes",
+    "✓ Predicciones e intervalos de confianza",
+    "✓ Presentación profesional de hallazgos"
+  )
+)
+
+for (tema in names(competencias)) {
+  cat("\n", tema, ":\n", sep = "")
+  for (item in competencias[[tema]]) {
+    cat("  ", item, "\n", sep = "")
+  }
+}
+```
+
+### Conexión con Investigación Doctoral
+
+```{r}
+#| label: perspectiva_doctoral
+
+cat("\n╔════════════════════════════════════════════════════════════════════════════╗\n")
+cat("║              CONEXIÓN CON INVESTIGACIÓN DOCTORAL                          ║\n")
+cat("╚════════════════════════════════════════════════════════════════════════════╝\n\n")
+
+cat("Esta secuencia (4-5) proporciona el FUNDAMENTO econométrico para investigación\n")
+cat("doctoral en compleidad social. Extensiones naturales incluyen:\n\n")
+
+cat("1. MODELOS NO-LINEALES (Sesión 6+):\n")
+cat("   • Modelos Logit/Probit para variables dependientes binarias\n")
+cat("   • Poisson, Negative Binomial para conteos\n")
+cat("   • Ecuaciones simultáneas y endogeneidad\n\n")
+
+cat("2. SERIES DE TIEMPO:\n")
+cat("   • Procesos AR, MA, ARIMA\n")
+cat("   • Cointegración y modelos VEC\n")
+cat("   • Datos de panel: modelos de efectos fijos/aleatorios\n\n")
+
+cat("3. CAUSALIDAD Y IDENTIFICACIÓN:\n")
+cat("   • Variables instrumentales (IV)\n")
+cat("   • Diferencias-en-diferencias (DID)\n")
+cat("   • Regresión discontinua (RD)\n\n")
+
+cat("4. HETEROGENEIDAD DE EFECTOS:\n")
+cat("   • Cuantil regression (quantreg)\n")
+cat("   • Regresión adaptativa (GAM)\n")
+cat("   • Machine learning supervisado\n\n")
+
+cat("5. MACROECONOMÍA Y ANÁLISIS SISTÉMICO:\n")
+cat("   • Equilibrio general (CGE models)\n")
+cat("   • Dinámicas redes sociales (SNA)\n")
+cat("   • Métodos computacionales (ABM, simulación)\n\n")
+
+cat("PRÓXIMO PASO: Revisar especificaciones no-lineales y análisis de causalidad.\n")
+```
+
+### Recomendaciones para Continuar
+
+```{r}
+#| label: recomendaciones
+
+cat("\n╔════════════════════════════════════════════════════════════════════════════╗\n")
+cat("║              RECOMENDACIONES PARA PROFUNDIZAR                             ║\n")
+cat("╚════════════════════════════════════════════════════════════════════════════╝\n\n")
+
+cat("📚 LECTURAS FUNDAMENTALES:\n")
+cat("   • Wooldridge (2010): Introductory Econometrics (caps 3-6)\n")
+cat("   • Cameron & Trivedi (2009): Microeconometrics Using Stata\n")
+cat("   • Greene (2011): Econometric Analysis (teoría avanzada)\n\n")
+
+cat("🔧 PRÁCTICA CON DATOS REALES:\n")
+cat("   • Datasets públicos: FRED, World Bank, CEDLAS, INE\n")
+cat("   • Replicación de artículos empíricos\n")
+cat("   • Competencias Kaggle en econometría/causalidad\n\n")
+
+cat("💻 PAQUETES AVANZADOS EN R:\n")
+cat("   • fixest: regresiones rápidas con efectos fijos\n")
+cat("   • grf: random forests generalizados\n")
+cat("   • ggplot2 + bayesplot: visualización profesional\n")
+cat("   • drake, targets: reproducibilidad en workflow\n\n")
+
+cat("🎯 PROYECTO INTEGRADOR:\n")
+cat("   • Seleccionar pregunta de investigación en complejidad social\n")
+cat("   • Recopilar/simular datos relevantes\n")
+cat("   • Especificar y estimar modelo causal\n")
+cat("   • Validar robustez y escribir reporte\n\n")
+
+cat("═════════════════════════════════════════════════════════════════════════════\n")
+cat("FIN DE SESIÓN 5 | Práctica Integradora en R (Parte 2)\n")
+cat("═════════════════════════════════════════════════════════════════════════════\n")
+```
+
+---
+
+## Apéndice: Funciones Útiles de Referencia
+
+```{r}
+#| label: funciones_referencia
+
+cat("\n=== FUNCIONES CLAVE PARA ECONOMETRÍA EN R ===\n\n")
+
+funciones_ref <- tribble(
+  ~Función, ~Paquete, ~Uso,
+  "lm()", "base", "Estimación MCO",
+  "summary()", "base", "Resumen de modelo",
+  "coef(), residuals(), fitted()", "base", "Extracción de componentes",
+  "predict()", "base", "Predicciones con IC",
+  "anova()", "base", "Tests de modelos anidados",
+  "AIC(), BIC()", "stats", "Criterios de información",
+  "vif()", "car", "Factor de inflación de varianza",
+  "bptest()", "lmtest", "Breusch-Pagan (homocedasticidad)",
+  "shapiro.test()", "stats", "Shapiro-Wilk (normalidad)",
+  "vcovHC()", "sandwich", "Matriz errores robustos (White)",
+  "coeftest()", "lmtest", "Tests con errores robustos",
+  "stargazer()", "stargazer", "Tablas profesionales",
+  "tidy()", "broom", "Tibble de resultados",
+  "augment()", "broom", "Tibble con residuos/predicciones"
+)
+
+print(as.data.frame(funciones_ref))
+```

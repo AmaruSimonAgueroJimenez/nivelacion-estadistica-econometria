@@ -1,0 +1,594 @@
+---
+title: "Sesión 4: Práctica Integradora en R (Parte 1)"
+subtitle: "Doctorado en Ciencias de la Complejidad Social — CICS, UDD"
+author: "Amaru Agüero (a.agueroj@udd.cl)"
+date: today
+format:
+  html:
+    theme: cosmo
+    toc: true
+    toc-depth: 3
+    code-fold: false
+    code-tools: true
+    self-contained: true
+lang: es
+execute:
+  warning: false
+  message: false
+---
+
+## Introducción
+
+En esta sesión realizamos **prácticas integrales** combinando pruebas de hipótesis y regresión lineal simple en R. Usaremos un dataset de encuesta social para aplicar herramientas estadísticas en análisis reales. Los objetivos son:
+
+1. Dominar las pruebas de hipótesis: t-test, prueba de proporciones, chi-cuadrado
+2. Estimar e interpretar regresiones lineales simples
+3. Validar supuestos del modelo lineal
+4. Visualizar resultados con `ggplot2`
+
+### Paquetes necesarios
+
+```{r}
+#| label: setup
+# install.packages(c("tidyverse", "ggplot2", "lmtest", "car"))
+library(tidyverse)
+library(ggplot2)
+library(lmtest)
+library(car)
+```
+
+---
+
+## 1. Carga y exploración de datos
+
+Trabajaremos con un dataset simulado de encuesta social que contiene variables sobre ingresos, educación, género y región.
+
+### 1.1 Crear el dataset
+
+```{r}
+#| label: crear-datos
+set.seed(2026)
+n <- 150
+
+# Crear dataset de encuesta social
+datos <- data.frame(
+  id = 1:n,
+  ingresos = rnorm(n, mean = 2200, sd = 800) +
+    seq(0, 1500, length.out = n),  # Correlación con educación
+  educacion = rnorm(n, mean = 13, sd = 3),
+  genero = sample(c("Hombre", "Mujer"), n, replace = TRUE,
+                  prob = c(0.52, 0.48)),
+  region = sample(c("Norte", "Centro", "Sur"), n, replace = TRUE),
+  empleo = sample(c("Empleado", "Desempleado"), n, replace = TRUE,
+                  prob = c(0.85, 0.15)),
+  satisfaccion = sample(1:5, n, replace = TRUE)  # Escala 1-5
+)
+
+# Corregir ingresos negativos (asegurar valores positivos)
+datos$ingresos <- pmax(datos$ingresos, 800)
+
+# Ver primeras filas
+head(datos, 10)
+```
+
+### 1.2 Exploración inicial
+
+```{r}
+#| label: exploracion
+dim(datos)
+str(datos)
+summary(datos)
+```
+
+**Interpretación:**
+- Tenemos 150 observaciones y 7 variables
+- Ingresos varían entre \$800 y aproximadamente \$4800
+- Educación promedio: ~13 años
+- Proporción empleo: 85% empleado, 15% desempleado
+
+---
+
+## 2. Estadística Descriptiva en R
+
+### 2.1 Medidas de tendencia central y dispersión
+
+```{r}
+#| label: estadistica-descriptiva
+# Por variable completa
+cat("INGRESOS:\n")
+cat("Media:", mean(datos$ingresos), "\n")
+cat("Mediana:", median(datos$ingresos), "\n")
+cat("Desv. Est.:", sd(datos$ingresos), "\n\n")
+
+# Resumen por grupos
+datos %>%
+  group_by(genero) %>%
+  summarise(
+    n = n(),
+    media_ingresos = mean(ingresos),
+    sd_ingresos = sd(ingresos),
+    media_educacion = mean(educacion),
+    .groups = 'drop'
+  )
+```
+
+### 2.2 Tablas de frecuencias
+
+```{r}
+#| label: tablas-frecuencia
+# Distribución por género
+table(datos$genero)
+
+# Distribución por región
+table(datos$region)
+
+# Tabla cruzada: género vs región
+table(datos$genero, datos$region)
+```
+
+---
+
+## 3. Pruebas de Hipótesis: t-test
+
+### 3.1 ¿Existe diferencia de ingresos entre hombres y mujeres?
+
+**Hipótesis:**
+- $H_0$: $\mu_{Hombre} = \mu_{Mujer}$ (No hay diferencia en ingresos promedio)
+- $H_a$: $\mu_{Hombre} \neq \mu_{Mujer}$ (Sí hay diferencia)
+
+**Solución:**
+
+```{r}
+#| label: t-test-genero
+# Prueba t de dos muestras independientes
+resultado_t <- t.test(ingresos ~ genero, data = datos)
+resultado_t
+```
+
+**Interpretación:**
+```{r}
+#| label: interpretacion-t-test
+cat("Estadístico t:", resultado_t$statistic, "\n")
+cat("Grados de libertad:", resultado_t$parameter, "\n")
+cat("p-value:", resultado_t$p.value, "\n\n")
+
+if (resultado_t$p.value < 0.05) {
+  cat("Conclusión: RECHAZAMOS H0 (p < 0.05)\n")
+  cat("Existe diferencia significativa en ingresos entre géneros.\n")
+} else {
+  cat("Conclusión: NO RECHAZAMOS H0 (p >= 0.05)\n")
+  cat("No hay evidencia de diferencia significativa en ingresos.\n")
+}
+```
+
+### 3.2 Ejercicio: ¿Hay diferencia de ingresos entre empleados y desempleados?
+
+```{r}
+#| label: ejercicio-t-test
+# Instrucción: Realiza un t-test para comparar ingresos por estado de empleo
+# Escribe tu código aquí (sustituye los puntos suspensivos)
+
+resultado_empleo <- t.test(ingresos ~ empleo, data = datos)
+resultado_empleo
+
+# Interpreta el resultado
+cat("\nInterpretación:\n")
+if (resultado_empleo$p.value < 0.05) {
+  cat("p-value =", round(resultado_empleo$p.value, 4), "< 0.05\n")
+  cat("Existe diferencia significativa de ingresos por empleo.\n")
+}
+```
+
+**Solución comentada:**
+Esperamos diferencia significativa en ingresos entre empleados y desempleados (desempleados típicamente ganan menos).
+
+---
+
+## 4. Prueba de Proporciones
+
+### 4.1 ¿Es la proporción de mujeres igual a 0.5?
+
+**Hipótesis:**
+- $H_0$: $p = 0.5$ (50% mujeres)
+- $H_a$: $p \neq 0.5$
+
+**Solución:**
+
+```{r}
+#| label: prop-test
+# Frecuencia de género
+tabla_genero <- table(datos$genero)
+tabla_genero
+
+# Contar mujeres
+n_mujeres <- tabla_genero["Mujer"]
+n_total <- sum(tabla_genero)
+
+# Prueba de proporciones
+resultado_prop <- prop.test(n_mujeres, n_total, p = 0.5)
+resultado_prop
+
+cat("\nProporción observada:", n_mujeres / n_total, "\n")
+```
+
+### 4.2 Ejercicio: ¿Es la proporción de desempleados igual a 0.20?
+
+```{r}
+#| label: ejercicio-prop-test
+# Instrucción: Prueba si la proporción de desempleados es diferente de 0.20 (20%)
+
+tabla_empleo <- table(datos$empleo)
+n_desempleados <- tabla_empleo["Desempleado"]
+n_total_empleo <- sum(tabla_empleo)
+
+resultado_desempleo <- prop.test(n_desempleados, n_total_empleo, p = 0.20)
+resultado_desempleo
+```
+
+---
+
+## 5. Prueba Chi-Cuadrado: Independencia
+
+### 5.1 ¿Son el género y la región independientes?
+
+**Hipótesis:**
+- $H_0$: Género y región son independientes
+- $H_a$: Género y región están asociados
+
+**Solución:**
+
+```{r}
+#| label: chi-square
+# Crear tabla de contingencia
+tabla_contin <- table(datos$genero, datos$region)
+print("Tabla de contingencia:")
+print(tabla_contin)
+
+# Prueba chi-cuadrado
+resultado_chi <- chisq.test(tabla_contin)
+resultado_chi
+
+cat("\n\nFrecuencias esperadas:\n")
+print(resultado_chi$expected)
+```
+
+**Interpretación:**
+```{r}
+#| label: interpretacion-chi
+if (resultado_chi$p.value < 0.05) {
+  cat("p-value =", resultado_chi$p.value, "< 0.05\n")
+  cat("RECHAZAMOS H0: Existe asociación entre género y región.\n")
+} else {
+  cat("p-value =", resultado_chi$p.value, ">= 0.05\n")
+  cat("NO RECHAZAMOS H0: Género y región son independientes.\n")
+}
+```
+
+### 5.2 Ejercicio: ¿Están asociados empleo y región?
+
+```{r}
+#| label: ejercicio-chi-square
+# Instrucción: Prueba la independencia entre empleo y región
+
+tabla_empleo_region <- table(datos$empleo, datos$region)
+print(tabla_empleo_region)
+
+resultado_emp_reg <- chisq.test(tabla_empleo_region)
+resultado_emp_reg
+```
+
+---
+
+## 6. Regresión Lineal Simple
+
+### 6.1 Modelo: Ingresos explicados por Educación
+
+**Especificación:** $\text{ingresos}_i = \beta_0 + \beta_1 \cdot \text{educacion}_i + u_i$
+
+```{r}
+#| label: regresion-simple
+# Estimar el modelo
+modelo1 <- lm(ingresos ~ educacion, data = datos)
+
+# Ver resumen completo
+summary(modelo1)
+```
+
+**Interpretación:**
+
+```{r}
+#| label: interpret-regresion
+coef_edu <- coef(modelo1)[2]
+coef_const <- coef(modelo1)[1]
+
+cat("Ecuación estimada:\n")
+cat("ingresos = ", round(coef_const, 2), " + ",
+    round(coef_edu, 2), " * educacion\n\n")
+
+cat("Interpretación:\n")
+cat("- Intercepto:", round(coef_const, 2),
+    "(Ingreso cuando educación = 0)\n")
+cat("- Pendiente:", round(coef_edu, 2),
+    "(Cada año adicional de educación\n")
+cat("   se asocia con", round(coef_edu, 2), "USD más de ingreso)\n")
+
+# R-squared
+r2 <- summary(modelo1)$r.squared
+cat("\nR-squared:", round(r2, 3),
+    "(la educación explica", round(r2*100, 1), "% de la varianza en ingresos)\n")
+```
+
+### 6.2 Ejercicio: Modelo de Educación en Ingresos
+
+```{r}
+#| label: ejercicio-regresion
+# Instrucción: Interpreta manualmente los coeficientes
+# ¿Cuál es el ingreso predicho para alguien con 15 años de educación?
+
+pred_15 <- coef_const + coef_edu * 15
+cat("Ingreso predicho con 15 años de educación:", round(pred_15, 2), "\n")
+
+# Usar predict() para validar
+predict(modelo1, newdata = data.frame(educacion = 15))
+```
+
+---
+
+## 7. Diagnósticos del Modelo
+
+### 7.1 Validación de Supuestos OLS
+
+Los supuestos del modelo lineal son:
+1. **Linealidad:** relación lineal entre X e Y
+2. **Normalidad:** residuos distribuidos normalmente
+3. **Homocedasticidad:** varianza constante de residuos
+4. **No autocorrelación:** residuos independientes
+
+```{r}
+#| label: diagnosticos
+# Gráficos de diagnóstico (4 gráficos automáticos)
+par(mfrow = c(2, 2))
+plot(modelo1)
+par(mfrow = c(1, 1))
+```
+
+### 7.2 Prueba de Shapiro-Wilk (Normalidad)
+
+```{r}
+#| label: normalidad
+residuos <- residuals(modelo1)
+
+resultado_sw <- shapiro.test(residuos)
+resultado_sw
+
+if (resultado_sw$p.value > 0.05) {
+  cat("p-value =", resultado_sw$p.value, "> 0.05\n")
+  cat("NO RECHAZAMOS H0: Los residuos son aproximadamente normales.\n")
+} else {
+  cat("p-value =", resultado_sw$p.value, "< 0.05\n")
+  cat("RECHAZAMOS H0: Posible violación de normalidad.\n")
+}
+```
+
+### 7.3 Prueba de Breusch-Pagan (Homocedasticidad)
+
+```{r}
+#| label: homocedasticidad
+resultado_bp <- bptest(modelo1)
+resultado_bp
+
+if (resultado_bp$p.value > 0.05) {
+  cat("\nNO RECHAZAMOS H0: La varianza es aproximadamente constante.\n")
+} else {
+  cat("\nRECHAZAMOS H0: Posible heteroscedasticidad.\n")
+}
+```
+
+---
+
+## 8. Visualización con ggplot2
+
+### 8.1 Gráfico de dispersión con línea de regresión
+
+```{r}
+#| label: grafico-regresion
+ggplot(datos, aes(x = educacion, y = ingresos)) +
+  geom_point(color = "#1F4E79", alpha = 0.6, size = 2.5) +
+  geom_smooth(method = "lm", se = TRUE,
+              color = "#2E86C1", fill = "#2E86C1", alpha = 0.2) +
+  labs(
+    title = "Relación: Educación vs. Ingresos",
+    x = "Años de Educación",
+    y = "Ingresos Mensuales (USD)",
+    caption = "Datos: Encuesta social (n=150)"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 14, face = "bold"),
+    axis.title = element_text(size = 11)
+  )
+```
+
+### 8.2 Gráfico de residuos
+
+```{r}
+#| label: grafico-residuos
+datos_diag <- tibble(
+  ajustados = fitted(modelo1),
+  residuos = residuals(modelo1)
+)
+
+ggplot(datos_diag, aes(x = ajustados, y = residuos)) +
+  geom_point(color = "#1F4E79", alpha = 0.6, size = 2.5) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "red", size = 1) +
+  labs(
+    title = "Residuos vs. Valores Ajustados",
+    x = "Valores Ajustados",
+    y = "Residuos"
+  ) +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, size = 12, face = "bold"))
+```
+
+### 8.3 Gráfico de ingresos por género
+
+```{r}
+#| label: grafico-genero
+ggplot(datos, aes(x = genero, y = ingresos, fill = genero)) +
+  geom_boxplot(alpha = 0.6) +
+  geom_jitter(width = 0.2, alpha = 0.3, size = 2) +
+  labs(
+    title = "Distribución de Ingresos por Género",
+    x = "Género",
+    y = "Ingresos Mensuales (USD)",
+    fill = "Género"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 12, face = "bold"),
+    legend.position = "right"
+  )
+```
+
+---
+
+## 9. Ejercicio Integrador Completo
+
+### Problema: Análisis de Factores que Explican Ingresos
+
+Realiza un análisis completo sobre los ingresos en la encuesta:
+
+**Parte A: Pruebas de Hipótesis**
+
+```{r}
+#| label: ejercicio-parte-a
+# 1. ¿Hay diferencia significativa de ingresos entre hombres y mujeres?
+#    (Realiza e interpreta un t-test)
+
+t_test_genero <- t.test(ingresos ~ genero, data = datos)
+print(t_test_genero)
+cat("\nConclusion sobre diferencia de género:\n")
+if (t_test_genero$p.value < 0.05) {
+  cat("SÍ hay diferencia significativa.\n")
+} else {
+  cat("NO hay diferencia significativa.\n")
+}
+
+# 2. ¿La proporción de empleados es diferente de 85%?
+#    (Realiza e interpreta una prueba de proporciones)
+
+tabla_emp <- table(datos$empleo)
+prop_test_emp <- prop.test(tabla_emp["Empleado"], sum(tabla_emp), p = 0.85)
+print(prop_test_emp)
+
+# 3. ¿Están asociados género y estado de empleo?
+#    (Realiza e interpreta un chi-cuadrado)
+
+tabla_genero_emp <- table(datos$genero, datos$empleo)
+chi_genero_emp <- chisq.test(tabla_genero_emp)
+print(chi_genero_emp)
+```
+
+**Parte B: Regresión Simple y Diagnósticos**
+
+```{r}
+#| label: ejercicio-parte-b
+# 4. Estima el modelo: ingresos ~ educacion
+#    Interpreta coeficientes, R², y significancia
+
+modelo_edu <- lm(ingresos ~ educacion, data = datos)
+summary(modelo_edu)
+
+# 5. ¿Son válidos los supuestos del modelo?
+#    Realiza Shapiro-Wilk y Breusch-Pagan
+
+residuos_edu <- residuals(modelo_edu)
+shapiro_test <- shapiro.test(residuos_edu)
+bp_test <- bptest(modelo_edu)
+
+cat("Shapiro-Wilk (normalidad):\n")
+print(shapiro_test)
+cat("\nBreusch-Pagan (homocedasticidad):\n")
+print(bp_test)
+
+# Interpretación
+cat("\nValidación de supuestos:\n")
+cat("Normalidad:", if(shapiro_test$p.value > 0.05) "✓ OK" else "✗ Violación", "\n")
+cat("Homocedasticidad:", if(bp_test$p.value > 0.05) "✓ OK" else "✗ Violación", "\n")
+```
+
+**Parte C: Visualización**
+
+```{r}
+#| label: ejercicio-parte-c
+# 6. Crea visualizaciones:
+#    - Scatter plot con línea de regresión
+#    - Boxplot de ingresos por género
+#    - Gráfico de residuos
+
+# Gráfico 1: Regresión
+g1 <- ggplot(datos, aes(x = educacion, y = ingresos)) +
+  geom_point(color = "#1F4E79", alpha = 0.5) +
+  geom_smooth(method = "lm", se = TRUE, color = "#2E86C1") +
+  labs(title = "Ingresos vs. Educación", x = "Educación (años)", y = "Ingresos (USD)") +
+  theme_minimal()
+
+# Gráfico 2: Por género
+g2 <- ggplot(datos, aes(x = genero, y = ingresos, fill = genero)) +
+  geom_boxplot(alpha = 0.6) +
+  labs(title = "Ingresos por Género", x = "Género", y = "Ingresos (USD)") +
+  theme_minimal() +
+  theme(legend.position = "none")
+
+# Mostrar gráficos
+gridExtra::grid.arrange(g1, g2, ncol = 2)
+```
+
+**Parte D: Reporte Final**
+
+```{r}
+#| label: ejercicio-parte-d
+# Resumen de hallazgos principales
+cat("=== REPORTE FINAL: ANÁLISIS DE INGRESOS ===\n\n")
+
+cat("1. DIFERENCIAS POR GÉNERO:\n")
+cat("   - Diferencia de ingresos significativa:",
+    if(t_test_genero$p.value < 0.05) "SÍ" else "NO", "\n")
+cat("   - p-value:", round(t_test_genero$p.value, 4), "\n\n")
+
+cat("2. FACTOR EDUCACIÓN:\n")
+cat("   - Coeficiente:", round(coef(modelo_edu)[2], 2),
+    "(cada año de educación suma", round(coef(modelo_edu)[2], 2), "USD)\n")
+cat("   - R²:", round(summary(modelo_edu)$r.squared, 3),
+    "(explica el", round(summary(modelo_edu)$r.squared*100, 1), "% de varianza)\n")
+cat("   - Significancia:",
+    if(summary(modelo_edu)$coefficients[2, 4] < 0.05) "***" else "No sig.", "\n\n")
+
+cat("3. SUPUESTOS DEL MODELO:\n")
+cat("   - Normalidad (Shapiro-Wilk):",
+    if(shapiro_test$p.value > 0.05) "✓ Cumplido" else "✗ Violado", "\n")
+cat("   - Homocedasticidad (BP):",
+    if(bp_test$p.value > 0.05) "✓ Cumplido" else "✗ Violado", "\n")
+```
+
+---
+
+## Resumen y Próximos Pasos
+
+### Conceptos Clave Cubiertos
+
+✓ Carga y exploración de datos en R
+✓ Estadística descriptiva (medidas de tendencia y dispersión)
+✓ Pruebas de hipótesis: t-test, prop.test, chisq.test
+✓ Regresión lineal simple: estimación e interpretación
+✓ Diagnóstico de supuestos: normalidad, homocedasticidad
+✓ Visualización con ggplot2
+
+### Próxima Sesión
+
+En **Sesión 5 (27 de marzo)** ampliaremos con:
+- Regresión lineal múltiple
+- Variables dummy (categóricas)
+- Interacciones entre variables
+- Errores estándar robustos
+- Workflow econométrico completo
