@@ -1,0 +1,446 @@
+\documentclass[aspectratio=169,11pt]{beamer}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[english]{babel}
+\usetheme{Madrid}
+\usecolortheme{whale}
+\definecolor{uddblue}{HTML}{1F4E79}
+\definecolor{uddlight}{HTML}{2E86C1}
+\setbeamercolor{structure}{fg=uddblue}
+\setbeamercolor{frametitle}{bg=uddblue,fg=white}
+\setbeamercolor{title}{bg=uddblue,fg=white}
+\setbeamercolor{block title}{bg=uddblue,fg=white}
+\setbeamercolor{block body}{bg=uddblue!10}
+\setbeamercolor{item}{fg=uddblue}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{listings}
+\usepackage{tikz}
+\usetikzlibrary{shapes,arrows,positioning,calc}
+\lstset{language=R,basicstyle=\ttfamily\scriptsize,keywordstyle=\color{uddblue}\bfseries,commentstyle=\color{gray},stringstyle=\color{uddlight},backgroundcolor=\color{uddblue!5},frame=single,rulecolor=\color{uddblue!30},breaklines=true,showstringspaces=false}
+\graphicspath{{figuras/}}
+\titlegraphic{\includegraphics[height=1.2cm]{logo_gobierno.png}}
+\institute[CICS — UDD]{Doctorado en Ciencias de la Complejidad Social — CICS, UDD}
+\newcommand{\highlight}[1]{\textcolor{uddlight}{\bfseries #1}}
+
+% Información del documento
+\title[Práctica R - Parte 1]{Práctica Integradora en R (Parte 1)\\Pruebas de Hipótesis y Regresión Simple}
+\author[A. Agüero]{Amaru Agüero}
+\date{26 de marzo de 2026}
+
+\begin{document}
+
+% Slide 1: Portada
+\begin{frame}
+  \titlepage
+\end{frame}
+
+% Slide 2: Agenda y Paquetes
+\begin{frame}[fragile]
+  \frametitle{Agenda de Hoy}
+  \small
+  \begin{itemize}
+    \item Carga y exploración de datos sociales en R
+    \item Estadística descriptiva: \texttt{summary()}, \texttt{head()}, \texttt{str()}
+    \item Pruebas de hipótesis: \textit{t}-test, prueba de proporciones
+    \item Prueba chi-cuadrado para independencia
+    \item Regresión simple: \texttt{lm()} y diagnósticos
+    \item Visualización de resultados con \texttt{ggplot2}
+    \item Ejercicio integrador
+  \end{itemize}
+
+  \vspace{0.5cm}
+  \textbf{Paquetes a instalar:}
+  \begin{lstlisting}
+install.packages("lmtest")      # Regression tests
+install.packages("sandwich")    # Robust errors
+install.packages("car")         # Diagnostic tests
+install.packages("stargazer")   # Regression tables
+install.packages("ggplot2")     # Graphics
+\end{lstlisting}
+\end{frame}
+
+% Slide 3: Carga de Datos en R
+\begin{frame}[fragile]
+  \frametitle{Carga de Datos Sociales en R}
+
+  \textbf{Formatos comunes:}
+  \begin{lstlisting}
+# CSV
+datos <- read.csv("datos_sociales.csv", encoding = "UTF-8")
+
+# Excel
+library(readxl)
+datos <- read_excel("datos.xlsx", sheet = "Sheet1")
+
+# Stata
+library(haven)
+datos <- read_dta("datos.dta")
+
+# Desde URL
+url <- "https://ejemplo.com/datos.csv"
+datos <- read.csv(url)
+  \end{lstlisting}
+
+  \small \textbf{Nota:} Verificar siempre codificación UTF-8 para caracteres españoles.
+\end{frame}
+
+% Slide 4: Exploración Inicial de Datos
+\begin{frame}[fragile]
+  \frametitle{Exploración de Datos: Primeros Pasos}
+
+  \begin{lstlisting}
+# Ver dimensiones
+dim(datos)              # filas x columnas
+
+# First and last rows
+head(datos, n=10)
+tail(datos, n=5)
+
+# Estructura del dataset
+str(datos)
+
+# Nombres de columnas
+names(datos)
+colnames(datos)
+
+# Clases de variables
+class(datos$variable)
+sapply(datos, class)
+  \end{lstlisting}
+
+  \small Estas funciones básicas nos permiten entender la estructura y calidad de nuestros datos.
+\end{frame}
+
+% Slide 5: Estadística Descriptiva en R
+\begin{frame}[fragile]
+  \frametitle{Estadística Descriptiva (I): \texttt{summary()}}
+
+  \begin{lstlisting}
+# Resumen general del dataset
+summary(datos)
+
+# Summary of a specific variable
+summary(datos$salario)
+
+# Typical output:
+#    Min. 1st Qu.  Median    Mean 3rd Qu.    Max.
+#  500.0  1500.0  2000.0  2050.3  2500.0  5000.0
+  \end{lstlisting}
+
+  \vspace{0.3cm}
+  \small
+  \textbf{Proporciona:} mínimo, Q1, mediana, media, Q3, máximo.\\
+  \textbf{Útil para:} Detectar valores faltantes, outliers, distribución asimétrica.
+\end{frame}
+
+% Slide 6: Estadística Descriptiva Avanzada
+\begin{frame}[fragile]
+  \frametitle{Estadística Descriptiva (II): Medidas Específicas}
+
+  \begin{lstlisting}
+# Media y mediana
+mean(datos$salario)
+median(datos$salario)
+
+# Standard deviation, variance
+sd(datos$salario)
+var(datos$salario)
+
+# Cuantiles personalizados
+quantile(datos$salario, c(0.25, 0.50, 0.75, 0.95))
+
+# Analysis by group
+aggregate(datos$salario ~ datos$region, FUN=mean)
+
+library(dplyr)
+datos %>%
+  group_by(region) %>%
+  summarise(media_salario = mean(salario),
+            sd_salario = sd(salario))
+  \end{lstlisting}
+\end{frame}
+
+% Slide 7: Prueba t de Student (I)
+\begin{frame}[fragile]
+  \frametitle{Prueba t: Comparación de Medias}
+
+  \textbf{Hipótesis:} $H_0: \mu_1 = \mu_2$ vs. $H_a: \mu_1 \neq \mu_2$
+
+  \begin{lstlisting}
+# t-test de dos muestras independientes
+t.test(salario ~ genero, data=datos)
+
+# Salida:
+# t = 2.45, df = 98, p-value = 0.0156
+# 95 percent confidence interval: [50.2, 450.8]
+# mean in group F: 2000
+# mean in group M: 1775
+
+# t-test de muestras pareadas
+t.test(datos$salario_2023, datos$salario_2024,
+       paired=TRUE)
+  \end{lstlisting}
+
+  \small
+  \textbf{Interpretación:} Si $p\text{-value} < 0.05$, rechazamos $H_0$.
+\end{frame}
+
+% Slide 8: Prueba t Avanzada
+\begin{frame}[fragile]
+  \frametitle{Prueba t: Opciones Avanzadas}
+
+  \begin{lstlisting}
+# Especificar nivel de significancia
+t.test(salario ~ genero, data=datos,
+       alternative="greater", conf.level=0.95)
+
+# Sin asumir varianzas iguales (Welch)
+t.test(salario ~ genero, data=datos, var.equal=FALSE)
+
+# Con varianzas iguales (Student)
+t.test(salario ~ genero, data=datos, var.equal=TRUE)
+
+# Prueba de igualdad de varianzas (Levene)
+library(car)
+leveneTest(salario ~ genero, data=datos)
+  \end{lstlisting}
+
+  \small
+  \textbf{Nota:} Siempre verificar normalidad y homocedasticidad antes de aplicar t-test.
+\end{frame}
+
+% Slide 9: Prueba de Proporciones
+\begin{frame}[fragile]
+  \frametitle{Prueba de Proporciones}
+
+  \textbf{Pregunta:} ¿Es la proporción de mujeres en la muestra diferente de 0.5?
+
+  \begin{lstlisting}
+# Tabla de frecuencias
+table(datos$genero)
+# Female   Male
+#    45     55
+
+# Prueba de proporciones
+prop.test(45, 100, p=0.5)
+
+# Salida:
+# X-squared = 1, df = 1, p-value = 0.3173
+# null hypothesis: true p is equal to 0.5
+# 95% confidence interval: [0.35, 0.55]
+# sample estimate: p = 0.45
+  \end{lstlisting}
+
+  \small
+  $H_0: p = 0.5$ vs. $H_a: p \neq 0.5$. No rechazamos $H_0$.
+\end{frame}
+
+% Slide 10: Prueba Chi-Cuadrado (I)
+\begin{frame}[fragile]
+  \frametitle{Prueba Chi-Cuadrado: Independencia}
+
+  \textbf{Pregunta:} ¿Son el género y la región independientes?
+
+  \begin{lstlisting}
+# Tabla de contingencia
+tabla <- table(datos$genero, datos$region)
+tabla
+#        Norte  Centro  Sur
+# Female     20      15   10
+# Male       25      20   10
+
+# Prueba chi-cuadrado
+chisq.test(tabla)
+
+# Salida:
+# X-squared = 0.65, df = 2, p-value = 0.7232
+# No evidence of association
+  \end{lstlisting}
+\end{frame}
+
+% Slide 11: Chi-Cuadrado Avanzado
+\begin{frame}[fragile]
+  \frametitle{Chi-Cuadrado: Análisis Detallado}
+
+  \begin{lstlisting}
+# Guardar resultados
+chi_result <- chisq.test(tabla)
+
+# Frecuencias observadas vs. esperadas
+chi_result$observed
+chi_result$expected
+
+# Residuos estandarizados
+chi_result$residuals
+
+# Contribution to chi-square
+(chi_result$observed - chi_result$expected)^2 /
+  chi_result$expected
+  \end{lstlisting}
+
+  \small
+  Los residuos permiten identificar celdas que más contribuyen a rechazar $H_0$.
+\end{frame}
+
+% Slide 12: Regresión Simple en R
+\begin{frame}[fragile]
+  \frametitle{Regresión Simple: Especificación y Estimación}
+
+  \textbf{Modelo:} $Y = \beta_0 + \beta_1 X + u$
+
+  \begin{lstlisting}
+# Estimar modelo lineal
+modelo_simple <- lm(salario ~ educacion, data=datos)
+
+# Ver resultados
+summary(modelo_simple)
+
+# Acceder a coeficientes
+coef(modelo_simple)
+model$coefficients
+modelo_simple$coefficients[1]  # intercepto
+modelo_simple$coefficients[2]  # pendiente
+  \end{lstlisting}
+
+  \small
+  \textbf{Interpretación:} Un año adicional de educación se asocia con cambio en salario.
+\end{frame}
+
+% Slide 13: Salida de Regresión Completa
+\begin{frame}[fragile]
+  \frametitle{Interpretación: Output de \texttt{summary()}}
+
+  \tiny
+  \begin{lstlisting}
+Coefficients:
+            Estimate Std. Error t value Pr(>|t|)
+(Intercept)   500.20     150.30   3.326  0.00122 **
+educacion     320.45      45.80   6.996  1.2e-10 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 450.2 on 98 degrees of freedom
+Multiple R-squared: 0.333, Adjusted R-squared: 0.326
+F-statistic: 48.95 on 1 and 98 DF, p-value: 1.2e-10
+  \end{lstlisting}
+
+  \small
+  \begin{itemize}
+    \item \textbf{Estimate}: coeficiente estimado
+    \item \textbf{Std. Error}: error estándar
+    \item \textbf{t value}: estadístico t
+    \item \textbf{Pr(>|t|)}: p-value bilateral
+    \item \textbf{R-squared}: bondad de ajuste ($R^2$)
+  \end{itemize}
+\end{frame}
+
+% Slide 14: Diagnósticos Básicos
+\begin{frame}[fragile]
+  \frametitle{Diagnósticos: Validación del Modelo}
+
+  \begin{lstlisting}
+# Diagnostic plots
+plot(modelo_simple)
+
+# Residuos del modelo
+residuos <- residuals(modelo_simple)
+
+# Valores ajustados
+ajustados <- fitted(modelo_simple)
+
+# Pruebas de normalidad
+shapiro.test(residuos)
+
+# Homocedasticidad
+library(lmtest)
+bptest(modelo_simple)  # Breusch-Pagan
+  \end{lstlisting}
+
+  \small
+  \textbf{Supuestos MCO:} Linealidad, normalidad de residuos, homocedasticidad, no autocorrelación.
+\end{frame}
+
+% Slide 15: Visualización con ggplot2
+\begin{frame}[fragile]
+  \frametitle{Visualización: Gráfico de Regresión}
+
+  \begin{lstlisting}
+library(ggplot2)
+
+ggplot(datos, aes(x=educacion, y=salario)) +
+  geom_point(color="uddblue", alpha=0.6, size=3) +
+  geom_smooth(method="lm", se=TRUE,
+              color="uddlight", fill="uddlight") +
+  labs(title="Relación: Educación vs. Salario",
+       x="Años de Educación",
+       y="Salario Mensual (USD)") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust=0.5, size=14))
+  \end{lstlisting}
+
+  \small
+  \texttt{geom\_smooth(method="lm")} ajusta la línea de regresión automáticamente.
+\end{frame}
+
+% Slide 16: Visualización Avanzada
+\begin{frame}[fragile]
+  \frametitle{Gráficos Múltiples: Diagnósticos}
+
+  \begin{lstlisting}
+# Crear gráfico de 2x2
+par(mfrow=c(2,2))
+plot(modelo_simple)
+
+# O con ggplot2
+library(ggfortify)
+autoplot(modelo_simple, label.size=2)
+
+# Gráfico de residuos vs. ajustados
+ggplot(data.frame(ajustados, residuos),
+       aes(x=ajustados, y=residuos)) +
+  geom_point() +
+  geom_hline(yintercept=0, linetype="dashed") +
+  theme_minimal()
+  \end{lstlisting}
+
+  \small
+  Buscar: patrón aleatorio en residuos, normalidad, sin outliers influyentes.
+\end{frame}
+
+% Slide 17: Ejercicio Integrador Parte 1
+\begin{frame}
+  \frametitle{Ejercicio Integrador (Parte 1)}
+
+  \small
+  \textbf{Dataset:} Encuesta de 150 hogares con variables:
+  \begin{itemize}
+    \item \texttt{ingresos}: ingreso mensual (USD)
+    \item \texttt{educacion}: años de educación
+    \item \texttt{genero}: F/M
+    \item \texttt{region}: Norte/Centro/Sur
+    \item \texttt{empleo}: Empleado/Desempleado
+  \end{itemize}
+
+  \vspace{0.2cm}
+  \small
+  \textbf{Tareas:} (1) Load and explore data; (2) Income by gender (t-test); (3) Region--employment chi-square; (4) Estimate income model; (5) Interpret $\beta$, $R^2$; (6) Validate assumptions; (7) Visualize with ggplot2.
+
+  \vspace{0.2cm}
+  \tiny \textit{Próxima: regresión múltiple, dummy variables, errores robustos.}
+\end{frame}
+
+% Slide 18: Resumen y Próximos Pasos
+\begin{frame}
+  \frametitle{Resumen Sesión 4}
+
+  \small
+  \setlength{\itemsep}{2pt}
+  \textbf{Conceptos clave:} Data import/exploration, descriptive stats, hypothesis tests, simple regression, OLS validation, ggplot2
+
+  \vspace{0.3cm}
+  \textbf{Próxima (27 de marzo):} Multiple regression, dummy variables, interactions, robust errors, econometric workflow
+\end{frame}
+
+\end{document}

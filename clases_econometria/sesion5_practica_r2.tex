@@ -1,0 +1,457 @@
+\documentclass[aspectratio=169,11pt]{beamer}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[english]{babel}
+\usetheme{Madrid}
+\usecolortheme{whale}
+\definecolor{uddblue}{HTML}{1F4E79}
+\definecolor{uddlight}{HTML}{2E86C1}
+\setbeamercolor{structure}{fg=uddblue}
+\setbeamercolor{frametitle}{bg=uddblue,fg=white}
+\setbeamercolor{title}{bg=uddblue,fg=white}
+\setbeamercolor{block title}{bg=uddblue,fg=white}
+\setbeamercolor{block body}{bg=uddblue!10}
+\setbeamercolor{item}{fg=uddblue}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{listings}
+\usepackage{tikz}
+\usetikzlibrary{shapes,arrows,positioning,calc}
+\lstset{language=R,basicstyle=\ttfamily\scriptsize,keywordstyle=\color{uddblue}\bfseries,commentstyle=\color{gray},stringstyle=\color{uddlight},backgroundcolor=\color{uddblue!5},frame=single,rulecolor=\color{uddblue!30},breaklines=true,showstringspaces=false}
+\graphicspath{{figuras/}}
+\titlegraphic{\includegraphics[height=1.2cm]{logo_gobierno.png}}
+\institute[CICS — UDD]{Doctorado en Ciencias de la Complejidad Social — CICS, UDD}
+\newcommand{\highlight}[1]{\textcolor{uddlight}{\bfseries #1}}
+
+% Información del documento
+\title[Práctica R - Parte 2]{Práctica Integradora en R (Parte 2)\\Regresión Múltiple y Flujo Econométrico}
+\author[A. Agüero]{Amaru Agüero}
+\date{27 de marzo de 2026}
+
+\begin{document}
+
+% Slide 1: Portada
+\begin{frame}
+  \titlepage
+\end{frame}
+
+% Slide 2: Agenda
+\begin{frame}
+  \frametitle{Agenda de Hoy}
+  \small
+  \begin{itemize}
+    \item Regresión múltiple: especificación e interpretación
+    \item Variables dummy y factores en R
+    \item Términos de interacción
+    \item Diagnósticos de multicolinealidad (VIF)
+    \item Errores robustos con \texttt{sandwich} y \texttt{lmtest}
+    \item Tablas de resultados con \texttt{stargazer}
+    \item Flujo completo del análisis econométrico
+    \item Ejercicio integrador final
+  \end{itemize}
+
+  \vspace{0.5cm}
+  \small \textbf{Paquetes necesarios:} \texttt{lmtest}, \texttt{sandwich}, \texttt{car}, \texttt{stargazer}, \texttt{ggplot2}
+\end{frame}
+
+% Slide 3: Regresión Múltiple: Especificación
+\begin{frame}[fragile]
+  \frametitle{Regresión Múltiple (I): Modelo y Estimación}
+
+  \textbf{Modelo:} $Y = \beta_0 + \beta_1 X_1 + \beta_2 X_2 + \cdots + \beta_k X_k + u$
+
+  \begin{lstlisting}
+# Regresión múltiple simple
+modelo1 <- lm(salario ~ educacion + experiencia,
+              data=datos)
+
+# Más regresores
+modelo2 <- lm(salario ~ educacion + experiencia +
+                edad + genero, data=datos)
+
+# Sintaxis alternativa (todos excepto una variable)
+modelo3 <- lm(salario ~ . - id, data=datos)
+
+# Mostrar resultados
+summary(modelo1)
+summary(modelo2)
+  \end{lstlisting}
+
+  \small
+  \textbf{Interpretación:} $\beta_j$ mide el cambio en $Y$ cuando $X_j$ aumenta 1 unidad, \textit{ceteris paribus}.
+\end{frame}
+
+% Slide 4: Interpretación de Coeficientes
+\begin{frame}[fragile]
+  \frametitle{Regresión Múltiple (II): Lectura de Resultados}
+
+  \tiny
+  \begin{lstlisting}
+Coefficients:
+              Estimate Std. Error t value Pr(>|t|)
+(Intercept)    250.50    120.45   2.080   0.0400 *
+educacion      315.80     42.10   7.503  2.1e-11***
+experiencia    125.30     28.50   4.398  2.2e-05***
+edad            45.20     15.60   2.897   0.0046 **
+generoM        180.50     95.20   1.895   0.0610 .
+---
+Residual std. error: 385 on 95 DF
+Multiple R-squared: 0.543, Adjusted R-squared: 0.522
+F-statistic: 25.23 on 4 and 95 DF, p-value: 1.8e-14
+  \end{lstlisting}
+
+  \small
+  \begin{itemize}
+    \item Un año adicional de educación: \$315.80 más (todo lo demás constante)
+    \item Un año de experiencia: \$125.30 más
+    \item Ser hombre (vs. mujer): \$180.50 más (no significativo a 5\%)
+    \item $R^2 = 0.543$: modelo explica 54.3\% de variabilidad en salario
+  \end{itemize}
+\end{frame}
+
+% Slide 5: Variables Dummy
+\begin{frame}[fragile]
+  \frametitle{Variables Dummy: Creación y Uso}
+
+  \begin{lstlisting}
+# Crear variable dummy manualmente
+datos$mujer <- ifelse(datos$genero == "F", 1, 0)
+datos$es_profesional <- ifelse(datos$educacion > 12, 1, 0)
+
+# Factor automático (R crea dummies)
+datos$genero <- factor(datos$genero)
+# R crea: genero1 (Female), genero2 (Male)
+# La primera es base, se omite (multicolinealidad)
+
+# Especificar categoría base
+datos$region <- factor(datos$region,
+                       levels=c("Sur", "Centro", "Norte"))
+# Sur es base
+
+modelo_dummy <- lm(salario ~ genero + region, data=datos)
+summary(modelo_dummy)
+  \end{lstlisting}
+
+  \small
+  \textbf{Nota:} R omite automáticamente una categoría para evitar trampa de dummy (multicolinealidad perfecta).
+\end{frame}
+
+% Slide 6: Interpretación de Dummies
+\begin{frame}[fragile]
+  \frametitle{Variables Dummy: Interpretación}
+
+  \tiny
+  \begin{lstlisting}
+Coefficients:
+            Estimate Std. Error t value Pr(>|t|)
+(Intercept) 1800.00    150.20  11.980  < 2e-16***
+generoM      220.50     85.30   2.585   0.0109  *
+regionCentro 150.00    100.50   1.493   0.1385
+regionNorte  320.00    105.20   3.042   0.0030  **
+  \end{lstlisting}
+
+  \small
+  \begin{itemize}
+    \item \textbf{Intercepto (1800):} Salario de mujer en Sur
+    \item \textbf{generoM (220.50):} Hombres ganan \$220.50 más que mujeres (Sur)
+    \item \textbf{regionCentro (150):} Centro gana \$150 más que Sur (mujeres)
+    \item \textbf{regionNorte (320):} Norte gana \$320 más que Sur (mujeres)
+  \end{itemize}
+
+  \vspace{0.2cm}
+  \textbf{Regla:} Categoría base = combinación de categorías omitidas
+\end{frame}
+
+% Slide 7: Términos de Interacción
+\begin{frame}[fragile]
+  \frametitle{Interacciones (I): Especificación}
+
+  \textbf{Pregunta:} ¿Difiere el retorno de educación por género?
+
+  \begin{lstlisting}
+# Interacción entre educacion y genero
+modelo_inter <- lm(salario ~ educacion * genero,
+                   data=datos)
+
+# Equivalente a:
+modelo_inter2 <- lm(salario ~ educacion + genero +
+                           educacion:genero,
+                    data=datos)
+
+# Interacción entre dos variables continuas
+modelo_inter3 <- lm(salario ~ educacion * experiencia,
+                    data=datos)
+
+# Acceder a coeficientes
+coef(modelo_inter)
+  \end{lstlisting}
+
+  \small
+  \texttt{*} expande a efectos principales + interacción; \texttt{:} solo interacción.
+\end{frame}
+
+% Slide 8: Interpretación de Interacciones
+\begin{frame}[fragile]
+  \frametitle{Interacciones (II): Interpretación}
+
+  \tiny
+  \begin{lstlisting}
+Coefficients:
+                Estimate Std. Error t value Pr(>|t|)
+(Intercept)     1200.00    180.50   6.650  1.2e-09***
+educacion        280.50     35.20   7.970  1.8e-12***
+generoM          150.00    220.30   0.681   0.4975
+educacion:generoM 95.30     48.10   1.981   0.0505 .
+  \end{lstlisting}
+
+  \small
+  \textbf{Interpretación:}
+  \begin{itemize}
+    \item \textbf{Mujeres:} cada año educación = \$280.50 más
+    \item \textbf{Hombres:} cada año educación = \$280.50 + \$95.30 = \$375.80 más
+    \item Diferencia: hombres tienen retorno 2.6\% mayor por educación
+    \item Significancia marginal ($p=0.0505$): casi significativa
+  \end{itemize}
+\end{frame}
+
+% Slide 9: Diagnóstico: Multicolinealidad
+\begin{frame}[fragile]
+  \frametitle{Diagnósticos (I): Factor de Inflación de Varianza (VIF)}
+
+  \textbf{Problema:} ¿Las variables explicativas están muy correlacionadas?
+
+  \begin{lstlisting}
+library(car)
+
+# VIF para cada regresor
+vif(modelo2)
+#  educacion  experiencia      edad    generoM
+#      1.45       1.82      2.10      1.30
+
+# Regla práctica: VIF > 5-10 sugiere multicolinealidad
+# En nuestro caso: todo < 3, sin problemas
+
+# Correlación entre regresores
+cor(datos[, c("educacion", "experiencia", "edad")])
+  \end{lstlisting}
+
+  \small
+  \textbf{VIF bajo (1-2):} No correlacionada con otros regresores\\
+  \textbf{VIF alto (>5):} Problema de multicolinealidad
+\end{frame}
+
+% Slide 10: Diagnóstico: Normalidad y Homocedasticidad
+\begin{frame}[fragile]
+  \frametitle{Diagnósticos (II): Validación de Supuestos}
+
+  \begin{lstlisting}
+# Gráficos de diagnóstico
+par(mfrow=c(2,2))
+plot(modelo2)
+
+# Residuos
+residuos <- residuals(modelo2)
+
+# Test de normalidad (Shapiro-Wilk)
+shapiro.test(residuos)
+
+# Test de homocedasticidad (Breusch-Pagan)
+library(lmtest)
+bptest(modelo2)
+
+# Test de autocorrelación (Durbin-Watson)
+dwtest(modelo2)
+  \end{lstlisting}
+
+  \small
+  Si p-value \textit{pequeño:} rechazamos supuesto (problema potencial).\\
+  Revisar gráficos: residuos vs. ajustados, Q-Q normal.
+\end{frame}
+
+% Slide 11: Errores Robustos: Especificación
+\begin{frame}[fragile]
+  \frametitle{Errores Robustos (I): Heterocedasticidad}
+
+  \textbf{Problema:} ¿La varianza de residuos es constante?
+
+  \begin{lstlisting}
+library(sandwich)
+library(lmtest)
+
+# MCO estándar
+summary(modelo2)
+
+# Errores robustos HC1 (White)
+coeftest(modelo2, vcov=vcovHC(modelo2, type="HC1"))
+
+# Errores robustos HC3 (más conservador)
+coeftest(modelo2, vcov=vcovHC(modelo2, type="HC3"))
+
+# Alternativa: vcovHAC (heterocedasticidad + autocorrelación)
+coeftest(modelo2, vcov=vcovHAC(modelo2))
+  \end{lstlisting}
+
+  \small
+  \textbf{Nota:} Errores robustos NUNCA aumentan, solo cambian si homocedasticidad falla.
+\end{frame}
+
+% Slide 12: Errores Robustos en Tablas
+\begin{frame}[fragile]
+  \frametitle{Errores Robustos (II): Extracción y Comparación}
+
+  \begin{lstlisting}
+# Extraer errores robustos
+se_robust <- sqrt(diag(vcovHC(modelo2, type="HC1")))
+
+# Crear tabla comparativa
+data.frame(
+  Coefficient = coef(modelo2),
+  SE_MCO = summary(modelo2)$coefficients[,2],
+  SE_Robust = se_robust
+)
+
+# Usar stargazer con errores robustos
+library(stargazer)
+stargazer(modelo2, se=list(se_robust), type="text")
+  \end{lstlisting}
+
+  \small
+  Comparar errores estándar MCO vs. robustos para detectar homocedasticidad.
+\end{frame}
+
+% Slide 13: Tablas de Regresión: Stargazer
+\begin{frame}[fragile]
+  \frametitle{Tablas de Resultados (I): Stargazer}
+
+  \begin{lstlisting}
+library(stargazer)
+
+# Tabla simple
+stargazer(modelo1, modelo2, type="text")
+
+# Tabla LaTeX (para documentos)
+stargazer(modelo1, modelo2,
+          title="Resultados de Regresión",
+          label="tab:regresion",
+          type="latex")
+
+# Opciones personalizadas
+stargazer(modelo1, modelo2,
+          dep.var.labels="Salario (USD)",
+          covariate.labels=c("Educación (años)",
+                            "Experiencia (años)"),
+          column.labels=c("Modelo 1", "Modelo 2"))
+  \end{lstlisting}
+
+  \small
+  \texttt{type="text"} para consola, \texttt{type="latex"} para documentos.
+\end{frame}
+
+% Slide 14: Tablas Avanzadas y Comparativas
+\begin{frame}[fragile]
+  \frametitle{Tablas de Resultados (II): Comparación de Modelos}
+
+  \tiny
+  \begin{lstlisting}
+# Comparar tres modelos con criterios de información
+stargazer(modelo1, modelo2, modelo3,
+          title="Comparación: Especificaciones",
+          omit.stat=c("LL","ser","f"),
+          add.lines=list(c("AIC",
+                          round(AIC(modelo1),2),
+                          round(AIC(modelo2),2),
+                          round(AIC(modelo3),2))),
+          notes="Significancia: *** p<0.01, ** p<0.05, * p<0.1",
+          type="latex")
+
+# Con errores robustos
+stargazer(modelo1, modelo2, modelo3,
+          se=list(se_robust1, se_robust2, se_robust3),
+          type="latex")
+  \end{lstlisting}
+
+  \small
+  Facilita comparación entre especificaciones rivales e identificar modelo mejor especificado.
+\end{frame}
+
+% Slide 15: Flujo Econométrico: Visión General
+\begin{frame}
+  \frametitle{Flujo Completo del Análisis Econométrico}
+
+  \small
+  \begin{enumerate}
+    \item \textbf{Formulación teórica:} ¿Qué relación queremos estimar?
+    \item \textbf{Especificación del modelo:} $Y = \beta_0 + \beta_1 X_1 + \cdots + u$
+    \item \textbf{Recopilación y exploración de datos:} Calidad, valores faltantes, outliers
+    \item \textbf{Estimación MCO:} \texttt{lm()} y obtener coeficientes
+    \item \textbf{Diagnósticos de supuestos:} Normalidad, homocedasticidad, multicolinealidad
+    \item \textbf{Validación de especificación:} ¿Variables correctas? ¿Forma funcional?
+    \item \textbf{Correcciones:} Errores robustos, variables adicionales, transformaciones
+    \item \textbf{Presentación de resultados:} Tablas, gráficos, interpretación
+    \item \textbf{Robustez:} Verificar resultados con otras especificaciones
+  \end{enumerate}
+
+  \vspace{0.3cm}
+  \small \textit{No es lineal: iteración es normal entre diagnósticos y especificación.}
+\end{frame}
+
+% Slide 16: Ejemplo Integrado: Paso a Paso
+\begin{frame}[fragile]
+  \frametitle{Flujo Práctico: Ejemplo Completo}
+
+  \tiny
+  \begin{lstlisting}
+datos <- read.csv("datos_laborales.csv"); str(datos)
+modelo1 <- lm(log(salario) ~ educacion + experiencia, data=datos)
+# Diagnostics
+shapiro.test(residuals(modelo1)); bptest(modelo1); vif(modelo1)
+# Improved model
+modelo2 <- lm(log(salario) ~ educacion*genero +
+              experiencia + I(experiencia^2), data=datos)
+# Robust errors
+coeftest(modelo2, vcov=vcovHC(modelo2, "HC1"))
+stargazer(modelo1, modelo2, type="latex")
+  \end{lstlisting}
+\end{frame}
+
+% Slide 17: Ejercicio Integrador Final
+\begin{frame}
+  \frametitle{Ejercicio Integrador Final}
+
+  \small
+  \textbf{Dataset:} 200 individuos con educación, experiencia, género, sector.
+
+  \vspace{0.3cm}
+  \textbf{Tareas:}
+  \begin{enumerate}
+    \item Especificar modelo inicial: $\log(\text{salario}) = \beta_0 + \beta_1 \text{educ} + \beta_2 \text{exp} + u$
+    \item Estimar y diagnosticar (normalidad, homocedasticidad, VIF)
+    \item Agregar variables dummy: género, sector (3 sectores)
+    \item Incluir término de interacción: educación × género
+    \item Calcular errores robustos y comparar con MCO
+    \item Crear tabla en LaTeX con ambos modelos
+    \item Interpretar: ¿retorno de educación diferente por género?
+    \item Verificar robustez: cambiar especificación de forma funcional
+  \end{enumerate}
+
+  \vspace{0.3cm}
+  \small \textbf{Entregable:} Script R + tabla LaTeX de resultados + 1 página de interpretación.
+\end{frame}
+
+% Slide 18: Cierre y Próximos Pasos
+\begin{frame}
+  \frametitle{Resumen Curso: Sesiones 4-5}
+
+  \small
+  \setlength{\itemsep}{2pt}
+  \textbf{Competencias:} Hypothesis tests, simple/multiple regression, dummy variables, diagnostics, robust errors, professional reporting
+
+  \vspace{0.2cm}
+  \textbf{Próximos:} Nonlinear models (logit/probit), time series, quantile regression, panel methods
+
+  \vspace{0.3cm}
+  \small \textit{¡Gracias! Preguntas...}
+\end{frame}
+
+\end{document}
