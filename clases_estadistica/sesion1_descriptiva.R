@@ -31,7 +31,8 @@ cat("pop:       Cuantitativa discreta (razón)\n")
 cat("gdpPercap: Cuantitativa continua (razón)\n")
 
 # Filtrar datos más recientes
-datos <- gapminder %>% filter(year == 2007)
+datos <- gapminder %>% 
+  filter(year == 2007)
 cat("\nDimensiones (2007):", dim(datos), "\n")
 
 # ==============================================================================
@@ -47,6 +48,7 @@ moda <- function(x) {
   tab <- table(round(x, 0))
   as.numeric(names(tab)[which.max(tab)])
 }
+
 cat("Moda (redondeada): ", moda(datos$lifeExp), "\n")
 
 # Comparar media vs mediana — ¿hay sesgo?

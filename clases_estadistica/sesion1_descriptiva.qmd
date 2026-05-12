@@ -33,7 +33,7 @@ library(gapminder)  # Dataset de países (esperanza de vida, PIB, población)
 library(moments)    # Sesgo y curtosis
 ```
 
----
+------------------------------------------------------------------------
 
 ## 1. Tipos de datos y escalas de medición
 
@@ -48,14 +48,14 @@ str(gapminder)
 
 ### Clasificación de variables en gapminder
 
-| Variable    | Tipo                       | Escala    |
-|-------------|----------------------------|-----------|
-| `country`   | Cualitativa nominal        | Nominal   |
-| `continent` | Cualitativa nominal        | Nominal   |
-| `year`      | Cuantitativa discreta      | Intervalo |
-| `lifeExp`   | Cuantitativa continua      | Razón     |
-| `pop`       | Cuantitativa discreta      | Razón     |
-| `gdpPercap` | Cuantitativa continua      | Razón     |
+| Variable    | Tipo                  | Escala    |
+|-------------|-----------------------|-----------|
+| `country`   | Cualitativa nominal   | Nominal   |
+| `continent` | Cualitativa nominal   | Nominal   |
+| `year`      | Cuantitativa discreta | Intervalo |
+| `lifeExp`   | Cuantitativa continua | Razón     |
+| `pop`       | Cuantitativa discreta | Razón     |
+| `gdpPercap` | Cuantitativa continua | Razón     |
 
 Filtramos los datos del año 2007 para trabajar con una sola observación por país:
 
@@ -65,7 +65,7 @@ datos <- gapminder %>% filter(year == 2007)
 cat("Dimensiones (2007):", dim(datos), "\n")
 ```
 
----
+------------------------------------------------------------------------
 
 ## 2. Medidas de tendencia central
 
@@ -100,7 +100,7 @@ cat("Si media < mediana → sesgo negativo (cola izquierda)\n")
 cat("\nMedia recortada (10%):", mean(datos$lifeExp, trim = 0.10), "\n")
 ```
 
----
+------------------------------------------------------------------------
 
 ## 3. Medidas de dispersión
 
@@ -133,7 +133,7 @@ cat("  Esperanza vida:  ", round(cv_life, 1), "%\n")
 cat("  → PIB tiene MUCHA más variabilidad relativa\n")
 ```
 
----
+------------------------------------------------------------------------
 
 ## 4. Z-Scores (Estandarización)
 
@@ -155,7 +155,7 @@ extremos <- datos %>%
 print(extremos)
 ```
 
----
+------------------------------------------------------------------------
 
 ## 5. Detección de outliers (Método IQR)
 
@@ -180,7 +180,7 @@ cat("\nOutliers encontrados:", nrow(outliers), "\n")
 print(outliers)
 ```
 
----
+------------------------------------------------------------------------
 
 ## 6. Visualización con ggplot2
 
@@ -249,7 +249,7 @@ ggplot(datos, aes(x = continent, y = lifeExp, fill = continent)) +
   theme(legend.position = "none")
 ```
 
----
+------------------------------------------------------------------------
 
 ## 7. Tabla resumen por continente
 
@@ -272,7 +272,7 @@ cat("--- Resumen de Esperanza de Vida por Continente (2007) ---\n")
 print(as.data.frame(resumen))
 ```
 
----
+------------------------------------------------------------------------
 
 ## 8. Sesgo y curtosis
 
@@ -287,7 +287,7 @@ cat("  Sesgo > 0 → cola derecha más larga\n")
 cat("  Curtosis > 3 → colas más pesadas que normal\n")
 ```
 
----
+------------------------------------------------------------------------
 
 ## 9. Caso práctico: Brecha por continente
 
@@ -317,7 +317,7 @@ cat("Correlación log(PIB)-Esperanza de vida:",
     round(cor(log(datos$gdpPercap), datos$lifeExp), 3), "\n")
 ```
 
----
+------------------------------------------------------------------------
 
 ## Conclusiones
 
