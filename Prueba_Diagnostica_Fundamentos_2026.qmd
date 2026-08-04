@@ -1,0 +1,335 @@
+---
+format:
+  pdf:
+    documentclass: article
+    geometry: margin=2.2cm
+    fontsize: 11pt
+    colorlinks: true
+    linkcolor: "[HTML]{1F4E79}"
+    urlcolor: "[HTML]{2E86C1}"
+    include-in-header:
+      text: |
+        \usepackage{fancyhdr}
+        \pagestyle{fancy}
+        \fancyhf{}
+        \fancyfoot[C]{\footnotesize\itshape Docente: Amaru Agüero Jiménez | Doctorado en Políticas Públicas — UDD \quad\quad Página \thepage}
+        \renewcommand{\headrulewidth}{0pt}
+        \usepackage{xcolor}
+        \definecolor{uddblue}{HTML}{1F4E79}
+        \usepackage{sectsty}
+        \sectionfont{\color{uddblue}}
+        \subsectionfont{\color{uddblue}}
+        \usepackage{needspace}
+        \newcommand{\linresp}{\par\nopagebreak\vspace{0.4cm}\nopagebreak\noindent\rule{\linewidth}{0.4pt}}
+        \makeatletter
+        \@endparpenalty=\@M
+        \makeatother
+        \widowpenalty=10000
+        \clubpenalty=10000
+        \raggedbottom
+lang: es
+---
+
+```{=latex}
+\begin{center}
+\includegraphics[width=5cm]{logo_gobierno.png}
+
+\vspace{0.4cm}
+{\color{uddblue}\Huge\bfseries EVALUACIÓN DIAGNÓSTICA}
+
+\vspace{0.25cm}
+{\Large Fundamentos de Probabilidad y Estadística}
+
+Doctorado en Políticas Públicas — Universidad del Desarrollo \\ Marzo 2026
+\end{center}
+\vspace{0.3cm}
+\noindent\textbf{Nombre:}\enspace\rule{11.5cm}{0.4pt}
+
+\vspace{0.35cm}
+\noindent\textbf{Fecha:}\enspace\hspace{0.32cm}\rule{11.5cm}{0.4pt}
+\vspace{0.25cm}
+```
+
+**Instrucciones:** Esta evaluación diagnóstica se aplica al inicio de la primera sesión y tiene como único objetivo identificar el nivel de entrada de cada estudiante. **No lleva calificación ni tiene carácter aprobatorio.** Tiempo estimado: **30 minutos**. Responda en los espacios asignados y muestre su razonamiento en las preguntas de cálculo: el procedimiento es tan informativo como el resultado. Puede usar calculadora.
+
+```{=latex}
+\needspace{4.5cm}
+\vspace{0.1cm}
+\begin{center}
+\colorbox{uddblue}{\makebox[0.93\linewidth][c]{\rule[-5pt]{0pt}{16pt}\color{white}\large\bfseries PARTE I: FUNDAMENTOS DE PROBABILIDAD}}
+\end{center}
+```
+
+## Pregunta 1. Probabilidad marginal, conjunta y condicional
+
+Una municipalidad evaluó un programa de capacitación laboral. La siguiente tabla muestra la distribución de 200 personas según su participación en el programa y su situación laboral seis meses después:
+
+|                              | Empleado/a | Desempleado/a | Total   |
+|:-----------------------------|:----------:|:-------------:|:-------:|
+| Participó en el programa     | 60         | 20            | 80      |
+| No participó                 | 70         | 50            | 120     |
+| **Total**                    | **130**    | **70**        | **200** |
+
+a) Calcule la probabilidad **conjunta** de haber participado en el programa y estar empleado/a, $P(\text{Participó} \cap \text{Empleado})$.
+
+```{=latex}
+\linresp\linresp
+\vspace{0.1cm}
+```
+
+b) Calcule la probabilidad **marginal** de estar empleado/a, $P(\text{Empleado})$.
+
+```{=latex}
+\linresp\linresp
+\vspace{0.1cm}
+```
+
+c) Calcule la probabilidad **condicional** de estar empleado/a dado que participó en el programa, $P(\text{Empleado} \mid \text{Participó})$.
+
+```{=latex}
+\linresp\linresp
+\vspace{0.1cm}
+```
+
+d) ¿Son **independientes** los eventos "Participó" y "Empleado"? Verifíquelo con un cálculo explícito y concluya.
+
+```{=latex}
+\linresp\linresp\linresp
+\vspace{0.1cm}
+```
+
+## Pregunta 2. Teorema de Bayes
+
+Un instrumento de focalización identifica hogares elegibles para un subsidio. En la población objetivo, el **20%** de los hogares es efectivamente elegible (prevalencia). El instrumento clasifica como elegible al **90%** de los hogares que sí son elegibles (sensibilidad) y clasifica como no elegible al **80%** de los hogares que no son elegibles (especificidad).
+
+Si un hogar es clasificado como elegible por el instrumento ($+$), ¿cuál es la probabilidad de que sea **efectivamente elegible**, $P(\text{Elegible} \mid +)$? Desarrolle el cálculo usando la ley de probabilidad total y el teorema de Bayes.
+
+```{=latex}
+\linresp\linresp\linresp\linresp
+\vspace{0.1cm}
+```
+
+```{=latex}
+\needspace{4.5cm}
+\vspace{0.1cm}
+\begin{center}
+\colorbox{uddblue}{\makebox[0.93\linewidth][c]{\rule[-5pt]{0pt}{16pt}\color{white}\large\bfseries PARTE II: VARIABLES ALEATORIAS Y DISTRIBUCIONES}}
+\end{center}
+```
+
+## Pregunta 3. Esperanza y varianza de una variable discreta
+
+Sea $X$ el número de programas sociales a los que está inscrito un hogar, con la siguiente distribución de probabilidad:
+
+| $x$    | 0   | 1   | 2   | 3   |
+|:-------|:---:|:---:|:---:|:---:|
+| $p(x)$ | 0.2 | 0.4 | 0.3 | 0.1 |
+
+a) Calcule la esperanza $E[X] = \sum_x x \, p(x)$.
+
+```{=latex}
+\linresp\linresp
+\vspace{0.1cm}
+```
+
+b) Calcule la varianza $\text{Var}(X) = \sum_x (x-\mu)^2 \, p(x)$.
+
+```{=latex}
+\linresp\linresp
+\vspace{0.1cm}
+```
+
+c) Calcule la desviación estándar $DE(X) = \sqrt{\text{Var}(X)}$.
+
+```{=latex}
+\linresp\linresp
+\vspace{0.1cm}
+```
+
+## Pregunta 4. Distribución normal
+
+El puntaje de un instrumento de caracterización socioeconómica se distribuye normal, $X \sim N(\mu = 500,\ \sigma = 100)$. Use los siguientes valores de la función de distribución acumulada normal estándar: $\Phi(1)=0.8413$, $\Phi(1.5)=0.9332$, $\Phi(2)=0.9772$.
+
+a) Calcule $P(X < 400)$ usando estandarización ($Z = \frac{X-\mu}{\sigma}$).
+
+```{=latex}
+\linresp\linresp
+\vspace{0.1cm}
+```
+
+b) Calcule $P(400 < X < 600)$.
+
+```{=latex}
+\linresp\linresp
+\vspace{0.1cm}
+```
+
+c) Interprete sus resultados en contexto: si los hogares con puntaje inferior a 400 reciben el subsidio de forma prioritaria, ¿qué porcentaje aproximado de hogares sería priorizado?
+
+```{=latex}
+\linresp\linresp
+\vspace{0.1cm}
+```
+
+```{=latex}
+\needspace{4.5cm}
+\vspace{0.1cm}
+\begin{center}
+\colorbox{uddblue}{\makebox[0.93\linewidth][c]{\rule[-5pt]{0pt}{16pt}\color{white}\large\bfseries PARTE III: MUESTREO E INFERENCIA}}
+\end{center}
+```
+
+## Pregunta 5. Conceptos del contraste de hipótesis
+
+Defina brevemente y con precisión los siguientes conceptos:
+
+a) Valor-p:
+
+```{=latex}
+\linresp\linresp
+\vspace{0.1cm}
+```
+
+b) Error tipo I:
+
+```{=latex}
+\linresp\linresp
+\vspace{0.1cm}
+```
+
+c) Error tipo II:
+
+```{=latex}
+\linresp\linresp
+\vspace{0.1cm}
+```
+
+d) Potencia de un test:
+
+```{=latex}
+\linresp\linresp
+\vspace{0.1cm}
+```
+
+e) Complete la siguiente matriz de decisión del contraste de hipótesis. En cada celda indique: (1) el nombre del resultado y (2) su probabilidad.
+
+```{=latex}
+\begin{center}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{|c|p{4.6cm}|p{4.6cm}|}
+\hline
+ & \multicolumn{2}{c|}{{\color{uddblue}\textbf{Decisión del investigador}}} \\
+\hline
+{\color{uddblue}\textbf{Realidad}} & \multicolumn{1}{c|}{No rechazar $H_0$} & \multicolumn{1}{c|}{Rechazar $H_0$} \\
+\hline
+$H_0$ es verdadera & \rule{0pt}{1.45cm} & \\
+\hline
+$H_0$ es falsa & \rule{0pt}{1.45cm} & \\
+\hline
+\end{tabular}
+\end{center}
+```
+
+## Pregunta 6. Intervalo de confianza
+
+Se encuestó a una muestra aleatoria de $n = 100$ beneficiarios de un programa social sobre su satisfacción con el programa (escala 0–100). Se obtuvo una media muestral $\bar{x} = 72$ y una desviación estándar muestral $s = 10$. Use $t_{0.975,\,99} \approx 1.984$.
+
+a) Construya el intervalo de confianza del 95% para la media poblacional $\mu$, mostrando cada paso: error estándar, margen de error e intervalo.
+
+```{=latex}
+\linresp\linresp\linresp\linresp
+\vspace{0.1cm}
+```
+
+b) ¿Cuál es la interpretación **correcta** del intervalo de confianza del 95% obtenido en (a)? Marque una alternativa.
+
+   i) Hay un 95% de probabilidad de que la verdadera media poblacional esté dentro del intervalo obtenido.
+   ii) Si repitiéramos el muestreo muchas veces, aproximadamente el 95% de los intervalos así construidos contendrían la verdadera media poblacional.
+   iii) El 95% de los beneficiarios tiene una satisfacción dentro del intervalo obtenido.
+   iv) Estamos 95% seguros de que la muestra es representativa de la población.
+
+Respuesta:
+
+```{=latex}
+\linresp
+\vspace{0.1cm}
+```
+
+Justificación:
+
+```{=latex}
+\linresp\linresp
+\vspace{0.1cm}
+```
+
+```{=latex}
+\needspace{4.5cm}
+\vspace{0.1cm}
+\begin{center}
+\colorbox{uddblue}{\makebox[0.93\linewidth][c]{\rule[-5pt]{0pt}{16pt}\color{white}\large\bfseries PARTE IV: LECTURA DE REGRESIÓN}}
+\end{center}
+```
+
+## Pregunta 7. Lectura de una tabla de regresión
+
+La siguiente tabla muestra los resultados de dos modelos de regresión lineal estimados sobre una encuesta de hogares. La variable dependiente es el **logaritmo del ingreso mensual**. Los errores estándar se reportan entre paréntesis. \*\*\* p<0.01, \*\* p<0.05, \* p<0.1.
+
+```{=latex}
+\needspace{8.5cm}
+```
+
+| Variable             | Modelo 1     | Modelo 2      |
+|:---------------------|:------------:|:-------------:|
+| Escolaridad (años)   | 0.09\*\*\*   | 0.07\*\*\*    |
+|                      | (0.01)       | (0.011)       |
+| Experiencia (años)   |              | 0.02\*\*\*    |
+|                      |              | (0.005)       |
+| Mujer (dummy)        |              | $-0.15$\*\*\* |
+|                      |              | (0.04)        |
+| Constante            | 12.80\*\*\*  | 12.60\*\*\*   |
+|                      | (0.10)       | (0.12)        |
+| $N$                  | 800          | 800           |
+| $R^2$                | 0.12         | 0.19          |
+
+a) Interprete el coeficiente de Escolaridad en el **Modelo 1**. Dado que la variable dependiente está en logaritmo, ¿qué significa concretamente un coeficiente de 0.09?
+
+```{=latex}
+\linresp\linresp\linresp
+\vspace{0.1cm}
+```
+
+b) Al agregar Experiencia y Mujer en el Modelo 2, el coeficiente de Escolaridad cae de 0.09 a 0.07. ¿Cómo se explica este cambio? Nombre el concepto involucrado.
+
+```{=latex}
+\linresp\linresp\linresp
+\vspace{0.1cm}
+```
+
+c) Interprete el coeficiente de la variable Mujer en el **Modelo 2**.
+
+```{=latex}
+\linresp\linresp
+\vspace{0.1cm}
+```
+
+d) Calcule el estadístico $t$ del coeficiente de Escolaridad en el **Modelo 2** ($t = \hat{\beta}/SE$) y decida si es estadísticamente significativo al 5% (valor crítico $\approx 1.96$).
+
+```{=latex}
+\linresp\linresp
+\vspace{0.1cm}
+```
+
+e) ¿Qué significa que el $R^2$ del Modelo 2 sea 0.19?
+
+```{=latex}
+\linresp\linresp
+\vspace{0.1cm}
+```
+
+## Pregunta 8. Significancia estadística y causalidad
+
+¿Por qué un coeficiente **estadísticamente significativo** no implica, por sí solo, una relación **causal**? Explique brevemente y proponga un ejemplo concreto de **confusor** (variable omitida) que podría sesgar el coeficiente de Escolaridad en el modelo de la Pregunta 7.
+
+```{=latex}
+\linresp\linresp\linresp\linresp
+```

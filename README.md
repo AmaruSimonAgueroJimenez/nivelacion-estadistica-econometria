@@ -54,10 +54,22 @@ Nivelación intensiva de 2 días (4 horas por día, 2 bloques diarios) previa a 
 
 ## Documentos adicionales
 
+**Fundamentos de Probabilidad y Estadística (Doctorado en Políticas Públicas)**
+
+| Documento | PDF | Fuente |
+|-----------|:---:|:---:|
+| Syllabus Fundamentos | [PDF](Syllabus_Fundamentos_2026.pdf) | [QMD](Syllabus_Fundamentos_2026.qmd) |
+| Prueba Diagnóstica Fundamentos | [PDF](Prueba_Diagnostica_Fundamentos_2026.pdf) | [QMD](Prueba_Diagnostica_Fundamentos_2026.qmd) |
+| Pauta de Corrección Fundamentos | [PDF](Pauta_Correccion_Fundamentos_2026.pdf) | [QMD](Pauta_Correccion_Fundamentos_2026.qmd) |
+
+**Nivelación Estadística y Econometría (CICS)**
+
 | Documento | PDF |
 |-----------|:---:|
 | Syllabus Estadística | [PDF](Syllabus_Nivelacion_Estadistica_2026.pdf) |
 | Syllabus Econometría | [PDF](Syllabus_Nivelacion_Econometria_2026.pdf) |
+| Prueba Diagnóstica | [PDF](Prueba_Diagnostica_Nivelacion_2026_v2.pdf) |
+| Pauta de Corrección | [PDF](Pauta_Correccion_Diagnostica_2026_v2.pdf) |
 
 ---
 

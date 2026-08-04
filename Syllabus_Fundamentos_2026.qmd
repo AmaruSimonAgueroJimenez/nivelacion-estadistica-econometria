@@ -1,0 +1,137 @@
+---
+format:
+  pdf:
+    documentclass: article
+    geometry: margin=2.2cm
+    fontsize: 11pt
+    colorlinks: true
+    linkcolor: "[HTML]{1F4E79}"
+    urlcolor: "[HTML]{2E86C1}"
+    include-in-header:
+      text: |
+        \usepackage{fancyhdr}
+        \pagestyle{fancy}
+        \fancyhf{}
+        \fancyfoot[C]{\footnotesize\itshape Docente: Amaru Agüero Jiménez | Doctorado en Políticas Públicas — UDD \quad\quad Página \thepage}
+        \renewcommand{\headrulewidth}{0pt}
+        \usepackage{xcolor}
+        \definecolor{uddblue}{HTML}{1F4E79}
+        \usepackage{sectsty}
+        \sectionfont{\color{uddblue}}
+        \subsectionfont{\color{uddblue}}
+lang: es
+---
+
+```{=latex}
+\begin{center}
+\includegraphics[width=6cm]{logo_gobierno.png}
+
+\vspace{0.5cm}
+{\color{uddblue}\Huge\bfseries SYLLABUS}
+
+\vspace{0.2cm}
+{\Large Fundamentos de Probabilidad y Estadística}
+
+Cohorte 2026 \\ Marzo 2026
+\end{center}
+\vspace{0.3cm}
+```
+
+| | |
+|:---|:---|
+| **Docente:** | Amaru Agüero Jiménez (a.agueroj@udd.cl) |
+| **Programa:** | Doctorado en Políticas Públicas |
+| **Tipo de asignatura:** | Nivelación, sin créditos |
+| **Duración:** | 2 días, 4 horas por día (2 bloques diarios de ~2 horas) |
+| **Prerrequisito para:** | Métodos Cuantitativos |
+| **Software de apoyo:** | R / RStudio (demostraciones y verificación de cálculos) |
+| **Modalidad:** | Presencial — Universidad del Desarrollo |
+
+# A. Antecedentes generales
+
+Fundamentos de Probabilidad y Estadística es la asignatura de nivelación del Doctorado en Políticas Públicas de la Universidad del Desarrollo. Se dicta de forma intensiva en dos días (cuatro horas diarias, organizadas en dos bloques de aproximadamente dos horas) durante la semana previa al inicio de Métodos Cuantitativos, no otorga créditos y no tiene carácter aprobatorio.
+
+# B. Objetivo general
+
+Establecer una base conceptual en probabilidad, estadística inferencial y lectura de resultados de regresión, de modo que las y los estudiantes comprendan el lenguaje y la lógica básica que Métodos Cuantitativos exige desde su primera sesión, antes de introducir modelos econométricos propiamente tales.
+
+# C. Objetivos de aprendizaje
+
+Al finalizar la asignatura, se espera que las y los estudiantes sean capaces de:
+
+- Comprender la probabilidad como herramienta para representar incertidumbre y riesgo en contextos de análisis social y de políticas públicas.
+- Distinguir entre probabilidad marginal, conjunta y condicional, e identificar situaciones de independencia entre sucesos.
+- Reconocer variables aleatorias discretas y continuas, así como interpretar funciones de distribución y de densidad.
+- Interpretar esperanza, varianza y covarianza como medidas de tendencia central, dispersión y asociación entre variables.
+- Comprender el papel de la distribución normal, del muestreo y del teorema central del límite en la inferencia estadística.
+- Diferenciar entre estimación puntual y por intervalos, y comprender de manera intuitiva las propiedades básicas de los estimadores.
+- Entender la lógica del contraste de hipótesis, incluyendo errores tipo I y tipo II, valor p y potencia de un test.
+- Leer e interpretar de manera básica una regresión lineal simple o múltiple y una tabla estándar de resultados.
+
+# D. Contenidos
+
+## 1. Fundamentos de probabilidad (Sesión 1 — Día 1, bloque 1)
+
+- Teoría de probabilidad: axiomas, eventos y reglas básicas.
+- Probabilidad marginal, conjunta y condicional.
+- Independencia entre sucesos.
+- Variables aleatorias discretas y continuas.
+- Funciones de distribución acumulada y funciones de densidad.
+
+## 2. Variables aleatorias y distribuciones (Sesión 2 — Día 1, bloque 2)
+
+- Esperanza, varianza y covarianza.
+- Distribución normal y sus propiedades básicas.
+- Interpretación gráfica de distribuciones y probabilidades de intervalos.
+- Aplicaciones simples a problemas de incertidumbre y variabilidad en políticas públicas.
+
+## 3. Muestreo e inferencia (Sesión 3 — Día 2, bloque 1)
+
+- Población, muestra y estadísticos muestrales.
+- Distribuciones muestrales.
+- Teorema central del límite.
+- Estimación puntual y por intervalos.
+- Propiedades de los estimadores: sesgo, varianza, consistencia.
+- Contraste de hipótesis: errores tipo I y tipo II, valor p, potencia de un test.
+
+## 4. Regresión lineal (Sesión 4 — Día 2, bloque 2)
+
+- Regresión lineal simple y múltiple.
+- Formulación algebraica básica.
+- Interpretación geométrica elemental.
+- Lectura de una tabla de resultados: coeficientes, errores estándar, estadísticos de prueba y medidas de ajuste.
+- Uso de regresión como herramienta introductoria para el análisis empírico en economía y políticas públicas.
+
+# E. Metodología
+
+La asignatura se desarrollará mediante clases expositivas breves, discusión guiada, resolución paso a paso de ejercicios simples y análisis de ejemplos aplicados a ciencias sociales y políticas públicas. Se privilegiará la comprensión conceptual y la interpretación de resultados por sobre el desarrollo algebraico detallado de demostraciones y derivaciones formales.
+
+Cada contenido será introducido a partir de preguntas empíricas sustantivas —por ejemplo, cómo interpretar una probabilidad condicional, cómo decidir si un efecto es estadísticamente significativo o cómo leer un coeficiente de regresión— con el objetivo de mostrar la utilidad de estas herramientas en investigación aplicada.
+
+Al inicio de la primera sesión se aplicará una breve **evaluación diagnóstica** (sin calificación ni carácter aprobatorio) para identificar el nivel de entrada de cada estudiante.
+
+# F. Calendario de sesiones
+
+| N° | Día | Bloque | Tema |
+|:--:|:----|:------|:-----|
+| 1 | Día 1 | Bloque 1 (2 h) | Fundamentos de probabilidad |
+| 2 | Día 1 | Bloque 2 (2 h) | Variables aleatorias y distribuciones |
+| 3 | Día 2 | Bloque 1 (2 h) | Muestreo e inferencia estadística |
+| 4 | Día 2 | Bloque 2 (2 h) | Regresión lineal y lectura de resultados |
+
+# G. Materiales
+
+Cada sesión cuenta con slides interactivas (HTML con gráficos explorables), presentación en PDF y script de R reproducible, disponibles en el repositorio del curso (carpeta `clases_fundamentos/`). Las derivaciones y todos los ejemplos numéricos de las slides están resueltos paso a paso.
+
+# H. Bibliografía recomendada
+
+**Textos principales**
+
+- Diez, D., Cetinkaya-Rundel, M. & Barr, C. (2019). *OpenIntro Statistics* (4th ed.). OpenIntro. [Disponible gratuitamente en openintro.org]
+- Wooldridge, J. M. (2019). *Introductory Econometrics: A Modern Approach* (7th ed.), capítulos 1–4 y apéndices A–C. Cengage Learning.
+
+**Textos complementarios**
+
+- Stock, J. & Watson, M. (2019). *Introduction to Econometrics* (4th ed.), capítulos 1–7. Pearson.
+- Wackerly, D., Mendenhall, W. & Scheaffer, R. (2014). *Estadística Matemática con Aplicaciones* (7ma ed.). Cengage Learning.
+- Wickham, H. & Grolemund, G. (2017). *R for Data Science*. O'Reilly. [Disponible en r4ds.had.co.nz]

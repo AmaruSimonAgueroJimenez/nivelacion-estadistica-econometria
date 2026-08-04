@@ -1,0 +1,339 @@
+---
+format:
+  pdf:
+    documentclass: article
+    geometry: margin=2.2cm
+    fontsize: 11pt
+    colorlinks: true
+    linkcolor: "[HTML]{1F4E79}"
+    urlcolor: "[HTML]{2E86C1}"
+    include-in-header:
+      text: |
+        \usepackage{fancyhdr}
+        \pagestyle{fancy}
+        \fancyhf{}
+        \fancyfoot[C]{\footnotesize\itshape Docente: Amaru Agüero Jiménez | Doctorado en Políticas Públicas — UDD \quad\quad Página \thepage}
+        \renewcommand{\headrulewidth}{0pt}
+        \usepackage{xcolor}
+        \definecolor{uddblue}{HTML}{1F4E79}
+        \usepackage{sectsty}
+        \sectionfont{\color{uddblue}}
+        \subsectionfont{\color{uddblue}}
+        \raggedbottom
+lang: es
+---
+
+```{=latex}
+\begin{center}
+\includegraphics[width=5cm]{logo_gobierno.png}
+
+\vspace{0.4cm}
+{\color{uddblue}\Huge\bfseries EVALUACIÓN DIAGNÓSTICA}
+
+\vspace{0.25cm}
+{\Large Fundamentos de Probabilidad y Estadística}
+
+Doctorado en Políticas Públicas — Universidad del Desarrollo \\ Marzo 2026
+
+\vspace{0.3cm}
+{\color{uddblue}\LARGE\bfseries PAUTA DE CORRECCIÓN}
+\end{center}
+\vspace{0.2cm}
+```
+
+**Instrucciones (versión estudiante):** Esta evaluación diagnóstica se aplica al inicio de la primera sesión y tiene como único objetivo identificar el nivel de entrada de cada estudiante. **No lleva calificación ni tiene carácter aprobatorio.** Tiempo estimado: **30 minutos**. Esta pauta contiene las mismas preguntas de la prueba con la respuesta esperada de cada una, resuelta paso a paso cuando corresponde.
+
+```{=latex}
+\vspace{0.1cm}
+\begin{center}
+\colorbox{uddblue}{\makebox[0.93\linewidth][c]{\rule[-5pt]{0pt}{16pt}\color{white}\large\bfseries PARTE I: FUNDAMENTOS DE PROBABILIDAD}}
+\end{center}
+```
+
+## Pregunta 1. Probabilidad marginal, conjunta y condicional
+
+Una municipalidad evaluó un programa de capacitación laboral. La siguiente tabla muestra la distribución de 200 personas según su participación en el programa y su situación laboral seis meses después:
+
+|                              | Empleado/a | Desempleado/a | Total   |
+|:-----------------------------|:----------:|:-------------:|:-------:|
+| Participó en el programa     | 60         | 20            | 80      |
+| No participó                 | 70         | 50            | 120     |
+| **Total**                    | **130**    | **70**        | **200** |
+
+a) Calcule la probabilidad **conjunta** de haber participado en el programa y estar empleado/a, $P(\text{Participó} \cap \text{Empleado})$.
+
+::: {.callout-tip title="Respuesta" icon="false"}
+$$P(\text{Participó} \cap \text{Empleado}) = \frac{60}{200} = 0.30$$
+:::
+
+b) Calcule la probabilidad **marginal** de estar empleado/a, $P(\text{Empleado})$.
+
+::: {.callout-tip title="Respuesta" icon="false"}
+$$P(\text{Empleado}) = \frac{130}{200} = 0.65$$
+:::
+
+c) Calcule la probabilidad **condicional** de estar empleado/a dado que participó en el programa, $P(\text{Empleado} \mid \text{Participó})$.
+
+::: {.callout-tip title="Respuesta" icon="false"}
+$$P(\text{Empleado} \mid \text{Participó}) = \frac{P(\text{Participó} \cap \text{Empleado})}{P(\text{Participó})} = \frac{60/200}{80/200} = \frac{60}{80} = 0.75$$
+:::
+
+d) ¿Son **independientes** los eventos "Participó" y "Empleado"? Verifíquelo con un cálculo explícito y concluya.
+
+::: {.callout-tip title="Respuesta" icon="false"}
+Dos eventos son independientes si $P(A \cap B) = P(A) \cdot P(B)$. Con $P(\text{Participó}) = 80/200 = 0.40$:
+
+$$P(\text{Participó}) \cdot P(\text{Empleado}) = 0.40 \times 0.65 = 0.26 \neq 0.30 = P(\text{Participó} \cap \text{Empleado})$$
+
+**No son independientes.** Equivalentemente, $P(\text{Empleado} \mid \text{Participó}) = 0.75 \neq 0.65 = P(\text{Empleado})$: entre quienes participaron, la proporción de empleo (75%) es mayor que en el total (65%), es decir, la participación está asociada positivamente con el empleo.
+:::
+
+## Pregunta 2. Teorema de Bayes
+
+Un instrumento de focalización identifica hogares elegibles para un subsidio. En la población objetivo, el **20%** de los hogares es efectivamente elegible (prevalencia). El instrumento clasifica como elegible al **90%** de los hogares que sí son elegibles (sensibilidad) y clasifica como no elegible al **80%** de los hogares que no son elegibles (especificidad).
+
+Si un hogar es clasificado como elegible por el instrumento ($+$), ¿cuál es la probabilidad de que sea **efectivamente elegible**, $P(\text{Elegible} \mid +)$? Desarrolle el cálculo usando la ley de probabilidad total y el teorema de Bayes.
+
+::: {.callout-tip title="Respuesta" icon="false"}
+Sea $E$ = "el hogar es elegible" y $+$ = "el instrumento lo clasifica como elegible". Los datos son:
+
+$$P(E) = 0.20, \qquad P(+ \mid E) = 0.90, \qquad P(+ \mid E^c) = 1 - 0.80 = 0.20$$
+
+**Paso 1 — Ley de probabilidad total:**
+
+$$\begin{aligned}
+P(+) &= P(+ \mid E)\,P(E) + P(+ \mid E^c)\,P(E^c) \\
+     &= 0.90 \times 0.20 + 0.20 \times 0.80 \\
+     &= 0.18 + 0.16 = 0.34
+\end{aligned}$$
+
+**Paso 2 — Teorema de Bayes:**
+
+$$P(E \mid +) = \frac{P(+ \mid E)\,P(E)}{P(+)} = \frac{0.18}{0.34} \approx 0.529$$
+
+**Interpretación:** solo un **52.9%** de los hogares clasificados como elegibles lo es efectivamente. Aun con buena sensibilidad (90%) y especificidad (80%), como la prevalencia es baja (20%), casi la mitad de los hogares señalados por el instrumento serían errores de inclusión.
+:::
+
+```{=latex}
+\vspace{0.1cm}
+\begin{center}
+\colorbox{uddblue}{\makebox[0.93\linewidth][c]{\rule[-5pt]{0pt}{16pt}\color{white}\large\bfseries PARTE II: VARIABLES ALEATORIAS Y DISTRIBUCIONES}}
+\end{center}
+```
+
+## Pregunta 3. Esperanza y varianza de una variable discreta
+
+Sea $X$ el número de programas sociales a los que está inscrito un hogar, con la siguiente distribución de probabilidad:
+
+| $x$    | 0   | 1   | 2   | 3   |
+|:-------|:---:|:---:|:---:|:---:|
+| $p(x)$ | 0.2 | 0.4 | 0.3 | 0.1 |
+
+a) Calcule la esperanza $E[X] = \sum_x x \, p(x)$.
+
+b) Calcule la varianza $\text{Var}(X) = \sum_x (x-\mu)^2 \, p(x)$.
+
+c) Calcule la desviación estándar $DE(X) = \sqrt{\text{Var}(X)}$.
+
+::: {.callout-tip title="Respuesta (a, b y c)" icon="false"}
+Tabla de trabajo completa (con $\mu = E[X] = 1.3$):
+
+| $x$      | $p(x)$  | $x \, p(x)$ | $(x-\mu)^2$ | $(x-\mu)^2 \, p(x)$ |
+|:--------:|:-------:|:-----------:|:-----------:|:-------------------:|
+| 0        | 0.2     | 0.0         | 1.69        | 0.338               |
+| 1        | 0.4     | 0.4         | 0.09        | 0.036               |
+| 2        | 0.3     | 0.6         | 0.49        | 0.147               |
+| 3        | 0.1     | 0.3         | 2.89        | 0.289               |
+| **Suma** | **1.0** | **1.3**     |             | **0.810**           |
+
+**a)** $E[X] = 0(0.2) + 1(0.4) + 2(0.3) + 3(0.1) = 0 + 0.4 + 0.6 + 0.3 = \mathbf{1.3}$ programas.
+
+**b)** $\text{Var}(X) = 0.338 + 0.036 + 0.147 + 0.289 = \mathbf{0.81}$.
+
+Verificación con la fórmula alternativa: $E[X^2] = 0(0.2) + 1(0.4) + 4(0.3) + 9(0.1) = 2.5$, y $\text{Var}(X) = E[X^2] - \mu^2 = 2.5 - 1.3^2 = 2.5 - 1.69 = 0.81$ (coincide).
+
+**c)** $DE(X) = \sqrt{0.81} = \mathbf{0.9}$ programas.
+:::
+
+## Pregunta 4. Distribución normal
+
+El puntaje de un instrumento de caracterización socioeconómica se distribuye normal, $X \sim N(\mu = 500,\ \sigma = 100)$. Use los siguientes valores de la función de distribución acumulada normal estándar: $\Phi(1)=0.8413$, $\Phi(1.5)=0.9332$, $\Phi(2)=0.9772$.
+
+a) Calcule $P(X < 400)$ usando estandarización ($Z = \frac{X-\mu}{\sigma}$).
+
+::: {.callout-tip title="Respuesta" icon="false"}
+$$\begin{aligned}
+P(X < 400) &= P\!\left(Z < \frac{400 - 500}{100}\right) = P(Z < -1) \\
+           &= \Phi(-1) = 1 - \Phi(1) = 1 - 0.8413 = \mathbf{0.1587}
+\end{aligned}$$
+:::
+
+b) Calcule $P(400 < X < 600)$.
+
+::: {.callout-tip title="Respuesta" icon="false"}
+$$\begin{aligned}
+P(400 < X < 600) &= P\!\left(\frac{400-500}{100} < Z < \frac{600-500}{100}\right) = P(-1 < Z < 1) \\
+                 &= \Phi(1) - \Phi(-1) = 0.8413 - 0.1587 = \mathbf{0.6826}
+\end{aligned}$$
+:::
+
+c) Interprete sus resultados en contexto: si los hogares con puntaje inferior a 400 reciben el subsidio de forma prioritaria, ¿qué porcentaje aproximado de hogares sería priorizado?
+
+::: {.callout-tip title="Respuesta" icon="false"}
+Aproximadamente el **15.9%** de los hogares tiene un puntaje inferior a 400 y sería priorizado. Además, el 68.3% de los hogares se concentra entre 400 y 600 puntos, es decir, a una desviación estándar de la media ($\mu \pm \sigma$), lo que es consistente con la regla empírica de la distribución normal.
+:::
+
+```{=latex}
+\vspace{0.1cm}
+\begin{center}
+\colorbox{uddblue}{\makebox[0.93\linewidth][c]{\rule[-5pt]{0pt}{16pt}\color{white}\large\bfseries PARTE III: MUESTREO E INFERENCIA}}
+\end{center}
+```
+
+## Pregunta 5. Conceptos del contraste de hipótesis
+
+Defina brevemente y con precisión los siguientes conceptos:
+
+a) Valor-p:
+
+::: {.callout-tip title="Respuesta" icon="false"}
+Es la probabilidad de obtener un resultado tan extremo o más extremo que el observado, **asumiendo que $H_0$ es verdadera**: $P(T \geq t_{obs} \mid H_0)$. Un valor-p pequeño proporciona evidencia contra $H_0$. Importante: **no** es la probabilidad de que $H_0$ sea verdadera.
+:::
+
+b) Error tipo I:
+
+::: {.callout-tip title="Respuesta" icon="false"}
+Rechazar $H_0$ cuando es verdadera (falso positivo). Su probabilidad es $\alpha$, el nivel de significancia fijado por el investigador antes de la prueba.
+:::
+
+c) Error tipo II:
+
+::: {.callout-tip title="Respuesta" icon="false"}
+No rechazar $H_0$ cuando es falsa (falso negativo). Su probabilidad es $\beta$. Para un $n$ dado, disminuir $\alpha$ tiende a aumentar $\beta$.
+:::
+
+d) Potencia de un test:
+
+::: {.callout-tip title="Respuesta" icon="false"}
+Probabilidad de rechazar $H_0$ cuando es falsa: $1 - \beta$. Es la capacidad del test de detectar un efecto que realmente existe; aumenta con el tamaño muestral y con el tamaño del efecto.
+:::
+
+e) Complete la siguiente matriz de decisión del contraste de hipótesis. En cada celda indique: (1) el nombre del resultado y (2) su probabilidad.
+
+::: {.callout-tip title="Respuesta" icon="false"}
+```{=latex}
+\begin{center}
+\renewcommand{\arraystretch}{1.5}
+\begin{tabular}{|c|c|c|}
+\hline
+ & \multicolumn{2}{c|}{{\color{uddblue}\textbf{Decisión del investigador}}} \\
+\hline
+{\color{uddblue}\textbf{Realidad}} & No rechazar $H_0$ & Rechazar $H_0$ \\
+\hline
+$H_0$ es verdadera & \begin{tabular}{c}Decisión correcta\\$P = 1-\alpha$\end{tabular} & \begin{tabular}{c}Error tipo I (falso positivo)\\$P = \alpha$\end{tabular} \\
+\hline
+$H_0$ es falsa & \begin{tabular}{c}Error tipo II (falso negativo)\\$P = \beta$\end{tabular} & \begin{tabular}{c}Decisión correcta (potencia)\\$P = 1-\beta$\end{tabular} \\
+\hline
+\end{tabular}
+\end{center}
+```
+:::
+
+## Pregunta 6. Intervalo de confianza
+
+Se encuestó a una muestra aleatoria de $n = 100$ beneficiarios de un programa social sobre su satisfacción con el programa (escala 0–100). Se obtuvo una media muestral $\bar{x} = 72$ y una desviación estándar muestral $s = 10$. Use $t_{0.975,\,99} \approx 1.984$.
+
+a) Construya el intervalo de confianza del 95% para la media poblacional $\mu$, mostrando cada paso: error estándar, margen de error e intervalo.
+
+::: {.callout-tip title="Respuesta" icon="false"}
+**Paso 1 — Error estándar:**
+
+$$SE = \frac{s}{\sqrt{n}} = \frac{10}{\sqrt{100}} = \frac{10}{10} = 1$$
+
+**Paso 2 — Margen de error:**
+
+$$ME = t_{0.975,\,99} \times SE = 1.984 \times 1 = 1.984$$
+
+**Paso 3 — Intervalo:**
+
+$$IC_{95\%} = \bar{x} \pm ME = 72 \pm 1.984 = [70.016,\ 73.984] \approx [\mathbf{70.02},\ \mathbf{73.98}]$$
+:::
+
+b) ¿Cuál es la interpretación **correcta** del intervalo de confianza del 95% obtenido en (a)? Marque una alternativa.
+
+   i) Hay un 95% de probabilidad de que la verdadera media poblacional esté dentro del intervalo obtenido.
+   ii) Si repitiéramos el muestreo muchas veces, aproximadamente el 95% de los intervalos así construidos contendrían la verdadera media poblacional.
+   iii) El 95% de los beneficiarios tiene una satisfacción dentro del intervalo obtenido.
+   iv) Estamos 95% seguros de que la muestra es representativa de la población.
+
+::: {.callout-tip title="Respuesta" icon="false"}
+**Respuesta correcta: ii)**
+
+**Justificación:** el nivel de confianza describe el comportamiento del **procedimiento** en muestreo repetido. (i) es incorrecta porque $\mu$ es un parámetro fijo, no aleatorio: una vez construido el intervalo [70.02, 73.98], $\mu$ está en él o no está (probabilidad 0 o 1). (iii) es incorrecta porque el IC se refiere a la media poblacional, no a la distribución de las respuestas individuales. (iv) es incorrecta porque el IC mide la precisión de la estimación, no la representatividad de la muestra.
+:::
+
+```{=latex}
+\vspace{0.1cm}
+\begin{center}
+\colorbox{uddblue}{\makebox[0.93\linewidth][c]{\rule[-5pt]{0pt}{16pt}\color{white}\large\bfseries PARTE IV: LECTURA DE REGRESIÓN}}
+\end{center}
+```
+
+## Pregunta 7. Lectura de una tabla de regresión
+
+La siguiente tabla muestra los resultados de dos modelos de regresión lineal estimados sobre una encuesta de hogares. La variable dependiente es el **logaritmo del ingreso mensual**. Los errores estándar se reportan entre paréntesis. \*\*\* p<0.01, \*\* p<0.05, \* p<0.1.
+
+| Variable             | Modelo 1     | Modelo 2      |
+|:---------------------|:------------:|:-------------:|
+| Escolaridad (años)   | 0.09\*\*\*   | 0.07\*\*\*    |
+|                      | (0.01)       | (0.011)       |
+| Experiencia (años)   |              | 0.02\*\*\*    |
+|                      |              | (0.005)       |
+| Mujer (dummy)        |              | $-0.15$\*\*\* |
+|                      |              | (0.04)        |
+| Constante            | 12.80\*\*\*  | 12.60\*\*\*   |
+|                      | (0.10)       | (0.12)        |
+| $N$                  | 800          | 800           |
+| $R^2$                | 0.12         | 0.19          |
+
+a) Interprete el coeficiente de Escolaridad en el **Modelo 1**. Dado que la variable dependiente está en logaritmo, ¿qué significa concretamente un coeficiente de 0.09?
+
+::: {.callout-tip title="Respuesta" icon="false"}
+Es un modelo **log-nivel**: la variable dependiente está en logaritmo y la independiente en nivel, de modo que el coeficiente se interpreta como cambio porcentual aproximado ($100 \times \beta$). Cada año adicional de escolaridad se asocia con un aumento aproximado del **9%** en el ingreso mensual (más precisamente, $(e^{0.09}-1)\times 100 = 9.4\%$; la aproximación $100\beta$ es válida para coeficientes pequeños). El coeficiente es estadísticamente significativo al 1% (\*\*\*).
+:::
+
+b) Al agregar Experiencia y Mujer en el Modelo 2, el coeficiente de Escolaridad cae de 0.09 a 0.07. ¿Cómo se explica este cambio? Nombre el concepto involucrado.
+
+::: {.callout-tip title="Respuesta" icon="false"}
+El concepto es el **sesgo de variable omitida**. El Modelo 1 omite variables (experiencia, género) que están correlacionadas con la escolaridad y que también determinan el ingreso. Por ello, el coeficiente de escolaridad del Modelo 1 capturaba parte del efecto de esas variables omitidas: estaba sobreestimado. Al controlarlas explícitamente en el Modelo 2, la asociación atribuible solo a la escolaridad cae de 0.09 a 0.07.
+:::
+
+c) Interprete el coeficiente de la variable Mujer en el **Modelo 2**.
+
+::: {.callout-tip title="Respuesta" icon="false"}
+Manteniendo constantes la escolaridad y la experiencia (*ceteris paribus*), las mujeres tienen un ingreso mensual aproximadamente **15% menor** que los hombres ($100 \times (-0.15)$; más precisamente, $(e^{-0.15}-1)\times 100 = -13.9\%$). La brecha es estadísticamente significativa al 1% (\*\*\*).
+:::
+
+d) Calcule el estadístico $t$ del coeficiente de Escolaridad en el **Modelo 2** ($t = \hat{\beta}/SE$) y decida si es estadísticamente significativo al 5% (valor crítico $\approx 1.96$).
+
+::: {.callout-tip title="Respuesta" icon="false"}
+$$t = \frac{\hat{\beta}}{SE} = \frac{0.07}{0.011} = 6.36$$
+
+Como $|t| = 6.36 > 1.96$, se **rechaza** $H_0: \beta_{\text{escolaridad}} = 0$ al 5%: el coeficiente es estadísticamente significativo (también lo es al 1%).
+:::
+
+e) ¿Qué significa que el $R^2$ del Modelo 2 sea 0.19?
+
+::: {.callout-tip title="Respuesta" icon="false"}
+El Modelo 2 explica el **19% de la varianza** del logaritmo del ingreso mensual; el 81% restante corresponde a factores no incluidos en el modelo. Un $R^2$ moderado es habitual en datos de corte transversal de individuos y no invalida la inferencia sobre los coeficientes individuales.
+:::
+
+## Pregunta 8. Significancia estadística y causalidad
+
+¿Por qué un coeficiente **estadísticamente significativo** no implica, por sí solo, una relación **causal**? Explique brevemente y proponga un ejemplo concreto de **confusor** (variable omitida) que podría sesgar el coeficiente de Escolaridad en el modelo de la Pregunta 7.
+
+::: {.callout-tip title="Respuesta modelo" icon="false"}
+La significancia estadística solo indica que la **asociación** observada es difícil de atribuir al azar muestral; no dice nada sobre su origen. Para interpretarla causalmente se requiere que la variable de interés no esté correlacionada con el término de error (exogeneidad), lo que puede fallar por variables omitidas, causalidad inversa o sesgo de selección.
+
+**Ejemplo de confusor en el modelo de la Pregunta 7:** la **habilidad** (o la motivación) de la persona. Quienes tienen mayor habilidad tienden a completar más años de escolaridad **y**, a la vez, a obtener mayores ingresos independientemente de su educación. Como la habilidad no se observa ni se controla en el modelo, parte de su efecto queda capturado por el coeficiente de escolaridad, que quedaría sesgado (típicamente hacia arriba). El coeficiente sería significativo, pero no representaría el efecto causal de la escolaridad sobre el ingreso.
+:::
