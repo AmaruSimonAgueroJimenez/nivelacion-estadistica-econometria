@@ -33,7 +33,7 @@ lang: es
 \vspace{0.25cm}
 {\Large Fundamentos de Probabilidad y Estadística}
 
-Doctorado en Ciencias de la Complejidad Social · Doctorado en Políticas Públicas \\ Universidad del Desarrollo \\ Marzo 2026
+Nivelación en Estadística y Econometría \\ Doctorado en Ciencias de la Complejidad Social — CICS, UDD · Doctorado en Políticas Públicas \\ Marzo 2026
 
 \vspace{0.3cm}
 {\color{uddblue}\LARGE\bfseries PAUTA DE CORRECCIÓN}
