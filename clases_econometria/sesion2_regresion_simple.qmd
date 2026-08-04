@@ -1,527 +1,716 @@
 ---
-title: "Sesión 2: Regresión Lineal Simple"
-subtitle: "Doctorado en Ciencias de la Complejidad Social — CICS, UDD"
-author: "Amaru Agüero (a.agueroj@udd.cl)"
-date: today
-format:
-  html:
-    theme: cosmo
-    toc: true
-    toc-depth: 3
-    code-fold: false
-    code-tools: true
-    self-contained: true
+title: "Sesión 2 · Regresión Lineal Simple"
+subtitle: "Nivelación Econometría — Doctorado en Políticas Públicas"
+author: "Amaru Agüero Jiménez (a.agueroj@udd.cl)"
+date: "Marzo 2026"
+date-format: "MMMM [de] YYYY"
 lang: es
+format:
+  revealjs:
+    theme: [default, estilo_slides.scss]
+    slide-number: c/t
+    footer: "Nivelación Econometría — Doctorado en Políticas Públicas"
+    transition: fade
+    embed-resources: true
+    code-line-numbers: false
+    fig-align: center
+    menu: true
+  beamer:
+    aspectratio: 169
+    theme: Madrid
+    colortheme: whale
+    fontsize: 10pt
+    fig-align: center
+    include-in-header:
+      text: |
+        \definecolor{uddblue}{HTML}{1F4E79}
+        \definecolor{uddlight}{HTML}{2E86C1}
+        \setbeamercolor{structure}{fg=uddblue}
+        \setbeamercolor{frametitle}{bg=uddblue,fg=white}
+        \setbeamercolor{title}{bg=uddblue,fg=white}
+        \setbeamercolor{block title}{bg=uddblue,fg=white}
+        \setbeamercolor{block body}{bg=uddblue!10}
+        \fvset{fontsize=\scriptsize}
+        \AtBeginDocument{\setlength{\abovedisplayskip}{2pt}\setlength{\belowdisplayskip}{2pt}}
 execute:
   warning: false
   message: false
+  echo: true
+knitr:
+  opts_chunk:
+    dpi: 150
+    fig.width: 7.5
+    fig.height: 3.4
+    out.width: "82%"
 ---
-
-## Introducción
-
-En esta sesión estudiaremos los fundamentos de la regresión lineal simple: la distinción crucial entre correlación y causalidad, el modelo de regresión lineal, el estimador de Mínimos Cuadrados Ordinarios (MCO), la interpretación de coeficientes, medidas de bondad de ajuste, y los supuestos de Gauss-Markov que garantizan la optimalidad de nuestras estimaciones.
-
-### Paquetes necesarios
 
 ```{r}
 #| label: setup
+#| echo: false
 library(tidyverse)
-library(ggplot2)
+library(wooldridge)
 library(gapminder)
-```
-
----
-
-## 1. Correlación vs. Causalidad
-
-### Concepto de correlación
-
-La **correlación** mide la asociación lineal entre dos variables mediante el coeficiente de Pearson:
-
-$$\rho = \frac{\text{Cov}(X, Y)}{\sigma_X \sigma_Y}$$
-
-donde el rango es $-1 \leq \rho \leq 1$. Una correlación alta indica una fuerte asociación lineal, pero **no implica causalidad**.
-
-```{r}
-#| label: correlacion-basica
-# Cargar datos de gapminder
-data(gapminder)
-
-# Seleccionar año reciente para análisis transversal
-gap2007 <- gapminder %>%
-  filter(year == 2007) %>%
-  drop_na()
-
-# Calcular correlación entre esperanza de vida y PIB per cápita
-cor_simple <- cor(gap2007$lifeExp, gap2007$gdpPercap)
-cat("Correlación de Pearson (esperanza de vida ~ PIB per cápita):",
-    round(cor_simple, 4), "\n\n")
-
-# Test de significancia de la correlación
-cor_test <- cor.test(gap2007$lifeExp, gap2007$gdpPercap)
-cat("t-estadístico:", round(cor_test$statistic, 4), "\n")
-cat("p-valor:", cor_test$p.value, "\n")
-cat("Intervalo de confianza 95%:\n")
-print(round(cor_test$conf.int, 4))
-```
-
-### Correlaciones espurias: ejemplos
-
-Una correlación fuerte puede existir sin relación causal de varias formas:
-
-1. **Variable confundente**: una tercera variable causa cambios en ambas
-2. **Causalidad invertida**: Y afecta a X, no al revés
-3. **Correlación espuria**: la relación es puramente coincidencia
-
-```{r}
-#| label: correlacion-espuria
-# Ejemplo: PIB per cápita vs. expectativa de vida
-# Relación positiva fuerte, pero confundida por nivel de desarrollo
-
-# Visualizar la relación
-scatter_cor <- ggplot(gap2007, aes(x = gdpPercap, y = lifeExp)) +
-  geom_point(aes(color = continent), alpha = 0.6, size = 3) +
-  geom_smooth(method = "lm", se = TRUE, color = "black", alpha = 0.3) +
-  scale_x_log10() +
-  labs(
-    title = "Esperanza de Vida vs. PIB per Cápita (2007)",
-    subtitle = "Correlación r = 0.58, pero fuertemente confundida por nivel de desarrollo",
-    x = "PIB per Cápita (USD, escala log)",
-    y = "Esperanza de Vida (años)",
-    color = "Continente"
-  ) +
-  theme_minimal() +
-  theme(legend.position = "bottom")
-
-print(scatter_cor)
-
-# Calcular correlación por continente: el efecto de la variable confundente
-cat("\nCorrelación dentro de continentes (mostrando confundimiento):\n")
-for (cont in unique(gap2007$continent)) {
-  subset_data <- gap2007 %>% filter(continent == cont)
-  if (nrow(subset_data) > 2) {
-    r <- cor(subset_data$gdpPercap, subset_data$lifeExp)
-    cat(sprintf("  %s: r = %.3f (n = %d)\n", cont, r, nrow(subset_data)))
-  }
+library(knitr)
+library(broom)
+library(lmtest)
+library(sandwich)
+library(modelsummary)
+library(plotly)
+theme_set(theme_minimal(base_size = 13))
+azul <- "#1F4E79"; celeste <- "#2E86C1"; rojo <- "#E74C3C"; verde <- "#27AE60"; naranja <- "#F39C12"; morado <- "#8E44AD"
+# En HTML (revealjs) los graficos se vuelven interactivos con plotly;
+# en Beamer (PDF) se mantienen estaticos.
+es_html <- knitr::is_html_output()
+interactivo <- function(p) {
+  if (es_html) plotly::config(plotly::ggplotly(p), displayModeBar = FALSE) else p
 }
+
+data("wage1", package = "wooldridge")
+modelo <- lm(wage ~ educ, data = wage1)
+modelo_log <- lm(lwage ~ educ, data = wage1)
+gap2007 <- gapminder %>% filter(year == 2007)
 ```
 
----
+## Panorama de la sesión
 
-## 2. Modelo de Regresión Lineal Simple
+| Bloque | Concepto clave | Herramienta en R |
+|---|---|---|
+| El modelo | $y = \beta_0 + \beta_1 x + u$; causal vs predictivo | — |
+| Estimación MCO | Minimizar la suma de cuadrados | `lm()`, `broom::tidy()` |
+| Interpretación | Unidades, formas funcionales, logs | `log()` |
+| Bondad de ajuste | $R^2$: qué es y qué no es | `broom::glance()` |
+| Inferencia | $SE(\hat{\beta}_1)$, prueba t, IC | `confint()`, `sandwich` |
+| Supuestos | Gauss-Markov, heterocedasticidad | `plot(modelo)` |
+| Predicción | Bandas media vs individuo; extrapolación | `predict()` |
 
-### Formulación teórica
+::: {.callout-note appearance="simple"}
+**Datos de trabajo:** `wage1` (Wooldridge): 526 trabajadores (EE.UU., 1976) con salario por hora y educación. ¿Cuánto rinde un año más de escolaridad? `gapminder` 2007 reaparece para formas funcionales.
+:::
 
-El **modelo de regresión lineal simple** relaciona una variable dependiente $Y$ con una variable independiente $X$:
+## La regresión en el flujo econométrico
 
-$$Y = \beta_0 + \beta_1 X + \varepsilon$$
+:::: {.columns}
 
-**Componentes:**
-- $Y$: variable dependiente (endógena)
-- $X$: variable independiente (exógena)
-- $\beta_0$: intercepto (parámetro poblacional desconocido)
-- $\beta_1$: pendiente o efecto marginal (parámetro de interés)
-- $\varepsilon$: término de error no observable
+::: {.column width="55%"}
+```{r}
+#| label: img-flujo
+#| echo: false
+#| out.width: "100%"
+knitr::include_graphics("figuras/flujo_econometria.png")
+```
+:::
 
-**Interpretación ceteris paribus:**
-$$\beta_1 = \frac{\partial E[Y|X]}{\partial X}$$
+::: {.column width="45%"}
+- **Pregunta de política:** ¿cuánto aumenta el salario un año adicional de educación?
+- **Modelo:** $y = \beta_0 + \beta_1 x + u$ traduce la pregunta a un parámetro: $\beta_1$.
+- **Estimación:** MCO entrega $\hat{\beta}_1$ a partir de los datos.
+- **Inferencia:** ¿es $\hat{\beta}_1$ distinguible del ruido muestral? (sesión 1).
+- **Hoy:** el eslabón modelo → estimación → interpretación → diagnóstico.
+:::
 
-Un cambio de una unidad en $X$ produce un cambio de $\beta_1$ unidades en el valor esperado de $Y$, manteniendo todo lo demás constante.
+::::
 
----
+## El modelo poblacional: $y = \beta_0 + \beta_1 x + u$
 
-## 3. Estimación por Mínimos Cuadrados Ordinarios (MCO)
+:::: {.columns}
 
-### Principio y derivación intuitiva
+::: {.column width="50%"}
+$$y = \beta_0 + \beta_1 x + u$$
 
-MCO busca estimar $\beta_0$ y $\beta_1$ minimizando la suma de cuadrados de los residuos:
+- $y$: variable dependiente (el resultado de interés)
+- $x$: variable explicativa (la palanca de política)
+- $\beta_0, \beta_1$: **parámetros poblacionales** desconocidos
+- $u$: término de error — *todo lo demás* que afecta a $y$
+- Si $E[u \mid x] = 0$, entonces $E[y \mid x] = \beta_0 + \beta_1 x$: la recta es la **media condicional**
+:::
 
-$$\text{SSE} = \sum_{i=1}^{n} \varepsilon_i^2 = \sum_{i=1}^{n} (Y_i - \beta_0 - \beta_1 X_i)^2$$
+::: {.column width="50%"}
+```{r}
+#| label: img-modelo
+#| echo: false
+#| out.width: "100%"
+knitr::include_graphics("figuras/scatter_regresion.png")
+```
+:::
 
-Las **condiciones de primer orden** se obtienen igualando las derivadas parciales a cero:
+::::
 
-$$\frac{\partial \text{SSE}}{\partial \beta_0} = -2 \sum_i (Y_i - \beta_0 - \beta_1 X_i) = 0$$
+## Dos lecturas del mismo modelo: predictiva y causal
 
-$$\frac{\partial \text{SSE}}{\partial \beta_1} = -2 \sum_i X_i(Y_i - \beta_0 - \beta_1 X_i) = 0$$
+| Lectura | Pregunta que responde | Requisito clave | Uso en política pública |
+|---|---|---|---|
+| **Predictiva** | ¿Cuál es el salario *esperado* de alguien con 12 años de educación? | Buen ajuste dentro del rango de los datos | Focalización, proyecciones, alertas tempranas |
+| **Causal** | ¿Cuánto *subiría* el salario si la política agrega un año de educación? | Exogeneidad: $E[u \mid x] = 0$ | Evaluación de reformas, análisis costo-beneficio |
 
-Resolviendo este sistema de ecuaciones normales obtenemos los estimadores MCO.
+::: {.callout-important appearance="simple"}
+La misma recta estimada admite ambas lecturas. Lo que decide cuál es válida no es el software sino los **supuestos**: si la habilidad (omitida en $u$) se correlaciona con la educación, $\hat{\beta}_1$ predice bien pero **no** mide el efecto causal.
+:::
 
-### Fórmulas de los estimadores
+## Los datos: `wage1` de Wooldridge
 
-$$\hat{\beta}_1 = \frac{\sum_{i=1}^{n}(X_i - \bar{X})(Y_i - \bar{Y})}{\sum_{i=1}^{n}(X_i - \bar{X})^2} = \frac{\text{Cov}(X,Y)}{\text{Var}(X)}$$
+```{r}
+#| label: datos-wage
+data("wage1", package = "wooldridge")
+wage1 %>% select(wage, educ, exper) %>% glimpse()
+```
 
-$$\hat{\beta}_0 = \bar{Y} - \hat{\beta}_1 \bar{X}$$
+- `wage`: salario promedio por hora (USD de 1976) — nuestra $y$
+- `educ`: años de educación formal (rango 0–18) — nuestra $x$
+- `lwage` = `log(wage)`: la usaremos para semi-elasticidades
+- Corte transversal de la CPS: cada fila es un trabajador distinto
 
-**Propiedades (bajo supuestos de Gauss-Markov):**
-- **Insesgados**: $E[\hat{\beta}_j] = \beta_j$
-- **Consistentes**: $\hat{\beta}_j \xrightarrow{p} \beta_j$ conforme $n \to \infty$
-- **Eficientes**: MCO es el estimador linealmente insesgado de varianza mínima (BLUE)
+## Primer vistazo: siempre graficar antes de estimar
 
-### Cálculo manual de los estimadores
+:::: {.columns}
 
-Demostraremos que nuestros cálculos manuales coinciden con la función `lm()`:
+::: {.column width="46%"}
+```{r}
+#| label: code-scatter
+#| eval: false
+ggplot(wage1,
+       aes(x = educ, y = wage)) +
+  geom_jitter(width = .2,
+              alpha = .35,
+              color = celeste) +
+  geom_smooth(method = "lm",
+              se = FALSE,
+              color = rojo) +
+  labs(x = "Educación (años)",
+       y = "Salario (USD/hora)")
+```
+
+- Nube con pendiente positiva y mucha dispersión
+- `educ` es discreta: el *jitter* evita el sobretrazado
+- La recta resume $E[y \mid x]$; los puntos recuerdan que $u$ existe
+:::
+
+::: {.column width="54%"}
+```{r}
+#| label: plot-scatter
+#| echo: false
+#| fig-width: 5.6
+#| fig-height: 3.9
+#| out.width: "100%"
+interactivo(
+  ggplot(wage1, aes(x = educ, y = wage)) +
+    geom_jitter(width = .2, alpha = .35, color = celeste) +
+    geom_smooth(method = "lm", se = FALSE, color = rojo) +
+    labs(x = "Educación (años)", y = "Salario (USD/hora)")
+)
+```
+:::
+
+::::
+
+## MCO: minimizar la suma de cuadrados de los residuos
+
+Cada recta candidata $(\beta_0, \beta_1)$ deja residuos $\hat{u}_i = y_i - \beta_0 - \beta_1 x_i$. MCO elige la recta que minimiza:
+
+$$\min_{\beta_0, \beta_1} \; SCR = \sum_{i=1}^{n} (y_i - \beta_0 - \beta_1 x_i)^2$$
+
+Condiciones de primer orden (derivar e igualar a cero):
+
+$$\sum_i (y_i - \hat{\beta}_0 - \hat{\beta}_1 x_i) = 0 \qquad \sum_i x_i (y_i - \hat{\beta}_0 - \hat{\beta}_1 x_i) = 0$$
+
+- **¿Por qué cuadrados?** Penaliza más los errores grandes, es diferenciable y tiene solución única (si $\text{Var}(x) > 0$).
+- Las condiciones implican: los residuos **suman cero** y **no se correlacionan** con $x$.
+
+## Los estimadores MCO: fórmula y verificación en R
+
+$$\hat{\beta}_1 = \frac{\sum_i (x_i - \bar{x})(y_i - \bar{y})}{\sum_i (x_i - \bar{x})^2} = \frac{\widehat{\text{Cov}}(x, y)}{\widehat{\text{Var}}(x)} \qquad \hat{\beta}_0 = \bar{y} - \hat{\beta}_1 \bar{x}$$
 
 ```{r}
 #| label: mco-manual
-# Usar datos de gapminder 2007
-data <- gap2007
-
-# Calcular promedios
-X_bar <- mean(data$gdpPercap)
-Y_bar <- mean(data$lifeExp)
-
-# Calcular β1: covarianza / varianza
-numerador <- sum((data$gdpPercap - X_bar) * (data$lifeExp - Y_bar))
-denominador <- sum((data$gdpPercap - X_bar)^2)
-
-beta1_manual <- numerador / denominador
-
-# Calcular β0
-beta0_manual <- Y_bar - beta1_manual * X_bar
-
-cat("=== Cálculo Manual de Estimadores MCO ===\n\n")
-cat("β̂1 (pendiente) =", round(beta1_manual, 8), "\n")
-cat("β̂0 (intercepto) =", round(beta0_manual, 4), "\n")
-cat("\nInterpretación:\n")
-cat("- Un aumento de USD 1000 en PIB per cápita está asociado a\n")
-cat("  un aumento de", round(beta1_manual * 1000, 4), "años en esperanza de vida\n")
-
-# Verificar con lm()
-modelo <- lm(lifeExp ~ gdpPercap, data = data)
-cat("\n=== Verificación con lm() ===\n")
-print(coef(modelo))
-
-cat("\nDiferencia (error numérico negligible):\n")
-cat("  Δβ1 =", beta1_manual - coef(modelo)["gdpPercap"], "\n")
-cat("  Δβ0 =", beta0_manual - coef(modelo)["(Intercept)"], "\n")
+b1 <- cov(wage1$educ, wage1$wage) / var(wage1$educ)
+b0 <- mean(wage1$wage) - b1 * mean(wage1$educ)
+round(c(b0_manual = b0, b1_manual = b1), 4)
+round(coef(lm(wage ~ educ, data = wage1)), 4)
 ```
 
----
+La pendiente es la covarianza reescalada por la varianza de $x$; la recta MCO siempre pasa por el punto de medias $(\bar{x}, \bar{y})$.
 
-## 4. Interpretación de Coeficientes
+## Anatomía del gráfico de regresión
 
-### Pendiente (β₁)
-
-El coeficiente $\hat{\beta}_1$ representa el **cambio en $Y$ cuando $X$ aumenta en una unidad**, manteniendo todo lo demás constante (ceteris paribus).
-
-**Unidades:** Las unidades de $\hat{\beta}_1$ son el ratio $\frac{[\text{unidades de } Y]}{[\text{unidades de } X]}$.
-
-En nuestro ejemplo: $\hat{\beta}_1$ está en unidades de "años de esperanza de vida por dólar de PIB per cápita".
-
-### Intercepto (β₀)
-
-El coeficiente $\hat{\beta}_0$ es el valor predicho de $Y$ cuando $X = 0$.
-
-⚠️ **Advertencia:** La interpretación económica del intercepto no siempre es directa. En nuestro caso, $\hat{\beta}_0$ sería la esperanza de vida predicha para un país con PIB per cápita de 0 USD, lo cual es poco realista.
-
-### Transformaciones logarítmicas
-
-Cuando el modelo se especifica con logaritmos, la interpretación cambia significativamente:
-
-| Modelo | Forma | Interpretación de $\hat{\beta}_1$ |
-|--------|-------|----------------------------------|
-| Lineal | $Y = \beta_0 + \beta_1 X + \varepsilon$ | Cambio absoluto en $Y$ |
-| Log-Log | $\ln Y = \beta_0 + \beta_1 \ln X + \varepsilon$ | Elasticidad (% cambio) |
-| Log-Lin | $\ln Y = \beta_0 + \beta_1 X + \varepsilon$ | Cambio % en $Y$ |
-| Lin-Log | $Y = \beta_0 + \beta_1 \ln X + \varepsilon$ | Cambio en $Y$ por % cambio en $X$ |
-
-**Ejemplo Log-Log:**
 ```{r}
-#| label: modelo-loglog
-modelo_loglog <- lm(log(lifeExp) ~ log(gdpPercap), data = data)
-
-cat("=== Modelo Log-Log ===\n")
-print(summary(modelo_loglog)$coefficients)
-
-beta1_loglog <- coef(modelo_loglog)["log(gdpPercap)"]
-cat("\nInterpretación:\n")
-cat("Un aumento de 1% en PIB per cápita está asociado a un aumento de\n")
-cat(sprintf("%.3f%% en esperanza de vida\n", beta1_loglog * 100))
+#| label: plot-anatomia
+#| echo: false
+#| fig-height: 3.2
+set.seed(21)
+sub <- wage1 %>% slice_sample(n = 70) %>%
+  mutate(ajuste = predict(modelo, newdata = .),
+         educ_j = educ + runif(n(), -.18, .18))
+p <- ggplot(sub) +
+  geom_segment(aes(x = educ_j, xend = educ_j, y = wage, yend = ajuste),
+               color = rojo, alpha = .6) +
+  geom_point(aes(x = educ_j, y = wage), color = celeste, size = 2, alpha = .85) +
+  geom_abline(intercept = coef(modelo)[1], slope = coef(modelo)[2],
+              color = azul, linewidth = 1) +
+  annotate("text", x = 3, y = 20, label = "segmentos rojos = residuos",
+           hjust = 0, color = rojo, size = 4.2) +
+  annotate("text", x = 15, y = 13.5, label = "recta MCO: valores ajustados", color = azul, size = 4.2) +
+  labs(x = "Educación (años)", y = "Salario (USD/hora)",
+       title = "Submuestra de 70 trabajadores: observado, ajustado y residuo")
+interactivo(p)
 ```
 
----
+Cada observación se descompone en $y_i = \hat{y}_i + \hat{u}_i$: valor **ajustado** (sobre la recta) más **residuo** (distancia vertical). MCO hace que los cuadrados de esos segmentos sumen lo mínimo posible.
 
-## 5. Bondad de Ajuste: R² y R² Ajustado
-
-### Descomposición de variabilidad
-
-La variabilidad total en $Y$ se descompone en:
-
-$$\text{SST} = \text{SSR} + \text{SSE}$$
-
-donde:
-- **SST** (Suma Total de Cuadrados): $\sum_i (Y_i - \bar{Y})^2$ = variabilidad total
-- **SSR** (Suma de Cuadrados Explicada): $\sum_i (\hat{Y}_i - \bar{Y})^2$ = variabilidad explicada por el modelo
-- **SSE** (Suma de Cuadrados Residual): $\sum_i (Y_i - \hat{Y}_i)^2$ = variabilidad no explicada
-
-### Coeficiente de Determinación (R²)
-
-$$R^2 = 1 - \frac{\text{SSE}}{\text{SST}} = \frac{\text{SSR}}{\text{SST}}$$
-
-$R^2$ mide la **proporción de varianza en $Y$ explicada por $X$**, con rango $[0, 1]$.
-
-- $R^2 = 0$: el modelo no explica nada
-- $R^2 = 1$: el modelo explica perfectamente $Y$
-- $R^2 = 0.5$: el modelo explica el 50% de la variación
-
-### R² Ajustado
-
-Como el $R^2$ simple siempre aumenta al agregar regresores (incluso si son irrelevantes), se penaliza por el número de parámetros:
-
-$$\bar{R}^2 = 1 - \frac{\text{SSE}/(n-k)}{\text{SST}/(n-1)}$$
-
-donde $n$ = número de observaciones y $k$ = número de parámetros.
+## `lm()` con `broom`: salida ordenada
 
 ```{r}
-#| label: r-cuadrado
-# Extraer información del modelo
-modelo_summary <- summary(modelo)
-
-SST <- sum((data$lifeExp - mean(data$lifeExp))^2)
-SSE <- sum(residuals(modelo)^2)
-SSR <- SST - SSE
-n <- nrow(data)
-k <- 2  # β0 y β1
-
-R2 <- 1 - (SSE / SST)
-R2_adj <- 1 - (SSE / (n - k)) / (SST / (n - 1))
-
-cat("=== Bondad de Ajuste ===\n\n")
-cat(sprintf("SST = %.2f (variabilidad total)\n", SST))
-cat(sprintf("SSR = %.2f (variabilidad explicada)\n", SSR))
-cat(sprintf("SSE = %.2f (variabilidad residual)\n", SSE))
-cat("\n")
-cat(sprintf("R² = %.4f\n", R2))
-cat(sprintf("R² ajustado = %.4f\n", R2_adj))
-cat("\nInterpretación:\n")
-cat(sprintf("El modelo explica %.1f%% de la variación en esperanza de vida\n", R2 * 100))
+#| label: broom-salida
+tidy(modelo) %>% kable(digits = 3)
+glance(modelo) %>%
+  select(r.squared, sigma, statistic, p.value, nobs) %>%
+  kable(digits = 3)
 ```
 
----
+`tidy()` devuelve la tabla de coeficientes como *data frame*; `glance()` resume el ajuste global. Ambos son preferibles a leer `summary()` a ojo: alimentan tablas y gráficos reproducibles.
 
-## 6. Errores Estándar e Inferencia Estadística
+## Interpretación: los coeficientes tienen unidades
 
-### Varianza de los residuos
+$$\widehat{wage} = -0.90 + 0.54 \cdot educ$$
 
-$$\hat{\sigma}^2 = \frac{\text{SSE}}{n-2}$$
+- **Unidades de $\hat{\beta}_1$:** unidades de $y$ por unidad de $x$ → aquí, **USD/hora por año de educación**.
+- Cada año adicional de educación se asocia con **+0.54 USD/hora**, un 9% del salario medio (5.90 USD/hora).
+- Cuatro años de universidad: $4 \times 0.54 = 2.17$ USD/hora, un 37% del salario medio — significancia **económica**, no solo estadística.
+- **Intercepto:** $\hat{\beta}_0 = -0.90$ sería el salario con `educ = 0`. Un salario negativo es absurdo: el intercepto ancla la recta, pero no siempre tiene lectura propia fuera del soporte de los datos.
 
-Esta es la varianza estimada del término de error. El factor $(n-2)$ refleja que perdemos 2 grados de libertad al estimar $\beta_0$ y $\beta_1$.
+::: {.callout-important appearance="simple"}
+Para leer 0.54 como **efecto causal** de una reforma educativa se requiere $E[u \mid educ] = 0$: que la habilidad, el entorno familiar y la calidad escolar (todos en $u$) no se muevan con la educación. La sesión 3 ataca este problema con controles.
+:::
 
-### Error estándar de $\hat{\beta}_1$
+## Formas funcionales: la misma herramienta, otra pregunta
 
-$$SE(\hat{\beta}_1) = \frac{\hat{\sigma}}{\sqrt{\sum_i(X_i - \bar{X})^2}}$$
+| Modelo | Especificación | Interpretación de $\beta_1$ | Ejemplo típico |
+|---|---|---|---|
+| Nivel-nivel | $y = \beta_0 + \beta_1 x + u$ | +1 unidad de $x$: $y$ cambia $\beta_1$ unidades | Salario vs educación |
+| Log-nivel | $\ln y = \beta_0 + \beta_1 x + u$ | +1 unidad de $x$: $y$ cambia $100 \beta_1$ % | Retorno a la educación |
+| Nivel-log | $y = \beta_0 + \beta_1 \ln x + u$ | +1% en $x$: $y$ cambia $\beta_1 / 100$ unidades | Esperanza de vida vs PIB |
+| Log-log | $\ln y = \beta_0 + \beta_1 \ln x + u$ | +1% en $x$: $y$ cambia $\beta_1$ % (elasticidad) | Demanda vs precio |
 
-El error estándar mide la precisión de nuestro estimador. Aumenta si:
-- La varianza de los residuos es mayor
-- La varianza de $X$ es menor (menos variación en el regresor)
+::: {.callout-tip appearance="simple"}
+Los logs convierten efectos absolutos en relativos, comprimen colas derechas y estabilizan la varianza; solo aplican a variables estrictamente positivas. La forma se elige por **teoría y datos**, no por comodidad.
+:::
 
-### Prueba t de significancia
+## Log-nivel en acción: el retorno a la educación
 
-Para probar $H_0: \beta_1 = 0$ vs $H_1: \beta_1 \neq 0$:
+:::: {.columns}
 
-$$t = \frac{\hat{\beta}_1}{SE(\hat{\beta}_1)} \sim t_{n-2}$$
-
-Si el p-valor es menor que 0.05, rechazamos $H_0$ y concluimos que $\hat{\beta}_1$ es **estadísticamente significativo al nivel de 5%**.
-
-### Intervalo de confianza al 95%
-
-$$\hat{\beta}_1 \pm t_{0.025, n-2} \cdot SE(\hat{\beta}_1)$$
-
+::: {.column width="46%"}
 ```{r}
-#| label: inferencia-estadistica
-cat("=== Tabla de Coeficientes ===\n\n")
-print(summary(modelo)$coefficients)
+#| label: code-logwage
+#| eval: false
+modelo_log <- lm(lwage ~ educ,
+                 data = wage1)
+round(coef(modelo_log), 3)
 
-cat("\n=== Intervalos de Confianza al 95% ===\n\n")
-ic <- confint(modelo)
-print(ic)
-
-cat("\nInterpretación del intervalo para gdpPercap:\n")
-cat(sprintf("Con 95%% de confianza, un aumento de USD 1000 en PIB per cápita\n"))
-cat(sprintf("está asociado a un aumento entre %.4f y %.4f años en esperanza de vida\n",
-            ic["gdpPercap", 1] * 1000, ic["gdpPercap", 2] * 1000))
+ggplot(wage1,
+       aes(x = educ, y = lwage)) +
+  geom_jitter(width = .2,
+              alpha = .35) +
+  geom_smooth(method = "lm")
 ```
 
----
+- $\hat{\beta}_1 = 0.083$: cada año de educación se asocia con un salario **~8.3% mayor**
+- Es el "retorno a la educación", pieza central del debate sobre gratuidad y becas
+- En logs la dispersión es más pareja: adelanto de homocedasticidad
+:::
 
-## 7. Supuestos de Gauss-Markov
-
-Para que MCO sea el estimador linealmente insesgado de varianza mínima (BLUE), deben cumplirse:
-
-1. **Linealidad:** La relación es lineal en parámetros
-2. **Exogeneidad:** $E[\varepsilon | X] = 0$ (los errores no están correlacionados con $X$)
-3. **Sin multicolinealidad exacta:** La varianza de $X$ es positiva y finita
-4. **Homocedasticidad:** $\text{Var}(\varepsilon | X) = \sigma^2$ (varianza constante)
-5. **Sin autocorrelación:** $\text{Cov}(\varepsilon_i, \varepsilon_j | X) = 0$ para $i \neq j$
-6. **Normalidad** (para inferencia exacta): $\varepsilon \sim N(0, \sigma^2)$
-
-### Diagnóstico gráfico de supuestos
-
+::: {.column width="54%"}
 ```{r}
-#| label: diagnostico-supuestos
-# Crear un data frame con predicciones y residuos
-diagnosticos <- tibble(
-  fitted = fitted(modelo),
-  residuals = residuals(modelo),
-  residuales_std = rstandard(modelo)
+#| label: plot-logwage
+#| echo: false
+#| fig-width: 5.6
+#| fig-height: 3.9
+#| out.width: "100%"
+interactivo(
+  ggplot(wage1, aes(x = educ, y = lwage)) +
+    geom_jitter(width = .2, alpha = .35, color = celeste) +
+    geom_smooth(method = "lm", se = FALSE, color = rojo) +
+    labs(x = "Educación (años)", y = "log(salario)")
 )
-
-# Gráfico 1: Residuos vs. Ajustados
-g1 <- ggplot(diagnosticos, aes(x = fitted, y = residuals)) +
-  geom_point(alpha = 0.6) +
-  geom_hline(yintercept = 0, linetype = "dashed", color = "red") +
-  geom_smooth(se = FALSE, color = "blue") +
-  labs(title = "1. Residuos vs. Valores Ajustados",
-       x = "Valores Ajustados",
-       y = "Residuos") +
-  theme_minimal()
-
-# Gráfico 2: Q-Q plot
-g2 <- ggplot(diagnosticos, aes(sample = residuales_std)) +
-  stat_qq(alpha = 0.6) +
-  stat_qq_line(color = "red") +
-  labs(title = "2. Q-Q Plot (Normalidad de residuos)",
-       x = "Cuantiles teóricos",
-       y = "Residuos estandarizados") +
-  theme_minimal()
-
-# Gráfico 3: Scale-Location
-diagnosticos$sqrt_residuales <- sqrt(abs(diagnosticos$residuales_std))
-g3 <- ggplot(diagnosticos, aes(x = fitted, y = sqrt_residuales)) +
-  geom_point(alpha = 0.6) +
-  geom_smooth(se = FALSE, color = "blue") +
-  labs(title = "3. Scale-Location (Homocedasticidad)",
-       x = "Valores Ajustados",
-       y = "√|Residuos Estandarizados|") +
-  theme_minimal()
-
-# Gráfico 4: Residuos ordenados (para autocorrelación)
-diagnosticos$orden <- 1:nrow(diagnosticos)
-g4 <- ggplot(diagnosticos, aes(x = orden, y = residuals)) +
-  geom_point(alpha = 0.6) +
-  geom_line(alpha = 0.3) +
-  geom_hline(yintercept = 0, linetype = "dashed", color = "red") +
-  labs(title = "4. Residuos en Secuencia (Autocorrelación)",
-       x = "Orden de observación",
-       y = "Residuos") +
-  theme_minimal()
-
-# Mostrar gráficos en una cuadrícula 2x2
-gridExtra::grid.arrange(g1, g2, g3, g4, ncol = 2)
 ```
+:::
 
-**Interpretación:**
+::::
 
-- **Panel 1 (Residuos vs. Ajustados):** Buscar patrón aleatorio sin tendencia. Patrón en U sugiere no-linealidad. Abanico sugiere heterocedasticidad.
-- **Panel 2 (Q-Q):** Los puntos deben estar cerca de la línea roja. Desviaciones en las colas sugieren no-normalidad.
-- **Panel 3 (Scale-Location):** Buscar línea horizontal plana. Pendiente sugiere heterocedasticidad.
-- **Panel 4 (Secuencia):** Buscar patrón aleatorio. Clusters o tendencias sugieren autocorrelación.
+## Elegir forma funcional con los datos: gapminder
 
 ```{r}
-#| label: test-normalidad
-library(stats)
-
-# Test de Shapiro-Wilk para normalidad
-shapiro_test <- shapiro.test(residuals(modelo))
-cat("=== Test de Shapiro-Wilk para Normalidad ===\n")
-cat(sprintf("Estadístico W: %.4f\n", shapiro_test$statistic))
-cat(sprintf("p-valor: %.6f\n", shapiro_test$p.value))
-if (shapiro_test$p.value > 0.05) {
-  cat("Conclusión: No rechazamos H0 - residuos aparentan ser normales (α = 0.05)\n")
-} else {
-  cat("Conclusión: Rechazamos H0 - evidencia de no-normalidad (α = 0.05)\n")
-}
+#| label: plot-formas-gap
+#| echo: false
+#| fig-height: 3.0
+dfor <- bind_rows(
+  gap2007 %>% transmute(x = gdpPercap, lifeExp,
+                        forma = "Nivel-nivel: vida ~ PIB (R2 = 0.46)"),
+  gap2007 %>% transmute(x = log(gdpPercap), lifeExp,
+                        forma = "Nivel-log: vida ~ ln(PIB) (R2 = 0.65)")
+) %>% mutate(forma = factor(forma, levels = unique(forma)))
+p <- ggplot(dfor, aes(x = x, y = lifeExp)) +
+  geom_point(alpha = .5, color = celeste, size = 1.6) +
+  geom_smooth(method = "lm", se = FALSE, color = rojo) +
+  facet_wrap(~forma, scales = "free_x") +
+  labs(x = "PIB per cápita (USD / log USD)", y = "Esperanza de vida (años)")
+interactivo(p)
 ```
 
----
+En niveles la recta falla en ambos extremos (no linealidad evidente); con $\ln(x)$ la relación se endereza y el $R^2$ sube de 0.46 a 0.65. Lectura nivel-log: duplicar el PIB per cápita (+100%) se asocia con ~5 años más de vida.
 
-## 8. Análisis Práctico Completo
+## $R^2$: descomposición de la varianza
 
-Reunimos todo lo aprendido en un análisis completo de la relación entre desarrollo económico y esperanza de vida:
+:::: {.columns}
+
+::: {.column width="50%"}
+$$SST = SSE + SSR$$
+
+- $SST = \sum (y_i - \bar{y})^2$: variación **total**
+- $SSE = \sum (\hat{y}_i - \bar{y})^2$: **explicada** por el modelo
+- $SSR = \sum (y_i - \hat{y}_i)^2$: **residual**
+
+$$R^2 = \frac{SSE}{SST} = 1 - \frac{SSR}{SST} \in [0, 1]$$
+
+En regresión simple, $R^2 = r_{xy}^2$: el cuadrado de la correlación.
+:::
+
+::: {.column width="50%"}
+```{r}
+#| label: img-r2
+#| echo: false
+#| out.width: "100%"
+knitr::include_graphics("figuras/r_cuadrado.png")
+```
+:::
+
+::::
+
+::: {.callout-note appearance="simple"}
+Cuidado con la notación: aquí seguimos a Wooldridge ($SSE$ = explicada, $SSR$ = residual); otros textos invierten las siglas. Verifique siempre la definición antes de comparar fórmulas.
+:::
+
+## Anatomía de la descomposición: total, explicada, residual
 
 ```{r}
-#| label: analisis-completo
-cat("╔════════════════════════════════════════════════════════════╗\n")
-cat("║ ANÁLISIS COMPLETO: ESPERANZA DE VIDA vs. PIB PER CÁPITA   ║\n")
-cat("╚════════════════════════════════════════════════════════════╝\n\n")
-
-# 1. CORRELACIÓN
-cat("1. ANÁLISIS DE CORRELACIÓN\n")
-cat("─────────────────────────────────────────────────────────────\n")
-cor_result <- cor.test(data$gdpPercap, data$lifeExp)
-cat(sprintf("Correlación de Pearson: r = %.4f\n", cor_result$estimate))
-cat(sprintf("t-estadístico: %.4f\n", cor_result$statistic))
-cat(sprintf("p-valor: %.2e\n", cor_result$p.value))
-cat(sprintf("Conclusión: Correlación positiva fuerte y significativa\n\n")
-
-# 2. MODELO LINEAL SIMPLE
-cat("2. MODELO DE REGRESIÓN LINEAL SIMPLE\n")
-cat("─────────────────────────────────────────────────────────────\n")
-print(summary(modelo))
-
-# 3. INTERPRETACIÓN
-cat("\n3. INTERPRETACIÓN DE RESULTADOS\n")
-cat("─────────────────────────────────────────────────────────────\n")
-beta0 <- coef(modelo)[1]
-beta1 <- coef(modelo)[2]
-se_beta1 <- summary(modelo)$coefficients[2, 2]
-t_stat <- summary(modelo)$coefficients[2, 3]
-p_val <- summary(modelo)$coefficients[2, 4]
-
-cat(sprintf("Modelo estimado: lifeExp = %.4f + %.8f × gdpPercap + ε\n\n", beta0, beta1))
-cat(sprintf("β̂1 = %.8f\n", beta1))
-cat(sprintf("Interpretación: Un aumento de USD 1000 en PIB per cápita\n"))
-cat(sprintf("               está asociado a un aumento de %.4f años en esperanza de vida\n\n", beta1 * 1000))
-cat(sprintf("Error estándar: SE(β̂1) = %.8f\n", se_beta1))
-cat(sprintf("t-estadístico: t = %.4f\n", t_stat))
-cat(sprintf("p-valor: %.2e\n", p_val))
-cat(sprintf("Conclusión: β̂1 es estadísticamente significativo al nivel de 5%%\n\n")
-
-# 4. BONDAD DE AJUSTE
-cat("4. BONDAD DE AJUSTE\n")
-cat("─────────────────────────────────────────────────────────────\n")
-R2 <- summary(modelo)$r.squared
-R2_adj <- summary(modelo)$adj.r.squared
-cat(sprintf("R² = %.4f\n", R2))
-cat(sprintf("R² ajustado = %.4f\n", R2_adj))
-cat(sprintf("Conclusión: El modelo explica %.1f%% de la variación en esperanza de vida\n\n", R2 * 100))
-
-# 5. PREDICCIÓN
-cat("5. EJEMPLOS DE PREDICCIÓN\n")
-cat("─────────────────────────────────────────────────────────────\n")
-nuevos_datos <- tibble(gdpPercap = c(5000, 10000, 20000, 50000))
-predicciones <- predict(modelo, newdata = nuevos_datos, se.fit = TRUE, interval = "confidence", level = 0.95)
-
-cat("Esperanza de vida predicha (IC 95%):\n\n")
-resultado_pred <- tibble(
-  gdpPercap = nuevos_datos$gdpPercap,
-  estimado = predicciones$fit[, "fit"],
-  lci = predicciones$fit[, "lwr"],
-  uci = predicciones$fit[, "upr"]
-)
-print(resultado_pred)
+#| label: plot-descomposicion
+#| echo: false
+#| fig-height: 3.0
+set.seed(5)
+xd <- seq(1, 10, length.out = 14)
+yd <- 3 + 1.1 * xd + rnorm(14, 0, 2.2)
+md <- lm(yd ~ xd)
+base <- tibble(x = xd, y = yd, ajuste = fitted(md))
+d3 <- bind_rows(
+  base %>% transmute(x, y, ystart = mean(y), yend = y, comp = "Total (SST)"),
+  base %>% transmute(x, y, ystart = mean(y), yend = ajuste, comp = "Explicada (SSE)"),
+  base %>% transmute(x, y, ystart = ajuste, yend = y, comp = "Residual (SSR)")
+) %>% mutate(comp = factor(comp, levels = c("Total (SST)", "Explicada (SSE)", "Residual (SSR)")))
+p <- ggplot(d3) +
+  geom_segment(aes(x = x, xend = x, y = ystart, yend = yend, color = comp),
+               linewidth = 1, show.legend = FALSE) +
+  geom_point(aes(x = x, y = y), color = "grey35", size = 1.7) +
+  geom_abline(intercept = coef(md)[1], slope = coef(md)[2], color = azul, linewidth = .7) +
+  geom_hline(yintercept = mean(yd), linetype = "dashed", color = "grey50") +
+  scale_color_manual(values = c(morado, verde, rojo)) +
+  facet_wrap(~comp) +
+  labs(x = "x", y = "y")
+interactivo(p)
 ```
 
----
+La desviación total de cada punto respecto de $\bar{y}$ (línea punteada) se parte en el tramo que la recta **explica** y el residuo que queda. $R^2$ es la fracción de los cuadrados verdes sobre los morados.
 
-## Conclusiones
+## $R^2$: qué responde y qué no
 
-1. **Correlación ≠ Causalidad:** Una correlación fuerte entre variables puede deberse a variables confundentes o relaciones espurias.
+| Pregunta | ¿La responde el $R^2$? |
+|---|---|
+| ¿Qué fracción de la varianza de $y$ explica $x$? | **Sí**: exactamente eso |
+| ¿Es grande o importante el efecto $\hat{\beta}_1$? | No: magnitud y ajuste son cosas distintas |
+| ¿La relación es causal? | No: eso depende de $E[u \mid x] = 0$, no del ajuste |
+| ¿Qué tan precisa es una predicción individual? | Solo en parte: mirar $\hat{\sigma}$ y las bandas de predicción |
+| ¿Un $R^2$ bajo invalida el hallazgo? | **No**: $\hat{\beta}_1$ puede ser preciso y relevante igual |
 
-2. **MCO minimiza residuos:** El estimador MCO encuentra la línea recta que minimiza la suma de cuadrados de los errores.
+::: {.callout-important appearance="simple"}
+En `wage ~ educ`, $R^2 = 0.165$: la educación "solo" explica el 16.5% de la varianza salarial y, aun así, el retorno estimado es fuerte, preciso y central para la política educativa. En microdatos, los $R^2$ bajos son la norma, no una falla.
+:::
 
-3. **Interpretación marginal:** $\hat{\beta}_1$ mide el cambio esperado en $Y$ cuando $X$ aumenta en una unidad, ceteris paribus.
+## Error estándar de $\hat{\beta}_1$: la precisión del estimador
 
-4. **R² mide ajuste:** Indica qué porcentaje de la variación en $Y$ es explicado por el modelo.
+:::: {.columns}
 
-5. **Supuestos garantizan optimalidad:** Bajo los supuestos de Gauss-Markov, MCO es BLUE (mejor estimador lineal insesgado).
+::: {.column width="46%"}
+$$SE(\hat{\beta}_1) = \frac{\hat{\sigma}}{\sqrt{\sum_i (x_i - \bar{x})^2}}$$
 
-6. **Diagnóstico es fundamental:** Siempre verificar visualmente que los supuestos se cumplen mediante gráficos de residuos.
+$$\hat{\sigma}^2 = \frac{SSR}{n - 2}$$
 
----
+La precisión **mejora** con:
 
-## Referencias
+- Menos ruido en $y$ ($\hat{\sigma}$ pequeño)
+- Más observaciones ($n$ grande)
+- Más varianza en $x$: sin variación en la palanca de política, no hay información sobre su efecto
+:::
 
-- Wooldridge, J. M. (2010). *Econometric Analysis of Cross Section and Panel Data*. MIT Press.
-- Cameron, A. C., & Trivedi, P. K. (2009). *Microeconometrics Using Stata*. Stata Press.
-- Angrist, J. D., & Pischke, J. S. (2008). *Mostly Harmless Econometrics: An Empiricist's Companion*. Princeton University Press.
+::: {.column width="54%"}
+```{r}
+#| label: plot-se-sim
+#| echo: false
+#| fig-width: 5.4
+#| fig-height: 3.6
+#| out.width: "100%"
+set.seed(99)
+sim_se <- map_dfr(1:40, function(r) {
+  map_dfr(c(25, 200), function(n) {
+    xs <- runif(n, 0, 10)
+    ys <- 2 + 0.5 * xs + rnorm(n, 0, 2)
+    f <- lm(ys ~ xs)
+    tibble(rep = r, tamano = paste0("n = ", n),
+           x = c(0, 10), y = predict(f, tibble(xs = c(0, 10))))
+  })
+})
+sim_se <- sim_se %>% mutate(tamano = factor(tamano, levels = c("n = 25", "n = 200")))
+p <- ggplot(sim_se, aes(x = x, y = y, group = rep)) +
+  geom_line(alpha = .25, color = celeste) +
+  geom_abline(intercept = 2, slope = 0.5, color = rojo, linewidth = 1) +
+  facet_wrap(~tamano) +
+  labs(x = "x", y = "y", title = "40 rectas MCO, una por muestra")
+interactivo(p)
+```
+:::
+
+::::
+
+## Prueba t del coeficiente e intervalo de confianza
+
+$$H_0: \beta_1 = 0 \quad \text{vs} \quad H_1: \beta_1 \neq 0 \qquad t = \frac{\hat{\beta}_1}{SE(\hat{\beta}_1)} \sim t_{n-2}$$
+
+```{r}
+#| label: infer-t
+tidy(modelo, conf.int = TRUE) %>%
+  select(term, estimate, std.error, statistic, conf.low, conf.high) %>%
+  kable(digits = 3)
+```
+
+- $t = 0.541 / 0.053 = 10.2 \gg 1.96$: rechazamos $H_0$ (p < 0.001) — el retorno no es ruido muestral.
+- **IC 95%:** [0.44, 0.65] USD/hora por año. Para costo-beneficio importa el rango completo, no solo el punto: con 0.44 la reforma puede dejar de ser rentable.
+- El intercepto no es significativo ($t = -1.32$): no hay evidencia de salario base distinto de cero, coherente con su falta de sentido económico aquí.
+
+## Supuestos de Gauss-Markov (RLS1–RLS5)
+
+| # | Supuesto | Significado | ¿Qué pasa si falla? |
+|---|---|---|---|
+| RLS1 | Lineal en parámetros | $y = \beta_0 + \beta_1 x + u$ | Cambiar forma funcional (logs) |
+| RLS2 | Muestreo aleatorio | Muestra i.i.d. de la población | Sesgo de selección |
+| RLS3 | Variación en $x$ | $\text{Var}(x) > 0$ | $\hat{\beta}_1$ no existe |
+| RLS4 | Media condicional cero | $E[u \mid x] = 0$ | **Sesgo**: sin lectura causal |
+| RLS5 | Homocedasticidad | $\text{Var}(u \mid x) = \sigma^2$ | SE clásicos inválidos → robustos |
+
+- **Teorema de Gauss-Markov:** bajo RLS1–RLS5, MCO es **BLUE** (mejor estimador lineal insesgado).
+- RLS1–RLS4 bastan para el insesgamiento; la normalidad de $u$ solo se usa para la t exacta con $n$ pequeño.
+
+## Homocedasticidad vs heterocedasticidad
+
+```{r}
+#| label: plot-hetero
+#| echo: false
+#| fig-height: 3.0
+set.seed(8)
+xh <- runif(280, 0, 10)
+dh <- bind_rows(
+  tibble(x = xh, y = 2 + 1.5 * xh + rnorm(280, 0, 2),
+         tipo = "Homocedasticidad: Var(u|x) constante"),
+  tibble(x = xh, y = 2 + 1.5 * xh + rnorm(280, 0, 0.45 * xh),
+         tipo = "Heterocedasticidad: Var(u|x) crece con x")
+) %>% mutate(tipo = factor(tipo, levels = unique(tipo)))
+p <- ggplot(dh, aes(x = x, y = y)) +
+  geom_point(alpha = .35, color = celeste, size = 1.4) +
+  geom_smooth(method = "lm", se = FALSE, color = rojo) +
+  facet_wrap(~tipo) +
+  labs(x = "x", y = "y")
+interactivo(p)
+```
+
+Ambos paneles comparten la misma recta poblacional: con heterocedasticidad el "abanico" no sesga $\hat{\beta}_1$, pero invalida los errores estándar clásicos. Es el caso típico de los ingresos: a mayor educación, salarios más dispersos.
+
+## La solución estándar: errores robustos (HC1)
+
+```{r}
+#| label: robust-se
+modelsummary(list("SE clásicos" = modelo, "SE robustos (HC1)" = modelo),
+             vcov = c("classical", "HC1"), fmt = 3,
+             output = "markdown", gof_map = c("nobs", "r.squared"))
+```
+
+Los coeficientes no cambian — solo su precisión estimada: el SE de `educ` sube de 0.053 a 0.061 (+15%). Aquí la conclusión se mantiene; en casos límite puede voltear la significancia. En la práctica profesional, reportar SE robustos es el estándar por defecto.
+
+## Diagnóstico gráfico: los cuatro paneles de `plot(modelo)`
+
+:::: {.columns}
+
+::: {.column width="55%"}
+```{r}
+#| label: img-diagnostico
+#| echo: false
+#| out.width: "100%"
+knitr::include_graphics("figuras/supuestos_ols.png")
+```
+:::
+
+::: {.column width="45%"}
+- **Residuos vs ajustados:** debe verse ruido sin patrón; una U delata no linealidad (RLS1), un abanico delata heterocedasticidad (RLS5).
+- **Q-Q plot:** puntos sobre la diagonal → residuos aproximadamente normales.
+- **Scale-Location:** línea plana → varianza estable.
+- **Residuos vs palanca:** detecta observaciones influyentes que "tiran" de la recta.
+:::
+
+::::
+
+## El cuarteto de Anscombe: por qué graficar siempre
+
+```{r}
+#| label: plot-anscombe
+#| echo: false
+#| fig-height: 3.2
+ans <- datasets::anscombe %>%
+  pivot_longer(everything(), names_to = c(".value", "conjunto"),
+               names_pattern = "(.)(.)") %>%
+  mutate(conjunto = paste("Conjunto", conjunto))
+p <- ggplot(ans, aes(x = x, y = y)) +
+  geom_smooth(method = "lm", se = FALSE, fullrange = TRUE,
+              color = rojo, linewidth = .8) +
+  geom_point(color = celeste, size = 2) +
+  facet_wrap(~conjunto, nrow = 1) +
+  labs(x = "x", y = "y",
+       title = "Cuatro conjuntos, una misma recta MCO: y = 3 + 0.5x")
+interactivo(p)
+```
+
+Medias, varianzas, correlación, recta y $R^2$: **idénticos**. Pero solo el Conjunto 1 justifica una regresión lineal; el 2 es curvo, y el 3 y el 4 dependen de un único punto. La tabla de coeficientes jamás sustituye al gráfico.
+
+## Bandas de confianza vs bandas de predicción
+
+```{r}
+#| label: plot-bandas
+#| echo: false
+#| fig-height: 3.1
+grid <- tibble(educ = seq(0, 18, by = .5))
+b_conf <- as_tibble(predict(modelo, grid, interval = "confidence"))
+b_pred <- as_tibble(predict(modelo, grid, interval = "prediction"))
+bandas <- grid %>%
+  mutate(ajuste = b_conf$fit, conf_lo = b_conf$lwr, conf_hi = b_conf$upr,
+         pred_lo = b_pred$lwr, pred_hi = b_pred$upr)
+p <- ggplot(bandas, aes(x = educ)) +
+  geom_ribbon(aes(ymin = pred_lo, ymax = pred_hi, fill = "Predicción (individuo)"), alpha = .25) +
+  geom_ribbon(aes(ymin = conf_lo, ymax = conf_hi, fill = "Confianza (media)"), alpha = .65) +
+  geom_line(aes(y = ajuste), color = azul, linewidth = 1) +
+  geom_jitter(data = wage1, aes(x = educ, y = wage), width = .15,
+              alpha = .12, size = 1, color = "grey30") +
+  scale_fill_manual(values = c("Confianza (media)" = naranja,
+                               "Predicción (individuo)" = celeste)) +
+  labs(x = "Educación (años)", y = "Salario (USD/hora)", fill = NULL) +
+  theme(legend.position = "top")
+interactivo(p)
+```
+
+La banda de **confianza** cubre la media condicional $E[y \mid x]$; la de **predicción** agrega la varianza individual $\hat{\sigma}^2$ y es mucho más ancha. Ambas se ensanchan lejos de $\bar{x}$, donde hay menos información.
+
+## Predicción con intervalos en `predict()`
+
+```{r}
+#| label: pred-tabla
+nuevos <- tibble(educ = c(8, 12, 16))
+bind_cols(
+  nuevos,
+  as_tibble(predict(modelo, nuevos, interval = "confidence")) %>%
+    rename(ajuste = fit, conf_inf = lwr, conf_sup = upr),
+  as_tibble(predict(modelo, nuevos, interval = "prediction")) %>%
+    select(lwr, upr) %>% rename(pred_inf = lwr, pred_sup = upr)
+) %>% kable(digits = 2)
+```
+
+- La media salarial con 12 años se estima con precisión ([5.30, 5.89]); el salario de **un** trabajador con 12 años, no ([-1.05, 12.23]).
+- El límite inferior negativo delata al modelo en niveles: motivo adicional para trabajar con `lwage`.
+
+## Extrapolación: el modelo solo sabe lo que vio
+
+```{r}
+#| label: plot-extrapolacion
+#| echo: false
+#| fig-height: 3.1
+set.seed(31)
+x_obs <- runif(60, 1, 6)
+y_obs <- 4 + 9 * x_obs - 0.9 * x_obs^2 + rnorm(60, 0, 1.6)
+f_lin <- lm(y_obs ~ x_obs)
+curvas <- tibble(x = seq(0.5, 12, .2)) %>%
+  mutate(`Relación verdadera` = 4 + 9 * x - 0.9 * x^2,
+         `Recta MCO extrapolada` = predict(f_lin, tibble(x_obs = x))) %>%
+  pivot_longer(-x, names_to = "curva", values_to = "y")
+p <- ggplot() +
+  annotate("rect", xmin = 6, xmax = 12, ymin = -22, ymax = 42,
+           fill = rojo, alpha = .07) +
+  geom_point(data = tibble(x = x_obs, y = y_obs), aes(x = x, y = y),
+             alpha = .5, color = celeste, size = 1.6) +
+  geom_line(data = curvas, aes(x = x, y = y, color = curva, linetype = curva),
+            linewidth = 1) +
+  scale_color_manual(values = c("Recta MCO extrapolada" = rojo,
+                                "Relación verdadera" = azul)) +
+  scale_linetype_manual(values = c("Recta MCO extrapolada" = "solid",
+                                   "Relación verdadera" = "dashed")) +
+  annotate("text", x = 3.3, y = 38, label = "rango observado", color = "grey30", size = 4.2) +
+  annotate("text", x = 9.6, y = 38, label = "extrapolación", color = rojo, size = 4.2) +
+  labs(x = "Gasto del programa (escala arbitraria)", y = "Impacto", color = NULL, linetype = NULL) +
+  theme(legend.position = "top")
+interactivo(p)
+```
+
+Dentro del rango observado la recta aproxima bien; fuera, promete impactos crecientes donde la relación real ya se agotó (rendimientos decrecientes). Escalar un programa piloto es, casi siempre, una extrapolación.
+
+## Correlación, regresión y causalidad: tres niveles
+
+| Herramienta | Qué entrega | Qué exige | Qué NO garantiza |
+|---|---|---|---|
+| Correlación $r$ | Fuerza y signo de la asociación lineal; simétrica y sin unidades | Dos variables cuantitativas | Dirección del efecto ni causalidad |
+| Regresión MCO | Recta con unidades: predicción y efecto marginal condicional | Elegir $y$ y $x$, forma funcional, supuestos RLS1–RLS5 | Causalidad sin exogeneidad ($E[u \mid x] = 0$) |
+| Inferencia causal | Efecto de intervenir sobre $x$ | Diseño: experimentos, IV, diferencias en diferencias, RD | — |
+
+::: {.callout-warning appearance="simple"}
+En regresión simple, $R^2 = r^2$ (0.406² = 0.165 en `wage ~ educ`): la regresión no agrega "causalidad" a la correlación — agrega unidades, predicción y un marco de supuestos que hay que defender. Subir de nivel requiere **diseño**, no más decimales.
+:::
+
+## Síntesis: qué debe salir en su análisis
+
+:::: {.columns}
+
+::: {.column width="55%"}
+**Checklist de la regresión simple**
+
+1. Graficar antes de estimar (Anscombe)
+2. Estimar con `lm()` y leer $\hat{\beta}_1$ **en sus unidades**
+3. Elegir forma funcional según la pregunta (% vs unidades)
+4. Reportar $R^2$ sin sobreinterpretarlo: ajuste ≠ causalidad ≠ relevancia
+5. Inferencia con SE robustos; IC junto al punto estimado
+6. Diagnóstico de residuos: linealidad y varianza
+7. Predicción con bandas y dentro del rango observado
+8. Lectura causal solo si $E[u \mid x] = 0$ es defendible
+:::
+
+::: {.column width="45%"}
+**Funciones R de esta sesión**
+
+`lm()` `coef()` `fitted()` `residuals()` `confint()` `predict()` `broom::tidy()` `broom::glance()` `modelsummary()` `coeftest()` `vcovHC()` `geom_smooth(method = "lm")`
+
+**Próxima sesión:** regresión múltiple — controlar por confusores y el sesgo de variable omitida, la puerta de entrada a la lectura causal.
+:::
+
+::::
+
+## Ejercicio para practicar (30 min)
+
+Con `wage1` de `wooldridge`:
+
+1. Estime `wage ~ exper` e interprete $\hat{\beta}_1$ con sus unidades. ¿Es plausible como efecto causal de la experiencia?
+2. Estime `lwage ~ exper`. ¿En qué porcentaje se asocia cada año de experiencia con el salario?
+3. Compare los $R^2$ de ambos modelos con `glance()`. ¿Invalida un $R^2$ bajo la relación? Justifique.
+4. Construya el IC 95% de $\hat{\beta}_1$ con `confint()` y con SE robustos (`coeftest(m, vcov = vcovHC(m, "HC1"))`). ¿Cambia alguna conclusión?
+5. Grafique la relación con `geom_smooth(method = "lm")` y examine los residuos: ¿hay señales de no linealidad? Pruebe agregar `I(exper^2)` como adelanto de la sesión 3.
+
+::: {.callout-note appearance="simple"}
+**Referencias:** Wooldridge, *Introductory Econometrics* (caps. 2 y 8) · Stock & Watson, *Introduction to Econometrics* (caps. 4–5) · Angrist & Pischke, *Mostly Harmless Econometrics* (cap. 3).
+:::

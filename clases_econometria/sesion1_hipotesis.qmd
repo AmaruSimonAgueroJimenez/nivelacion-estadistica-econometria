@@ -1,545 +1,722 @@
 ---
-title: "Sesión 1: Pruebas de Hipótesis"
-subtitle: "Doctorado en Ciencias de la Complejidad Social — CICS, UDD"
-author: "Amaru Agüero (a.agueroj@udd.cl)"
-date: today
-format:
-  html:
-    theme: cosmo
-    toc: true
-    toc-depth: 3
-    code-fold: false
-    code-tools: true
-    self-contained: true
+title: "Sesión 1 · Pruebas de Hipótesis"
+subtitle: "Nivelación Econometría — Doctorado en Políticas Públicas"
+author: "Amaru Agüero Jiménez (a.agueroj@udd.cl)"
+date: "Marzo 2026"
+date-format: "MMMM [de] YYYY"
 lang: es
+format:
+  revealjs:
+    theme: [default, estilo_slides.scss]
+    slide-number: c/t
+    footer: "Nivelación Econometría — Doctorado en Políticas Públicas"
+    transition: fade
+    embed-resources: true
+    code-line-numbers: false
+    fig-align: center
+    menu: true
+  beamer:
+    aspectratio: 169
+    theme: Madrid
+    colortheme: whale
+    fontsize: 10pt
+    fig-align: center
+    include-in-header:
+      text: |
+        \definecolor{uddblue}{HTML}{1F4E79}
+        \definecolor{uddlight}{HTML}{2E86C1}
+        \setbeamercolor{structure}{fg=uddblue}
+        \setbeamercolor{frametitle}{bg=uddblue,fg=white}
+        \setbeamercolor{title}{bg=uddblue,fg=white}
+        \setbeamercolor{block title}{bg=uddblue,fg=white}
+        \setbeamercolor{block body}{bg=uddblue!10}
+        \fvset{fontsize=\scriptsize}
+        \AtBeginDocument{\setlength{\abovedisplayskip}{2pt}\setlength{\belowdisplayskip}{2pt}}
 execute:
   warning: false
   message: false
+  echo: true
+knitr:
+  opts_chunk:
+    dpi: 150
+    fig.width: 7.5
+    fig.height: 3.4
+    out.width: "82%"
 ---
-
-## Introducción
-
-En esta sesión abordaremos los fundamentos de las pruebas de hipótesis: la lógica inferencial que nos permite tomar decisiones sobre parámetros poblacionales basándonos en evidencia muestral. Estudiaremos desde conceptos básicos (H₀ y H₁, valor-p, errores Tipo I y II) hasta aplicaciones prácticas (test t, proporciones, chi-cuadrado). Trabajaremos con el dataset **gapminder**, que contiene datos socioeconómicos de 142 países, permitiéndonos comparar esperanza de vida, ingresos y educación entre regiones.
-
-### Paquetes necesarios
 
 ```{r}
 #| label: setup
-# install.packages(c("tidyverse", "ggplot2", "dplyr", "gapminder"))
+#| echo: false
 library(tidyverse)
-library(ggplot2)
-library(dplyr)
 library(gapminder)
-```
-
----
-
-## 1. Lógica y fundamentos de las pruebas de hipótesis
-
-Una **prueba de hipótesis** es un procedimiento estadístico que permite evaluar si una afirmación sobre una población es consistente con la evidencia muestral. Se basa en el razonamiento por contradicción: asumimos que no hay efecto (hipótesis nula, H₀) y preguntamos: ¿qué tan probable es observar nuestros datos si eso fuera cierto?
-
-**Idea central:** Cuanto menor es la probabilidad de nuestros datos bajo H₀, mayor es la evidencia contra ella.
-
-```{r}
-#| label: introduccion-hipotesis
-# Cargar datos y filtrar año 2007
-data("gapminder")
+library(knitr)
+library(broom)
+library(plotly)
+theme_set(theme_minimal(base_size = 13))
+azul <- "#1F4E79"; celeste <- "#2E86C1"; rojo <- "#E74C3C"; verde <- "#27AE60"; naranja <- "#F39C12"; morado <- "#8E44AD"
 datos <- gapminder %>% filter(year == 2007)
+# En HTML (revealjs) los graficos se vuelven interactivos con plotly;
+# en Beamer (PDF) se mantienen estaticos.
+es_html <- knitr::is_html_output()
+interactivo <- function(p) {
+  if (es_html) plotly::config(plotly::ggplotly(p), displayModeBar = FALSE) else p
+}
 
-cat("Dataset gapminder - Sesión 2007:\n")
-cat("Número de países:", nrow(datos), "\n")
-cat("Variables disponibles:\n")
-print(colnames(datos))
-cat("\nPrimeras observaciones:\n")
-print(head(datos))
-```
-
----
-
-## 2. Hipótesis Nula (H₀) e Hipótesis Alternativa (H₁)
-
-La **hipótesis nula** representa la ausencia de efecto o diferencia. Es el punto de partida del análisis: asumimos que es verdadera a menos que haya evidencia contraria (similar a "inocencia hasta demostrar lo contrario").
-
-La **hipótesis alternativa** es lo que deseamos demostrar con los datos. Contradice a H₀ y puede ser:
-- **Bilateral** (dos colas): $H_1: \mu \neq \mu_0$ — nos interesa detectar diferencias en cualquier dirección
-- **Unilateral** (una cola): $H_1: \mu > \mu_0$ o $H_1: \mu < \mu_0$ — nos interesa una dirección específica
-
-```{r}
-#| label: hipotesis-ejemplo
-# Ejemplo 1: Prueba bilateral sobre la esperanza de vida global
-cat("=== Ejemplo 1: Esperanza de vida global ===\n")
-cat("H₀: μ = 70 años (la esperanza de vida promedio global es 70)\n")
-cat("H₁: μ ≠ 70 años (la esperanza de vida promedio difiere de 70) [bilateral]\n\n")
-
-media_global <- mean(datos$lifeExp)
-cat("Media observada en la muestra:", round(media_global, 2), "años\n")
-cat("Diferencia respecto a H₀:", round(media_global - 70, 2), "años\n\n")
-
-# Ejemplo 2: Prueba unilateral sobre ingresos
-cat("=== Ejemplo 2: Ingresos por región ===\n")
-cat("Comparar esperanza de vida entre Asia y Europa\n")
-cat("H₀: μ_Asia = μ_Europa (esperanza de vida igual entre regiones)\n")
-cat("H₁: μ_Asia < μ_Europa (esperanza menor en Asia) [unilateral]\n\n")
-
-life_asia <- datos %>% filter(continent == "Asia") %>% pull(lifeExp) %>% mean()
-life_europe <- datos %>% filter(continent == "Europe") %>% pull(lifeExp) %>% mean()
-cat("Asia media:", round(life_asia, 2), "años\n")
-cat("Europa media:", round(life_europe, 2), "años\n")
-cat("Diferencia:", round(life_asia - life_europe, 2), "años\n")
-```
-
----
-
-## 3. Valor-p, errores Tipo I y II, potencia
-
-### Valor-p
-
-El **valor-p** es la probabilidad de obtener un resultado tan extremo o más que el observado, suponiendo que H₀ es cierta. **No es** la probabilidad de que H₀ sea verdadera.
-
-**Regla de decisión:**
-- Si p < α (típicamente 0.05) → Rechazamos H₀
-- Si p ≥ α → No rechazamos H₀
-
-### Errores Tipo I y II
-
-Existen cuatro resultados posibles en una prueba de hipótesis:
-
-| Decisión | H₀ verdadera | H₀ falsa |
-|----------|--------------|---------|
-| Rechazar H₀ | Error Tipo I (α) | Correcto (Potencia = 1-β) |
-| No rechazar H₀ | Correcto (1-α) | Error Tipo II (β) |
-
-- **Error Tipo I (α)**: Rechazar H₀ cuando es verdadera (falso positivo). El investigador controla este riesgo fijando α.
-- **Error Tipo II (β)**: No rechazar H₀ cuando es falsa (falso negativo). Depende de n, el tamaño de efecto y la variabilidad.
-- **Potencia (1-β)**: Probabilidad de rechazar H₀ cuando es falsa. Objetivo típico: potencia ≥ 0.80.
-
-```{r}
-#| label: valor-p-visualizacion
-# Simulación: distribución t bajo H₀
+# Datos simulados: programa de empleo juvenil (dos muestras independientes)
 set.seed(123)
-n <- 50
-mu_0 <- 70  # Valor bajo H₀
-
-# Generar muchas muestras bajo H₀ (simulación)
-simul_t <- replicate(10000, {
-  muestra <- rnorm(n, mean = mu_0, sd = sd(datos$lifeExp))
-  (mean(muestra) - mu_0) / (sd(muestra) / sqrt(n))
-})
-
-# Graficar distribución de t bajo H₀
-df_simul <- data.frame(t_stat = simul_t)
-
-p_h0 <- ggplot(df_simul, aes(x = t_stat)) +
-  geom_histogram(bins = 50, fill = "#2E86C1", alpha = 0.7, color = "white") +
-  geom_vline(aes(xintercept = 1.96), color = "red", linetype = "dashed", size = 1) +
-  geom_vline(aes(xintercept = -1.96), color = "red", linetype = "dashed", size = 1) +
-  annotate("text", x = 3.5, y = 700, label = "Zona de rechazo (α/2 = 0.025)",
-           size = 3, color = "red") +
-  annotate("text", x = -3.5, y = 700, label = "Zona de rechazo (α/2 = 0.025)",
-           size = 3, color = "red") +
-  labs(title = "Distribución del estadístico t bajo H₀ (bilateral, α = 0.05)",
-       x = "Estadístico t", y = "Frecuencia") +
-  theme_minimal()
-
-print(p_h0)
-
-cat("\nCrítica de rechazo: |t| > 1.96 (para α = 0.05, bilateral)\n")
-cat("Proporción de valores |t| > 1.96 en la simulación:",
-    round(mean(abs(simul_t) > 1.96), 4), "\n")
-```
-
----
-
-## 4. Prueba t de una media
-
-### Concepto
-
-Comparamos la media de una muestra ($\bar{x}$) contra un valor hipotético ($\mu_0$) de la población.
-
-**Estadístico de prueba:**
-$$t = \frac{\bar{x} - \mu_0}{s / \sqrt{n}}$$
-
-donde: $\bar{x}$ = media muestral, $s$ = desviación estándar, $n$ = tamaño de muestra, $\nu = n - 1$ grados de libertad.
-
-**Supuestos:** Muestra aleatoria, variable aproximadamente normal, observaciones independientes.
-
-### Aplicación: ¿La esperanza de vida global es diferente de 70 años?
-
-```{r}
-#| label: t-test-una-muestra
-cat("=== Prueba t de una muestra: Esperanza de vida ===\n")
-cat("H₀: μ = 70 años\n")
-cat("H₁: μ ≠ 70 años\n")
-cat("α = 0.05\n\n")
-
-# Realizar prueba t
-resultado_t1 <- t.test(datos$lifeExp, mu = 70, alternative = "two.sided")
-print(resultado_t1)
-
-# Extraer elementos clave
-cat("\n--- Interpretación ---\n")
-cat("Estadístico t:", round(resultado_t1$statistic, 4), "\n")
-cat("Grados de libertad:", resultado_t1$parameter, "\n")
-cat("Valor-p:", round(resultado_t1$p.value, 4), "\n")
-cat("Media muestral:", round(resultado_t1$estimate, 2), "años\n")
-cat("IC 95%:", round(resultado_t1$conf.int[1], 2), "a", round(resultado_t1$conf.int[2], 2), "\n\n")
-
-if (resultado_t1$p.value < 0.05) {
-  cat("✓ Decisión: RECHAZAMOS H₀ (p < 0.05)\n")
-  cat("  Conclusión: Hay evidencia significativa de que la esperanza de vida\n")
-  cat("  promedio difiere de 70 años.\n")
-} else {
-  cat("✗ Decisión: NO RECHAZAMOS H₀ (p ≥ 0.05)\n")
-  cat("  Conclusión: No hay evidencia suficiente para afirmar que la\n")
-  cat("  esperanza de vida promedio difiere de 70 años.\n")
-}
-```
-
----
-
-## 5. Prueba t de diferencia de medias
-
-### Concepto
-
-Comparamos si las medias de dos grupos independientes son iguales.
-
-**Estadístico (varianzas iguales):**
-$$t = \frac{\bar{x}_1 - \bar{x}_2}{s_p \sqrt{\frac{1}{n_1} + \frac{1}{n_2}}}$$
-
-donde $s_p$ es la desviación estándar combinada (pooled), $\nu = n_1 + n_2 - 2$.
-
-### Aplicación: ¿Difiere la esperanza de vida entre Asia y Europa?
-
-```{r}
-#| label: t-test-dos-muestras
-cat("=== Prueba t de dos muestras: Asia vs Europa ===\n")
-cat("H₀: μ_Asia = μ_Europa (esperanza de vida igual)\n")
-cat("H₁: μ_Asia ≠ μ_Europa (esperanza de vida difiere) [bilateral]\n")
-cat("α = 0.05\n\n")
-
-# Preparar datos
-datos_asia <- datos %>% filter(continent == "Asia")
-datos_europa <- datos %>% filter(continent == "Europe")
-
-# Estadísticas descriptivas
-cat("--- Estadísticas descriptivas ---\n")
-cat("Asia: n =", nrow(datos_asia),
-    ", media =", round(mean(datos_asia$lifeExp), 2),
-    ", DE =", round(sd(datos_asia$lifeExp), 2), "\n")
-cat("Europa: n =", nrow(datos_europa),
-    ", media =", round(mean(datos_europa$lifeExp), 2),
-    ", DE =", round(sd(datos_europa$lifeExp), 2), "\n\n")
-
-# Prueba t con varianzas iguales
-resultado_t2 <- t.test(datos_asia$lifeExp, datos_europa$lifeExp,
-                        var.equal = TRUE, alternative = "two.sided")
-print(resultado_t2)
-
-# Interpretación
-cat("\n--- Interpretación ---\n")
-cat("Diferencia de medias:", round(mean(datos_asia$lifeExp) - mean(datos_europa$lifeExp), 2), "años\n")
-cat("Valor-p:", round(resultado_t2$p.value, 4), "\n\n")
-
-if (resultado_t2$p.value < 0.05) {
-  cat("✓ Decisión: RECHAZAMOS H₀ (p < 0.05)\n")
-  cat("  Conclusión: Hay evidencia significativa de que la esperanza de vida\n")
-  cat("  promedio difiere entre Asia y Europa.\n")
-} else {
-  cat("✗ Decisión: NO RECHAZAMOS H₀ (p ≥ 0.05)\n")
-  cat("  Conclusión: No hay evidencia suficiente para afirmar diferencia\n")
-  cat("  en la esperanza de vida entre regiones.\n")
-}
-
-# Visualización
-p_t2 <- ggplot(datos %>% filter(continent %in% c("Asia", "Europe")),
-               aes(x = continent, y = lifeExp, fill = continent)) +
-  geom_boxplot(alpha = 0.6) +
-  geom_jitter(width = 0.2, alpha = 0.3, size = 2) +
-  labs(title = "Esperanza de Vida: Asia vs Europa (2007)",
-       x = "Continente", y = "Esperanza de vida (años)") +
-  theme_minimal() +
-  theme(legend.position = "none")
-print(p_t2)
-```
-
----
-
-## 6. Pruebas de proporciones
-
-### Concepto
-
-Probamos hipótesis sobre proporciones (porcentajes) en una o dos poblaciones.
-
-**Prueba de una proporción:**
-$$z = \frac{\hat{p} - p_0}{\sqrt{\frac{p_0(1-p_0)}{n}}}$$
-
-**Supuestos:** $np_0 \geq 5$ y $n(1-p_0) \geq 5$ (aproximación normal).
-
-### Aplicación: ¿Difiere la proporción de países con alta esperanza de vida?
-
-```{r}
-#| label: prop-test
-# Definir "alta esperanza de vida" como > 72 años (media global)
-datos$alta_esperanza <- ifelse(datos$lifeExp > 72, 1, 0)
-
-cat("=== Prueba de proporciones: Alta esperanza de vida (>72 años) ===\n")
-cat("H₀: p = 0.5 (50% de países tienen alta esperanza)\n")
-cat("H₁: p ≠ 0.5 (la proporción difiere de 50%)\n")
-cat("α = 0.05\n\n")
-
-n_total <- nrow(datos)
-n_alta <- sum(datos$alta_esperanza)
-prop_observada <- n_alta / n_total
-
-cat("Total de países:", n_total, "\n")
-cat("Países con alta esperanza (>72):", n_alta, "\n")
-cat("Proporción observada:", round(prop_observada, 3), "\n\n")
-
-# Prueba de proporción
-resultado_prop <- prop.test(n_alta, n_total, p = 0.5, alternative = "two.sided")
-print(resultado_prop)
-
-cat("\n--- Interpretación ---\n")
-cat("Valor-p:", round(resultado_prop$p.value, 4), "\n")
-
-if (resultado_prop$p.value < 0.05) {
-  cat("✓ RECHAZAMOS H₀: la proporción difiere significativamente de 0.5\n")
-} else {
-  cat("✗ NO RECHAZAMOS H₀: la proporción no difiere significativamente de 0.5\n")
-}
-```
-
----
-
-## 7. Prueba chi-cuadrado de independencia
-
-### Concepto
-
-Determina si dos variables categóricas son independientes.
-
-**Estadístico:**
-$$\chi^2 = \sum_{i,j} \frac{(O_{ij} - E_{ij})^2}{E_{ij}}$$
-
-donde $O_{ij}$ = frecuencia observada, $E_{ij} = \frac{\text{(total fila)}_i \times \text{(total col)}_j}{n}$.
-
-**Grados de libertad:** $\nu = (r-1)(c-1)$. **Supuesto:** $E_{ij} \geq 5$ en ≥80% de celdas.
-
-### Aplicación: ¿Existe asociación entre continente y alta esperanza de vida?
-
-```{r}
-#| label: chisq-test
-cat("=== Prueba chi-cuadrado: Continente vs Alta Esperanza ===\n")
-cat("H₀: Continente y esperanza de vida son independientes\n")
-cat("H₁: Existe asociación entre ambas variables\n")
-cat("α = 0.05\n\n")
-
-# Crear tabla de contingencia
-tabla <- table(datos$continent, datos$alta_esperanza)
-colnames(tabla) <- c("Baja esperanza", "Alta esperanza")
-
-cat("--- Tabla de contingencia ---\n")
-print(tabla)
-cat("\n")
-
-# Prueba chi-cuadrado
-resultado_chi2 <- chisq.test(tabla)
-print(resultado_chi2)
-
-cat("\n--- Interpretación ---\n")
-cat("Valor-p:", round(resultado_chi2$p.value, 4), "\n")
-
-if (resultado_chi2$p.value < 0.05) {
-  cat("✓ RECHAZAMOS H₀: Existe asociación significativa\n")
-  cat("  entre continente y nivel de esperanza de vida.\n")
-} else {
-  cat("✗ NO RECHAZAMOS H₀: No hay asociación significativa.\n")
-}
-
-# Visualización de proporciones
-datos_cont <- datos %>%
-  group_by(continent) %>%
-  summarise(
-    total = n(),
-    alta = sum(alta_esperanza),
-    prop_alta = alta / total,
-    .groups = "drop"
-  )
-
-p_chi2 <- ggplot(datos_cont, aes(x = continent, y = prop_alta, fill = continent)) +
-  geom_col(alpha = 0.7) +
-  geom_hline(aes(yintercept = 0.5), linetype = "dashed", color = "red", size = 1) +
-  labs(title = "Proporción de Países con Alta Esperanza (>72 años) por Continente",
-       x = "Continente", y = "Proporción") +
-  theme_minimal() +
-  theme(legend.position = "none")
-print(p_chi2)
-```
-
----
-
-## 8. Simulación: Distribución del estadístico t bajo H₀ y H₁
-
-Para comprender mejor los errores Tipo I/II y la potencia, simulamos el comportamiento de un estadístico de prueba.
-
-```{r}
-#| label: simulacion-distribucion-t
-cat("=== Simulación: Error Tipo I, Tipo II y Potencia ===\n\n")
-
-set.seed(42)
-alpha <- 0.05
-n_sim <- 5000
-n_muestra <- 50
-mu_0 <- 70  # H₀
-mu_1 <- 73  # H₁ (efecto real)
-
-# Bajo H₀: generar muestras donde μ = 70
-t_h0 <- replicate(n_sim, {
-  muestra <- rnorm(n_muestra, mean = mu_0, sd = 8)
-  (mean(muestra) - mu_0) / (sd(muestra) / sqrt(n_muestra))
-})
-
-# Bajo H₁: generar muestras donde μ = 73
-t_h1 <- replicate(n_sim, {
-  muestra <- rnorm(n_muestra, mean = mu_1, sd = 8)
-  (mean(muestra) - mu_0) / (sd(muestra) / sqrt(n_muestra))
-})
-
-# Valores críticos para α = 0.05 bilateral
-t_crit <- qt(1 - alpha/2, df = n_muestra - 1)
-
-# Calcular errores
-tipo1 <- mean(abs(t_h0) > t_crit)  # Rechazar H₀ cuando es verdadera
-tipo2 <- mean(abs(t_h1) <= t_crit) # No rechazar H₀ cuando es falsa
-potencia <- 1 - tipo2
-
-cat("Parámetros de simulación:\n")
-cat("  n por muestra:", n_muestra, "\n")
-cat("  Número de replicaciones:", n_sim, "\n")
-cat("  H₀: μ = ", mu_0, "\n")
-cat("  H₁: μ = ", mu_1, "(diferencia real = ", mu_1 - mu_0, " unidades)\n\n")
-
-cat("Resultados:\n")
-cat("  Error Tipo I (α):", round(tipo1, 4), "(esperado ≈ 0.05)\n")
-cat("  Error Tipo II (β):", round(tipo2, 4), "\n")
-cat("  Potencia (1-β):", round(potencia, 4), "\n\n")
-
-# Graficar ambas distribuciones
-df_sim <- rbind(
-  data.frame(t_stat = t_h0, hipotesis = "Bajo H₀ (μ=70)"),
-  data.frame(t_stat = t_h1, hipotesis = "Bajo H₁ (μ=73)")
+empleo <- tibble(
+  grupo = rep(c("Control", "Tratamiento"), c(120, 110)),
+  salario = c(rnorm(120, mean = 520, sd = 90),
+              rnorm(110, mean = 555, sd = 130))
 )
+m_c <- mean(empleo$salario[empleo$grupo == "Control"])
+m_t <- mean(empleo$salario[empleo$grupo == "Tratamiento"])
+s_c <- sd(empleo$salario[empleo$grupo == "Control"])
+s_t <- sd(empleo$salario[empleo$grupo == "Tratamiento"])
 
-p_sim <- ggplot(df_sim, aes(x = t_stat, fill = hipotesis)) +
-  geom_histogram(bins = 40, alpha = 0.6, color = "white", position = "identity") +
-  geom_vline(aes(xintercept = t_crit), color = "red", linetype = "dashed", size = 1) +
-  geom_vline(aes(xintercept = -t_crit), color = "red", linetype = "dashed", size = 1) +
-  annotate("text", x = 3.8, y = 600, label = "Zona rechazo H₀",
-           size = 3, color = "red", fontface = "bold") +
-  labs(title = "Errores Tipo I y II: Distribución de t bajo H₀ y H₁",
-       subtitle = paste("Potencia =", round(potencia, 3)),
-       x = "Estadístico t", y = "Frecuencia", fill = "Supuesto") +
-  theme_minimal()
-print(p_sim)
+# Datos simulados: capacitacion (muestras pareadas)
+set.seed(456)
+antes <- rnorm(80, mean = 480, sd = 70)
+despues <- antes + rnorm(80, mean = 25, sd = 40)
+
+# Tabla de contingencia: educacion y voto
+tabla <- matrix(c(180, 150, 90, 20, 50, 110), ncol = 2,
+                dimnames = list(Educacion = c("Superior", "Secundaria", "Primaria"),
+                                Voto = c("Voto", "No voto")))
 ```
 
----
+## Panorama de la sesión
 
-## 9. Caso práctico: Comparación socioeconómica
+| Bloque | Concepto clave | Herramienta en R |
+|---|---|---|
+| Lógica de la inferencia | $H_0$, $H_1$, distribución nula | `pt()`, `qt()` |
+| Valor-p y decisión | $\alpha$, regiones de rechazo, ASA | `t.test()` |
+| Errores y potencia | Tipo I/II, $1-\beta$, tamaño de muestra | `power.t.test()` |
+| Pruebas t | una muestra, dos (Welch), pareada | `t.test()` |
+| Variables categóricas | independencia, proporciones | `chisq.test()`, `prop.test()` |
+| Buenas prácticas | relevancia, d de Cohen, p-hacking | corrección de Bonferroni |
 
-Analizamos si hay diferencias significativas en indicadores de desarrollo entre regiones usando múltiples técnicas.
+::: {.callout-note appearance="simple"}
+**Datos de trabajo:** `gapminder` (142 países, 2007) y microdatos simulados de un programa de empleo juvenil. En evaluación de políticas, cada rechazo de $H_0$ es una decisión sobre recursos públicos: conviene entender exactamente qué afirma (y qué no) una prueba de hipótesis.
+:::
+
+## La prueba de hipótesis en el flujo econométrico
+
+:::: {.columns}
+
+::: {.column width="55%"}
+```{r}
+#| label: img-flujo
+#| echo: false
+#| out.width: "100%"
+knitr::include_graphics("figuras/flujo_econometria.png")
+```
+:::
+
+::: {.column width="45%"}
+- La econometría traduce preguntas de política a **parámetros**: $\mu$, $p$, $\beta$.
+- Estimar no basta: hay que separar **señal de ruido muestral**.
+- Toda evaluación de impacto termina en un contraste: ¿el efecto es distinguible de cero?
+- Esta sesión construye la caja de herramientas del contraste; las próximas la aplican a coeficientes de regresión.
+:::
+
+::::
+
+## La lógica frecuentista en seis pasos
+
+| Paso | Qué se hace | Ejemplo: transferencia monetaria |
+|---|---|---|
+| 1. Formular | $H_0$: sin efecto; $H_1$: hay efecto | $H_0$: el consumo no cambia |
+| 2. Elegir $\alpha$ | riesgo tolerado de falso positivo | $\alpha = 0.05$ |
+| 3. Estadístico | según tipo de variable y diseño | t de dos muestras |
+| 4. Calcular | con los datos muestrales | $t = 2.41$ |
+| 5. Valor-p | prob. de algo tan extremo bajo $H_0$ | $p = 0.017$ |
+| 6. Decidir | $p < \alpha$ implica rechazar $H_0$ | se rechaza: hay efecto |
+
+Razonamiento por contradicción: **asumimos que el programa no funciona** ($H_0$) y preguntamos qué tan improbables serían nuestros datos en ese mundo. Los pasos 1 y 2 se fijan **antes** de mirar los datos.
+
+## Hipótesis nula y alternativa: quién carga la prueba
+
+:::: {.columns}
+
+::: {.column width="50%"}
+**Hipótesis nula ($H_0$)**
+
+- Afirma "no efecto" o "no diferencia": el statu quo
+- Se asume verdadera hasta que la evidencia la contradiga
+- Nunca se "acepta": solo se **no rechaza**
+- Ej: $\mu = 100$, $\mu_1 = \mu_2$, $p = 0.5$
+:::
+
+::: {.column width="50%"}
+**Hipótesis alternativa ($H_1$)**
+
+- Lo que el investigador quiere demostrar
+- Sobre ella recae la **carga de la prueba**
+- Puede ser bilateral o unilateral
+- Ej: $\mu \neq 100$, $\mu_1 \neq \mu_2$, $p > 0.5$
+:::
+
+::::
+
+::: {.callout-note appearance="simple"}
+**Ejemplo — subsidio al empleo juvenil.** $H_0$: la tasa de ocupación de beneficiarios es igual a la de no beneficiarios. $H_1$: las tasas difieren. Si no logramos rechazar $H_0$, no probamos que el programa "no sirve": solo que la evidencia es insuficiente.
+:::
+
+## ¿Bilateral o unilateral? La dirección se decide antes
+
+| Tipo | $H_1$ | Cuándo usarla | Ejemplo de política |
+|---|---|---|---|
+| Bilateral | $\mu \neq \mu_0$ | interesa cualquier dirección | ¿La reforma cambió el gasto de bolsillo en salud? |
+| Unilateral derecha | $\mu > \mu_0$ | solo interesa un aumento | ¿El subsidio aumentó el empleo formal? |
+| Unilateral izquierda | $\mu < \mu_0$ | solo interesa una caída | ¿La beca redujo la deserción escolar? |
+
+::: {.callout-warning appearance="simple"}
+La cola se elige **antes de ver los datos**, por teoría o diseño. Elegirla después de mirar el signo del efecto duplica de facto el error Tipo I: es una forma de p-hacking. Ante la duda, use la bilateral (más conservadora).
+:::
+
+## El estadístico de prueba y su distribución nula
+
+:::: {.columns}
+
+::: {.column width="50%"}
+$$t = \frac{\text{estimación} - \text{valor bajo } H_0}{\text{error estándar}} = \frac{\bar{x} - \mu_0}{s/\sqrt{n}}$$
+
+- Resume los datos en **un número**: a cuántos errores estándar está la estimación del valor nulo.
+- La **distribución nula** describe cómo se comportaría ese número si $H_0$ fuera cierta (aquí, t de Student con $n-1$ gl).
+- Un $|t|$ grande significa datos improbables bajo $H_0$.
+:::
+
+::: {.column width="50%"}
+```{r}
+#| label: img-dist-t
+#| echo: false
+#| out.width: "92%"
+knitr::include_graphics("figuras/distribucion_prueba_t.png")
+```
+
+Con 25 gl y $\alpha = 0.05$ bilateral, la regla es rechazar si $|t| > 2.06$.
+:::
+
+::::
+
+## Valor-p: la definición precisa
 
 ```{r}
-#| label: caso-practico-integral
-cat("=== CASO PRÁCTICO: Indicadores de Desarrollo por Región ===\n\n")
-
-# Crear variables binarias útiles
-datos_practico <- datos %>%
-  mutate(
-    alta_esperanza = ifelse(lifeExp > median(lifeExp), 1, 0),
-    alto_pib = ifelse(gdpPercap > median(gdpPercap), 1, 0),
-    es_desarrollado = ifelse(continent %in% c("Europe", "Oceania"), 1, 0)
-  )
-
-# 1. ¿Difiere PIB entre desarrollados y en desarrollo?
-cat("1. Prueba t: PIB per cápita (Desarrollados vs Otros)\n")
-cat("   H₀: μ_desarrollados = μ_otros\n")
-resultado_pib <- t.test(
-  datos_practico %>% filter(es_desarrollado == 1) %>% pull(gdpPercap),
-  datos_practico %>% filter(es_desarrollado == 0) %>% pull(gdpPercap),
-  var.equal = TRUE
-)
-cat("   p-valor:", round(resultado_pib$p.value, 4), "\n")
-cat("   Conclusión:", ifelse(resultado_pib$p.value < 0.05,
-                              "SÍ hay diferencia significativa ✓",
-                              "NO hay diferencia significativa ✗"), "\n\n")
-
-# 2. ¿Existe asociación entre desarrollo y alta esperanza?
-cat("2. Prueba chi-cuadrado: Desarrollo vs Alta Esperanza de Vida\n")
-cat("   H₀: Las variables son independientes\n")
-tabla_asoc <- table(datos_practico$es_desarrollado, datos_practico$alta_esperanza)
-resultado_asoc <- chisq.test(tabla_asoc)
-cat("   p-valor:", round(resultado_asoc$p.value, 4), "\n")
-cat("   Conclusión:", ifelse(resultado_asoc$p.value < 0.05,
-                              "SÍ hay asociación significativa ✓",
-                              "NO hay asociación significativa ✗"), "\n\n")
-
-# 3. ¿La esperanza de vida promedio en Africa es < media global?
-cat("3. Prueba t unilateral: Africa vs Media Global\n")
-cat("   H₀: μ_Africa = ", round(mean(datos$lifeExp), 1), "\n")
-cat("   H₁: μ_Africa < ", round(mean(datos$lifeExp), 1), " [unilateral]\n")
-africa_lifeexp <- datos %>% filter(continent == "Africa") %>% pull(lifeExp)
-resultado_africa <- t.test(africa_lifeexp, mu = mean(datos$lifeExp), alternative = "less")
-cat("   Media Africa:", round(mean(africa_lifeexp), 2), "\n")
-cat("   p-valor:", round(resultado_africa$p.value, 4), "\n")
-cat("   Conclusión:", ifelse(resultado_africa$p.value < 0.05,
-                              "SÍ es significativamente menor ✓",
-                              "NO hay diferencia significativa ✗"), "\n\n")
-
-# 4. Tabla resumen
-cat("4. Resumen estadístico por continente\n")
-resumen <- datos_practico %>%
-  group_by(continent) %>%
-  summarise(
-    n = n(),
-    media_esperanza = round(mean(lifeExp), 1),
-    media_pib = round(mean(gdpPercap), 0),
-    prop_alta_esperanza = round(mean(alta_esperanza), 2),
-    .groups = "drop"
-  )
-print(resumen)
+#| label: plot-pvalor
+#| echo: false
+#| fig-height: 3.0
+t_obs <- 2.3; gl <- 24
+p_bilateral <- 2 * pt(-abs(t_obs), gl)
+curva <- tibble(x = seq(-4.5, 4.5, 0.01), d = dt(seq(-4.5, 4.5, 0.01), gl))
+p <- ggplot(curva, aes(x, d)) +
+  geom_area(data = filter(curva, x >= t_obs), fill = rojo, alpha = 0.65) +
+  geom_area(data = filter(curva, x <= -t_obs), fill = rojo, alpha = 0.65) +
+  geom_line(color = azul, linewidth = 1.1) +
+  geom_vline(xintercept = t_obs, color = rojo, linewidth = 1) +
+  annotate("text", x = t_obs, y = 0.33, label = "t observado = 2.3", color = rojo, size = 4.2) +
+  annotate("text", x = 3.1, y = 0.045, label = "p/2", color = rojo, size = 4.5) +
+  annotate("text", x = -3.1, y = 0.045, label = "p/2", color = rojo, size = 4.5) +
+  labs(x = "Estadístico t (distribución nula, 24 gl)", y = "Densidad",
+       title = paste0("Área sombreada = valor-p = ", round(p_bilateral, 3)))
+interactivo(p)
 ```
 
----
+**Valor-p:** probabilidad de obtener un estadístico **tan extremo o más** que el observado, *suponiendo que $H_0$ es cierta*. Es $P(\text{datos extremos} \mid H_0)$ — no la probabilidad de que $H_0$ sea verdadera.
 
-## 10. Visualizaciones comparativas
+## El valor-p en la práctica: dos escenarios
 
 ```{r}
-#| label: visualizaciones-finales
-# Comparación de esperanza de vida por continente con estadísticas
-p_final <- ggplot(datos, aes(x = reorder(continent, lifeExp, median),
-                              y = lifeExp, fill = continent)) +
-  geom_violin(alpha = 0.6) +
-  geom_boxplot(width = 0.2, fill = "white", alpha = 0.8) +
-  geom_point(alpha = 0.3, size = 1.5, position = position_jitter(width = 0.1)) +
-  labs(title = "Distribución de Esperanza de Vida por Continente (2007)",
-       x = "Continente", y = "Esperanza de vida (años)") +
-  theme_minimal() +
-  theme(legend.position = "none")
-print(p_final)
+#| label: img-pvalor-escenarios
+#| echo: false
+#| out.width: "60%"
+knitr::include_graphics("figuras/h0_h1_pvalor.png")
 ```
 
----
+Mismo umbral $\alpha = 0.05$: a la izquierda, $t = 1.2$ deja mucha área en las colas ($p = 0.23$) y no se rechaza; a la derecha, $t = 2.8$ deja un área mínima ($p = 0.005$) y se rechaza $H_0$.
 
-## Conclusiones
+## Lo que el valor-p NO significa
 
-En esta sesión aprendimos a:
+| Malinterpretación frecuente | Realidad |
+|---|---|
+| "p es la probabilidad de que $H_0$ sea cierta" | p se calcula *asumiendo* $H_0$: es $P(\text{datos} \mid H_0)$, no $P(H_0 \mid \text{datos})$ |
+| "p = 0.20 demuestra que no hay efecto" | ausencia de evidencia no es evidencia de ausencia (puede faltar potencia) |
+| "p < 0.05 implica un efecto importante" | con n grande, efectos triviales producen p minúsculos |
+| "1 - p es la probabilidad de replicar" | p no informa sobre replicabilidad del hallazgo |
+| "p = 0.049 y p = 0.051 son mundos distintos" | 0.05 es una convención, no un umbral físico |
 
-1. **Formular hipótesis** nulas y alternativas, y entender el razonamiento detrás de las pruebas
-2. **Interpretar el valor-p** correctamente como probabilidad de los datos bajo H₀
-3. **Comprender los errores** Tipo I y II, y el trade-off entre ellos
-4. **Aplicar pruebas de comparación** de medias (test t de una y dos muestras)
-5. **Analizar proporciones** y variables categóricas (prop.test, chi-cuadrado)
-6. **Simular distribuciones** muestrales para visualizar potencia y errores
-7. **Interpretar resultados** en contexto socioeconómico real
+::: {.callout-important appearance="simple"}
+**Declaración ASA (Wasserstein & Lazar, 2016):** el valor-p no mide la probabilidad de la hipótesis ni el tamaño del efecto, y ninguna decisión científica o de política debería basarse solo en si p cruza un umbral. Reporte p exacto, IC y tamaño de efecto.
+:::
 
-Las pruebas de hipótesis son herramientas centrales para la econometría y permiten fundamentar decisiones políticas y empresariales en evidencia estadística rigurosa.
+## Nivel de significancia y valores críticos
+
+| $\alpha$ | Crítico bilateral (z) | Crítico unilateral (z) | Uso típico |
+|:-:|:-:|:-:|---|
+| 0.10 | 1.645 | 1.282 | análisis exploratorio |
+| 0.05 | 1.960 | 1.645 | convención dominante |
+| 0.01 | 2.576 | 2.326 | decisiones de alto costo |
+
+- $\alpha$ es la probabilidad de **error Tipo I** que el investigador acepta a priori: define la región de rechazo en las colas de la distribución nula.
+- Bajar $\alpha$ hace la prueba más exigente: menos falsos positivos, pero más falsos negativos ($\beta$ sube).
+- En muestras pequeñas los críticos de la t son mayores que los de z (colas más pesadas): con 24 gl, el crítico bilateral al 5% es 2.06, no 1.96.
+
+## Matriz de decisión: los cuatro escenarios
+
+| Decisión | $H_0$ verdadera | $H_0$ falsa |
+|---|---|---|
+| Rechazar $H_0$ | **Error Tipo I** (prob = $\alpha$) | Correcto: potencia ($1-\beta$) |
+| No rechazar $H_0$ | Correcto (prob = $1-\alpha$) | **Error Tipo II** (prob = $\beta$) |
+
+- **Error Tipo I (falso positivo):** declarar efectivo un programa que no lo es — se financia una política inútil.
+- **Error Tipo II (falso negativo):** no detectar un programa que sí funciona — se cancela una política valiosa.
+- Reducir $\alpha$ aumenta $\beta$ y viceversa; la única forma de reducir ambos es **aumentar n**.
+
+::: {.callout-tip appearance="simple"}
+**Analogía judicial:** Tipo I = condenar a un inocente; Tipo II = absolver a un culpable. El sistema fija $\alpha$ bajo porque considera peor el falso positivo — igual que la estadística.
+:::
+
+## Errores Tipo I y II en las distribuciones
+
+:::: {.columns}
+
+::: {.column width="52%"}
+```{r}
+#| label: img-errores
+#| echo: false
+#| out.width: "100%"
+knitr::include_graphics("figuras/errores_tipo.png")
+```
+:::
+
+::: {.column width="48%"}
+- Área **naranja**: $\alpha$, cola de la distribución bajo $H_0$ más allá del valor crítico.
+- Área **morada**: $\beta$, parte de la distribución bajo $H_1$ que cae en zona de no rechazo.
+- Mover el crítico a la derecha (bajar $\alpha$) agranda el área morada: el trade-off es geométrico.
+- Si las campanas se separan (efecto mayor) o se angostan (más n, menos $\sigma$), ambos errores caen a la vez.
+:::
+
+::::
+
+## Potencia: la zona que el diseño debe maximizar
+
+```{r}
+#| label: plot-potencia-anatomia
+#| echo: false
+#| fig-height: 3.2
+crit <- qnorm(0.975)
+malla <- tibble(x = seq(-4, 7, 0.01),
+                h0 = dnorm(seq(-4, 7, 0.01), 0, 1),
+                h1 = dnorm(seq(-4, 7, 0.01), 2.8, 1))
+p <- ggplot(malla, aes(x)) +
+  geom_area(data = filter(malla, x >= crit), aes(y = h1), fill = verde, alpha = 0.4) +
+  geom_area(data = filter(malla, x <= crit), aes(y = h1), fill = naranja, alpha = 0.55) +
+  geom_area(data = filter(malla, x >= crit), aes(y = h0), fill = rojo, alpha = 0.7) +
+  geom_line(aes(y = h0), color = azul, linewidth = 1.1) +
+  geom_line(aes(y = h1), color = rojo, linewidth = 1.1) +
+  geom_vline(xintercept = crit, linetype = "dashed", color = "grey30") +
+  annotate("text", x = -1.6, y = 0.36, label = "Bajo H0", color = azul, size = 4.5) +
+  annotate("text", x = 4.6, y = 0.36, label = "Bajo H1 (efecto real)", color = rojo, size = 4.5) +
+  annotate("text", x = 2.45, y = 0.085, label = "alfa", color = rojo, size = 4) +
+  annotate("text", x = 1.0, y = 0.05, label = "beta", color = "#A04000", size = 4) +
+  annotate("text", x = 4.7, y = 0.16, label = "Potencia = 1 - beta", color = verde, size = 4.5) +
+  annotate("text", x = 2.6, y = 0.42, label = "valor crítico", color = "grey30", size = 3.8) +
+  labs(x = "Valor del estadístico", y = "Densidad")
+interactivo(p)
+```
+
+**Potencia** = probabilidad de rechazar $H_0$ cuando es falsa (área verde). El estándar de diseño en evaluación de impacto es potencia $\geq$ 0.80: un estudio con potencia 0.30 casi garantiza no detectar el efecto aunque exista.
+
+## Cuatro palancas determinan la potencia
+
+:::: {.columns}
+
+::: {.column width="48%"}
+- **Tamaño de efecto:** efectos más grandes se detectan más fácil; es la palanca que *no* controla el evaluador.
+- **Tamaño de muestra (n):** más n reduce el error estándar; la palanca principal de diseño.
+- **Nivel $\alpha$:** un $\alpha$ mayor da más potencia, al precio de más falsos positivos.
+- **Varianza ($\sigma^2$):** menos ruido (mejor medición, estratificación) aumenta la potencia.
+
+Con dos grupos, detectar un efecto pequeño ($d = 0.2$) con 80% de potencia exige **cerca de 400 casos por grupo** (unos 200 en total si el contraste es de una sola muestra, como ilustra la figura).
+:::
+
+::: {.column width="52%"}
+```{r}
+#| label: img-potencia-n
+#| echo: false
+#| out.width: "100%"
+knitr::include_graphics("figuras/potencia_estadistica.png")
+```
+:::
+
+::::
+
+## power.t.test: diseñar el tamaño de muestra
+
+:::: {.columns}
+
+::: {.column width="46%"}
+```{r}
+#| label: code-power
+# ¿Que n necesito? (d = 0.5)
+p1 <- power.t.test(delta = 0.5,
+                   sd = 1,
+                   sig.level = 0.05,
+                   power = 0.80)
+ceiling(p1$n)   # n por grupo
+
+# ¿Que potencia logro con n = 30?
+p2 <- power.t.test(n = 30,
+                   delta = 0.5,
+                   sd = 1,
+                   sig.level = 0.05)
+round(p2$power, 2)
+```
+:::
+
+::: {.column width="54%"}
+```{r}
+#| label: plot-curvas-potencia
+#| echo: false
+#| fig-width: 5.6
+#| fig-height: 3.9
+#| out.width: "100%"
+malla_pot <- expand_grid(n = seq(10, 200, 5), d = c(0.2, 0.5, 0.8)) %>%
+  mutate(potencia = map2_dbl(n, d, ~ power.t.test(n = .x, delta = .y,
+                                                  sd = 1, sig.level = 0.05)$power),
+         efecto = factor(d, labels = c("d = 0.2 (pequeño)", "d = 0.5 (mediano)",
+                                       "d = 0.8 (grande)")))
+p <- ggplot(malla_pot, aes(n, potencia, color = efecto)) +
+  geom_line(linewidth = 1.2) +
+  geom_hline(yintercept = 0.8, linetype = "dashed", color = "grey40") +
+  annotate("text", x = 175, y = 0.86, label = "objetivo 0.80", color = "grey40", size = 4) +
+  scale_color_manual(values = c(celeste, verde, rojo)) +
+  labs(x = "n por grupo", y = "Potencia (1 - beta)", color = NULL,
+       title = "Curvas de potencia con power.t.test") +
+  theme(legend.position = "bottom")
+interactivo(p)
+```
+:::
+
+::::
+
+## Prueba t de una muestra en R
+
+**Pregunta:** ¿la esperanza de vida promedio mundial en 2007 difiere de 70 años? $H_0: \mu = 70$ vs $H_1: \mu \neq 70$, con $\alpha = 0.05$.
+
+```{r}
+#| label: code-t-una
+t1 <- t.test(datos$lifeExp, mu = 70)
+tidy(t1) %>%
+  select(estimate, statistic, p.value, conf.low, conf.high) %>%
+  mutate(across(everything(), ~ round(.x, 3)))
+```
+
+- La media muestral (67.0 años) está a casi 3 errores estándar de 70: se **rechaza** $H_0$ al 5%.
+- Lectura equivalente: el IC 95% [65.0, 69.0] **no contiene** 70.
+- Supuestos: muestra aleatoria, observaciones independientes, normalidad aproximada (o n grande, por TCL).
+
+## Dos muestras: ¿Welch o pooled?
+
+| Aspecto | Pooled (clásica) | Welch (defecto en R) |
+|---|---|---|
+| Supuesto sobre varianzas | iguales ($\sigma_1 = \sigma_2$) | pueden diferir |
+| Grados de libertad | $n_1 + n_2 - 2$ | aproximación de Satterthwaite |
+| Si las varianzas difieren | error Tipo I distorsionado | robusta |
+| En `t.test()` | `var.equal = TRUE` | `var.equal = FALSE` (defecto) |
+
+::: {.callout-tip appearance="simple"}
+En evaluación de programas los grupos tratado y control rara vez comparten varianza: el tratamiento suele *aumentar* la dispersión de resultados (impactos heterogéneos). Use **Welch** salvo que tenga una razón fuerte para lo contrario.
+:::
+
+## Prueba t de dos muestras: programa de empleo
+
+Simulamos un programa de empleo juvenil: salarios mensuales (miles de pesos) de `r sum(empleo$grupo == "Control")` controles (media `r round(m_c)`, DE `r round(s_c)`) y `r sum(empleo$grupo == "Tratamiento")` tratados (media `r round(m_t)`, DE `r round(s_t)`).
+
+```{r}
+#| label: code-t-dos
+welch  <- t.test(salario ~ grupo, data = empleo)
+pooled <- t.test(salario ~ grupo, data = empleo, var.equal = TRUE)
+tibble(version = c("Welch", "Pooled"),
+       t = c(welch$statistic, pooled$statistic),
+       gl = c(welch$parameter, pooled$parameter),
+       p = c(welch$p.value, pooled$p.value)) %>%
+  mutate(across(-version, ~ round(.x, 3)))
+```
+
+Ambas versiones rechazan $H_0: \mu_T = \mu_C$ al 5%, pero no siempre coinciden: con varianzas y tamaños desiguales, la pooled puede sobre o subestimar la evidencia. Los gl de Welch (no enteros) reflejan la corrección.
+
+## Prueba t pareada: antes y después de capacitar
+
+:::: {.columns}
+
+::: {.column width="46%"}
+Ingresos de 80 trabajadores antes y después de una capacitación. Parear **elimina la heterogeneidad individual**: la prueba se hace sobre las diferencias $d_i$, con $n - 1$ gl.
+
+```{r}
+#| label: code-t-pareada
+res <- t.test(despues, antes,
+              paired = TRUE)
+# diferencia media
+round(as.numeric(res$estimate), 1)
+# IC 95% de la diferencia
+round(as.numeric(res$conf.int), 1)
+# valor-p
+signif(res$p.value, 2)
+```
+:::
+
+::: {.column width="54%"}
+```{r}
+#| label: plot-pareada
+#| echo: false
+#| fig-width: 5.6
+#| fig-height: 3.9
+#| out.width: "100%"
+dif <- despues - antes
+p <- ggplot(tibble(dif), aes(dif)) +
+  geom_histogram(bins = 18, fill = celeste, color = "white") +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "grey40", linewidth = 0.9) +
+  geom_vline(xintercept = mean(dif), color = rojo, linewidth = 1.1) +
+  annotate("text", x = mean(dif) + 22, y = 11.5,
+           label = paste0("media = ", round(mean(dif), 1)), color = rojo, size = 4.3) +
+  labs(x = "Diferencia individual (después - antes)", y = "N° de trabajadores",
+       title = "Distribución de las diferencias pareadas")
+interactivo(p)
+```
+:::
+
+::::
+
+## Chi-cuadrado de independencia: concepto
+
+:::: {.columns}
+
+::: {.column width="48%"}
+$$\chi^2 = \sum_{i,j} \frac{(O_{ij} - E_{ij})^2}{E_{ij}}, \quad E_{ij} = \frac{\text{fila}_i \times \text{col}_j}{n}$$
+
+- $H_0$: las dos variables categóricas son **independientes**; $H_1$: están asociadas.
+- Grados de libertad: $(r-1)(c-1)$.
+- Requisito: $E_{ij} \geq 5$ en al menos 80% de las celdas.
+- Detecta asociación, **no dirección ni causalidad**.
+:::
+
+::: {.column width="52%"}
+```{r}
+#| label: img-chi
+#| echo: false
+#| out.width: "94%"
+knitr::include_graphics("figuras/chi_cuadrado.png")
+```
+
+La distribución $\chi^2$ se desplaza a la derecha al crecer los gl; siempre se rechaza en la **cola superior**.
+:::
+
+::::
+
+## Chi-cuadrado en R: educación y voto
+
+¿Se asocia el nivel educativo con votar? Encuesta a 600 personas ($\alpha = 0.05$):
+
+```{r}
+#| label: tabla-contingencia
+#| echo: false
+tab_m <- addmargins(tabla)
+dimnames(tab_m)[[1]][4] <- "Total"
+dimnames(tab_m)[[2]][3] <- "Total"
+kable(tab_m)
+```
+
+```{r}
+#| label: code-chi
+chisq.test(tabla)
+```
+
+Con $\chi^2 = 100$ y 2 gl, $p < 0.001$: se rechaza la independencia — la participación electoral está fuertemente asociada al nivel educativo.
+
+## Chi-cuadrado: observado vs esperado
+
+```{r}
+#| label: plot-obs-esp
+#| echo: false
+#| fig-height: 3.1
+chi <- chisq.test(tabla)
+obs <- as.data.frame(as.table(chi$observed)) %>% mutate(tipo = "Observado")
+esp <- as.data.frame(as.table(chi$expected)) %>% mutate(tipo = "Esperado bajo H0")
+df_oe <- bind_rows(obs, esp) %>%
+  mutate(Educacion = factor(Educacion, levels = c("Superior", "Secundaria", "Primaria")),
+         tipo = factor(tipo, levels = c("Observado", "Esperado bajo H0")))
+p <- ggplot(df_oe, aes(Educacion, Freq, fill = tipo)) +
+  geom_col(position = position_dodge(width = 0.7), width = 0.62) +
+  facet_wrap(~ Voto) +
+  scale_fill_manual(values = c(celeste, naranja)) +
+  labs(x = NULL, y = "Frecuencia", fill = NULL,
+       title = "Frecuencias observadas vs esperadas bajo independencia") +
+  theme(legend.position = "top")
+interactivo(p)
+```
+
+El estadístico acumula las brechas entre barras: educación primaria vota **mucho menos** de lo que la independencia predice (90 vs 140) y concentra la mayor parte del $\chi^2$.
+
+## Pruebas de proporciones con prop.test
+
+:::: {.columns}
+
+::: {.column width="50%"}
+**Una proporción**
+$$z = \frac{\hat{p} - p_0}{\sqrt{p_0(1-p_0)/n}}$$
+
+```{r}
+#| label: code-prop-una
+# 132 de 200 comunas elegibles
+# implementaron el programa
+una <- prop.test(x = 132, n = 200,
+                 p = 0.5)
+round(as.numeric(una$estimate), 3)
+signif(una$p.value, 3)
+```
+:::
+
+::: {.column width="50%"}
+**Dos proporciones**
+$$z = \frac{\hat{p}_1 - \hat{p}_2}{\sqrt{\hat{p}(1-\hat{p})(\tfrac{1}{n_1} + \tfrac{1}{n_2})}}$$
+
+```{r}
+#| label: code-prop-dos
+# empleo a 12 meses:
+# 96/160 tratados, 62/158 control
+dos <- prop.test(x = c(96, 62),
+                 n = c(160, 158))
+round(as.numeric(dos$estimate), 3)
+signif(dos$p.value, 3)
+```
+:::
+
+::::
+
+Requisito de la aproximación normal: $np_0 \geq 5$ y $n(1-p_0) \geq 5$. `prop.test()` aplica por defecto la corrección de continuidad de Yates; ambos contrastes rechazan $H_0$ al 5%.
+
+## Significancia estadística no es relevancia práctica
+
+```{r}
+#| label: plot-relevancia
+#| echo: false
+#| fig-height: 2.9
+df_ic <- tibble(
+  estudio = c("Piloto RCT (n = 40)", "Registro administrativo (n = 250.000)"),
+  est = c(8, 0.4), lo = c(-1.2, 0.1), hi = c(17.2, 0.7),
+  etiqueta = c("p = 0.086", "p < 0.001"))
+p <- ggplot(df_ic, aes(x = est, y = estudio)) +
+  annotate("rect", xmin = -2, xmax = 2, ymin = -Inf, ymax = Inf, fill = "grey80", alpha = 0.5) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "grey40") +
+  geom_pointrange(aes(xmin = lo, xmax = hi), color = azul, linewidth = 1.1, size = 0.7) +
+  geom_text(aes(label = etiqueta), vjust = -1.3, color = rojo, size = 4.3) +
+  annotate("text", x = 9, y = 0.55, label = "zona sombreada: irrelevancia práctica (menos de 2 pp)",
+           color = "grey35", size = 3.6) +
+  coord_cartesian(xlim = c(-4, 19), ylim = c(0.4, 2.5)) +
+  labs(x = "Efecto sobre la tasa de empleo (puntos porcentuales)", y = NULL,
+       title = "Mismo programa, dos estudios")
+interactivo(p)
+```
+
+Con n enorme, un efecto de 0.4 pp es "significativo" pero **irrelevante** para la política; el piloto sugiere un efecto grande pero impreciso. La pregunta de política es *cuánto* (IC y magnitud), no solo si $p < 0.05$.
+
+## Tamaño de efecto: d de Cohen
+
+$$d = \frac{\bar{x}_1 - \bar{x}_2}{s_p}, \qquad s_p = \sqrt{\frac{(n_1-1)s_1^2 + (n_2-1)s_2^2}{n_1+n_2-2}}$$
+
+Expresa la diferencia en **desviaciones estándar**: comparable entre estudios y variables. Referencias de Cohen (1988): 0.2 pequeño · 0.5 mediano · 0.8 grande (orientadoras, no dogma).
+
+```{r}
+#| label: code-cohen
+sal_c <- empleo$salario[empleo$grupo == "Control"]
+sal_t <- empleo$salario[empleo$grupo == "Tratamiento"]
+sp <- sqrt(((length(sal_c) - 1) * var(sal_c) +
+            (length(sal_t) - 1) * var(sal_t)) / (nrow(empleo) - 2))
+round((mean(sal_t) - mean(sal_c)) / sp, 2)
+```
+
+El programa de empleo mueve salarios en ~0.3 DE: efecto pequeño-mediano. Reportar d junto al valor-p permite comparar el programa con otras intervenciones y alimentar análisis costo-efectividad.
+
+## Comparaciones múltiples: el error se acumula
+
+| Pruebas (m) | P(al menos 1 falso positivo) | $\alpha$ de Bonferroni (0.05/m) |
+|:-:|:-:|:-:|
+| 1 | 5.0% | 0.05 |
+| 5 | 22.6% | 0.01 |
+| 10 | 40.1% | 0.005 |
+| 20 | 64.2% | 0.0025 |
+| 100 | 99.4% | 0.0005 |
+
+- Con $H_0$ cierta en todas, $P(\geq 1 \text{ falso positivo}) = 1 - (1-\alpha)^m$: probar 20 subgrupos casi garantiza un "hallazgo".
+- **p-hacking:** probar especificaciones, outcomes o subgrupos hasta que algo dé $p < 0.05$ y reportar solo eso.
+- **Bonferroni** ($\alpha/m$) controla el error familiar; es conservadora — Holm o FDR son alternativas menos costosas. La mejor defensa: preregistrar hipótesis y reportar **todas** las pruebas.
+
+## p-hacking: simulación de la trampa
+
+```{r}
+#| label: plot-phacking
+#| echo: false
+#| fig-height: 3.2
+set.seed(2026)
+p_unico <- replicate(5000, t.test(rnorm(30), rnorm(30))$p.value)
+p_min5 <- replicate(2000, min(replicate(5, t.test(rnorm(30), rnorm(30))$p.value)))
+sim_ph <- bind_rows(
+  tibble(p = p_unico, escenario = "Una prueba por estudio"),
+  tibble(p = p_min5, escenario = "Se reporta el mínimo de 5 pruebas")
+) %>%
+  mutate(escenario = factor(escenario, levels = unique(escenario)))
+p <- ggplot(sim_ph, aes(p, fill = p < 0.05)) +
+  geom_histogram(breaks = seq(0, 1, 0.05), color = "white") +
+  scale_fill_manual(values = c("FALSE" = celeste, "TRUE" = rojo), guide = "none") +
+  facet_wrap(~ escenario, scales = "free_y") +
+  labs(x = "valor-p reportado", y = "Frecuencia")
+interactivo(p)
+```
+
+Todo se simula **bajo $H_0$ cierta** (efecto nulo). Con una prueba por estudio, los valores-p son uniformes y el `r round(100 * mean(p_unico < 0.05), 1)`% cae bajo 0.05; si se prueban 5 outcomes y se reporta el mínimo, la tasa de falsos positivos se multiplica por cuatro (`r round(100 * mean(p_min5 < 0.05), 1)`%).
+
+## Síntesis: protocolo de un contraste bien hecho
+
+:::: {.columns}
+
+::: {.column width="52%"}
+**Checklist antes de reportar**
+
+1. $H_0$, $H_1$ y dirección definidas *a priori*
+2. $\alpha$ y potencia fijados en la etapa de diseño (`power.t.test`)
+3. Prueba elegida según tipo de variable y estructura (pareo, varianzas)
+4. Reportar p exacto + IC + tamaño de efecto (d)
+5. Declarar cuántas pruebas se hicieron; corregir si son varias
+6. Distinguir significancia de relevancia práctica
+
+**Funciones de la sesión:** `t.test()` `prop.test()` `chisq.test()` `power.t.test()` `qt()` `pt()`
+:::
+
+::: {.column width="48%"}
+```{r}
+#| label: img-matriz
+#| echo: false
+#| out.width: "100%"
+knitr::include_graphics("figuras/matriz_decision.png")
+```
+
+**Próxima sesión:** regresión lineal simple y MCO — los mismos contrastes, aplicados a $\beta$.
+:::
+
+::::
+
+## Ejercicio para practicar (30 min)
+
+Con `gapminder` filtrado al año **1977**:
+
+1. Pruebe si la esperanza de vida promedio mundial difiere de 60 años (formule $H_0$/$H_1$, elija cola y justifique).
+2. Compare la esperanza de vida entre África y las Américas con Welch y con pooled. ¿Cambia la conclusión? ¿Cuál reportaría?
+3. Calcule la d de Cohen de esa comparación e interprétela.
+4. Cree la variable `alta_vida` (esperanza sobre la mediana global) y pruebe con `chisq.test()` si se asocia al continente. Grafique observado vs esperado.
+5. Con `prop.test()`, contraste si la proporción de países con `alta_vida` en Asia difiere de 0.5.
+6. ¿Qué n por grupo exigiría detectar $d = 0.3$ con potencia 0.80 y $\alpha = 0.05$? Use `power.t.test()`.
+
+::: {.callout-note appearance="simple"}
+**Referencias:** Wooldridge, *Introductory Econometrics* (apéndice C) · Stock & Watson, *Introduction to Econometrics* (cap. 3) · Wasserstein & Lazar (2016), "The ASA Statement on p-Values", *The American Statistician* · Cohen (1988), *Statistical Power Analysis*.
+:::

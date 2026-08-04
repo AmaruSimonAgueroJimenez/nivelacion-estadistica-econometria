@@ -1,0 +1,37 @@
+/*-- scss:defaults --*/
+// Paleta institucional (azul UDD) para las slides revealjs
+$presentation-heading-color: #1F4E79;
+$link-color: #2E86C1;
+$presentation-font-size-root: 32px;
+$code-block-font-size: 0.52em;
+$presentation-h2-font-size: 1.15em;
+
+/*-- scss:rules --*/
+.reveal .slide-logo {
+  max-height: 2.2em !important;
+}
+
+.reveal table {
+  font-size: 0.72em;
+}
+
+.reveal .cell-output pre {
+  font-size: 0.62em;
+  background: #f4f7fa;
+  border-left: 4px solid #1F4E79;
+  padding: 0.4em 0.6em;
+}
+
+.reveal .footer {
+  font-size: 0.35em;
+  color: #6b7a8c;
+}
+
+.reveal .callout {
+  font-size: 0.78em;
+}
+
+.reveal h2 {
+  border-bottom: 2px solid #2E86C1;
+  padding-bottom: 0.1em;
+}

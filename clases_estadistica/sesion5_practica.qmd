@@ -1,436 +1,668 @@
 ---
-title: "Sesión 5: Práctica Integradora en R"
-subtitle: "Doctorado en Ciencias de la Complejidad Social — CICS, UDD"
-author: "Amaru Agüero (a.agueroj@udd.cl)"
-date: today
-format:
-  html:
-    theme: cosmo
-    toc: true
-    toc-depth: 3
-    code-fold: false
-    code-tools: true
-    self-contained: true
+title: "Sesión 5 · Práctica Integradora en R"
+subtitle: "Nivelación Estadística y Probabilidades — Doctorado en Políticas Públicas"
+author: "Amaru Agüero Jiménez (a.agueroj@udd.cl)"
+date: "Marzo 2026"
+date-format: "MMMM [de] YYYY"
 lang: es
+format:
+  revealjs:
+    theme: [default, estilo_slides.scss]
+    slide-number: c/t
+    footer: "Nivelación Estadística y Probabilidades — Doctorado en Políticas Públicas"
+    transition: fade
+    embed-resources: true
+    code-line-numbers: false
+    fig-align: center
+    menu: true
+  beamer:
+    aspectratio: 169
+    theme: Madrid
+    colortheme: whale
+    fontsize: 10pt
+    fig-align: center
+    include-in-header:
+      text: |
+        \definecolor{uddblue}{HTML}{1F4E79}
+        \definecolor{uddlight}{HTML}{2E86C1}
+        \setbeamercolor{structure}{fg=uddblue}
+        \setbeamercolor{frametitle}{bg=uddblue,fg=white}
+        \setbeamercolor{title}{bg=uddblue,fg=white}
+        \setbeamercolor{block title}{bg=uddblue,fg=white}
+        \setbeamercolor{block body}{bg=uddblue!10}
+        \fvset{fontsize=\scriptsize}
+        \AtBeginDocument{\setlength{\abovedisplayskip}{2pt}\setlength{\belowdisplayskip}{2pt}}
 execute:
   warning: false
   message: false
+  echo: true
+knitr:
+  opts_chunk:
+    dpi: 150
+    fig.width: 7.5
+    fig.height: 3.4
+    out.width: "82%"
 ---
-
-## Introducción
-
-Esta sesión integradora aplica **todos** los conceptos de las sesiones anteriores en un análisis completo: estadística descriptiva, tests de normalidad, pruebas de hipótesis (t-test, ANOVA) y regresión lineal simple y múltiple. Trabajaremos con el dataset **mtcars** (base R), que contiene datos de rendimiento de 32 automóviles.
-
-### Paquetes necesarios
 
 ```{r}
 #| label: setup
-# install.packages(c("tidyverse", "ggplot2", "broom"))
+#| echo: false
 library(tidyverse)
-library(ggplot2)
-library(broom)  # Para tidy() de modelos
+library(gapminder)
+library(moments)
+library(knitr)
+library(plotly)
+theme_set(theme_minimal(base_size = 13))
+azul <- "#1F4E79"; celeste <- "#2E86C1"; rojo <- "#E74C3C"; verde <- "#27AE60"; naranja <- "#F39C12"
+set.seed(2026)
+# En HTML (revealjs) los graficos se vuelven interactivos con plotly;
+# en Beamer (PDF) se mantienen estaticos.
+es_html <- knitr::is_html_output()
+interactivo <- function(p) {
+  if (es_html) plotly::config(plotly::ggplotly(p), displayModeBar = FALSE) else p
+}
 ```
 
----
+## Panorama de la sesión
 
-## Parte 1: Carga y exploración de datos
+| Bloque | Pasos | Integra | Herramientas en R |
+|---|:-:|---|---|
+| Pregunta y datos | 1–2 | Sesión 1 | `glimpse()`, `summary()` |
+| Preparación | 3 | Sesión 1 | `filter()`, `mutate()`, `log()` |
+| Descripción y gráficos | 4–5 | Sesión 1 | `group_by()`, `ggplot2` + `plotly` |
+| Outliers y supuestos | 6–7 | Sesiones 1–3 | regla IQR, QQ-plot, `shapiro.test()` |
+| Inferencia | 8–10 | Sesión 4 | `t.test()`, d de Cohen |
+| Reporte | 11–13 | Todas | `kable()`, conclusiones, reproducibilidad |
+
+::: {.callout-note appearance="simple"}
+**Formato de hoy:** práctica guiada. Un análisis completo con `gapminder` (142 países, 2007), de la pregunta de política al informe final. Cada slide es un paso ejecutable: código, salida e interpretación.
+:::
+
+## El mapa completo: de los datos crudos al informe
 
 ```{r}
-#| label: exploracion
-data(mtcars)
-
-# Agregar nombres de autos como columna y crear factores
-datos <- mtcars %>%
-  rownames_to_column("modelo") %>%
-  mutate(
-    cilindros = factor(cyl, labels = c("4 cil", "6 cil", "8 cil")),
-    transmision = factor(am, labels = c("Automático", "Manual")),
-    forma_motor = factor(vs, labels = c("V", "Recto"))
-  )
-
-cat("--- Estructura del dataset ---\n")
-cat("Dimensiones:", dim(datos), "\n")
-cat("Variables:", ncol(datos), "\n\n")
-
-cat("Primeras filas:\n")
-print(head(datos[, c("modelo", "mpg", "hp", "wt", "cilindros", "transmision")]))
-
-cat("\nResumen estadístico de variables clave:\n")
-datos %>%
-  select(mpg, hp, wt, qsec, disp) %>%
-  summary() %>%
-  print()
-
-cat("\nValores faltantes por variable:\n")
-print(colSums(is.na(datos)))
-cat("→ No hay valores faltantes en mtcars\n")
+#| label: mapa-flujo
+#| echo: false
+#| out.width: "58%"
+knitr::include_graphics("figuras/flujo_analisis.png")
 ```
 
----
+**Pipeline:** datos → exploración → descriptiva → supuestos → inferencia → conclusiones.
 
-## Parte 2: Estadística descriptiva (Sesión 1)
+## Paso 1 · La pregunta en términos de política pública
 
-### Tabla resumen por cilindros
+:::: {.columns}
+
+::: {.column width="52%"}
+**De la política a la estadística**
+
+- **Pregunta de política:** ¿cuán grande es la brecha de longevidad entre países ricos y pobres, y se alcanzó la meta internacional de 70 años de vida?
+- **Pregunta estadística 1:** ¿la esperanza de vida media mundial en 2007 difiere de 70 años?
+- **Pregunta estadística 2:** ¿difiere la esperanza de vida media entre países de PIB alto y PIB bajo?
+:::
+
+::: {.column width="48%"}
+**Hipótesis declaradas ANTES de mirar los datos**
+
+- Prueba 1: $H_0: \mu = 70$ vs $H_1: \mu \neq 70$
+- Prueba 2: $H_0: \mu_{alto} = \mu_{bajo}$ vs $H_1: \mu_{alto} \neq \mu_{bajo}$
+- Nivel de significancia: $\alpha = 0.05$
+- Estimador central: media muestral con IC 95%
+:::
+
+::::
+
+::: {.callout-important appearance="simple"}
+Hipótesis y $\alpha$ se fijan **antes** del análisis. Elegir la prueba después de ver los resultados invalida el p-valor (Sesión 4).
+:::
+
+## Paso 2 · Carga e inspección de datos
 
 ```{r}
-#| label: descriptiva
-resumen <- datos %>%
-  group_by(cilindros) %>%
-  summarise(
-    n = n(),
-    media_mpg = round(mean(mpg), 1),
-    mediana_mpg = round(median(mpg), 1),
-    sd_mpg = round(sd(mpg), 1),
-    min_mpg = min(mpg),
-    max_mpg = max(mpg),
-    iqr_mpg = round(IQR(mpg), 1),
-    cv_mpg = round(sd(mpg) / mean(mpg) * 100, 1),
-    media_hp = round(mean(hp), 0),
-    media_wt = round(mean(wt), 2),
-    .groups = "drop"
-  )
-
-cat("--- Resumen por número de cilindros ---\n")
-print(as.data.frame(resumen))
+#| label: paso-carga
+#| output-location: column
+library(gapminder)
+glimpse(gapminder)
 ```
 
-### Detección de outliers
+- 1.704 filas = 142 países × 12 años (panel balanceado)
+- `country`, `continent`: **nominales** (factores)
+- `lifeExp`, `gdpPercap`: **continuas de razón**
+- `pop`: **discreta de razón**; `year`: intervalo
+
+## Paso 2 · Control de calidad antes de analizar
 
 ```{r}
-#| label: outliers
-cat("--- Detección de outliers en MPG ---\n")
-Q1 <- quantile(datos$mpg, 0.25)
-Q3 <- quantile(datos$mpg, 0.75)
-IQR_val <- IQR(datos$mpg)
-cat("Q1:", Q1, " Q3:", Q3, " IQR:", IQR_val, "\n")
-cat("Límites: [", Q1 - 1.5 * IQR_val, ",", Q3 + 1.5 * IQR_val, "]\n")
-
-outliers <- datos %>%
-  filter(mpg < Q1 - 1.5 * IQR_val | mpg > Q3 + 1.5 * IQR_val) %>%
-  select(modelo, mpg, cilindros)
-cat("Outliers:", nrow(outliers), "\n")
-if (nrow(outliers) > 0) print(outliers)
-```
-
-### Visualizaciones descriptivas
-
-```{r}
-#| label: fig-histograma
-#| fig-cap: "Distribución de rendimiento (MPG)"
-ggplot(datos, aes(x = mpg)) +
-  geom_histogram(aes(y = after_stat(density)), bins = 12,
-                 fill = "#2E86C1", alpha = 0.6, color = "white") +
-  geom_density(color = "#E74C3C", size = 1) +
-  geom_vline(aes(xintercept = mean(mpg)), color = "red",
-             linetype = "dashed") +
-  geom_vline(aes(xintercept = median(mpg)), color = "darkgreen",
-             linetype = "dashed") +
-  labs(title = "Distribución de Rendimiento (MPG)",
-       subtitle = "Rojo = media, Verde = mediana",
-       x = "Millas por galón", y = "Densidad") +
-  theme_minimal()
+#| label: paso-calidad
+c(filas = nrow(gapminder),
+  paises = n_distinct(gapminder$country),
+  anios = n_distinct(gapminder$year),
+  na_total = sum(is.na(gapminder)))
 ```
 
 ```{r}
-#| label: fig-boxplot
-#| fig-cap: "Rendimiento por número de cilindros"
-ggplot(datos, aes(x = cilindros, y = mpg, fill = cilindros)) +
-  geom_boxplot(alpha = 0.7) +
-  geom_jitter(width = 0.15, alpha = 0.5, size = 2) +
-  scale_fill_manual(values = c("#2E86C1", "#E74C3C", "#1F4E79")) +
-  labs(title = "Rendimiento por Número de Cilindros",
-       x = "Cilindros", y = "MPG") +
-  theme_minimal() +
-  theme(legend.position = "none")
+#| label: paso-calidad-rango
+range(gapminder$year)
+summary(gapminder$lifeExp)[c(1, 6)]
 ```
 
+Sin valores faltantes y sin valores imposibles (mínimo 23.6 años corresponde a Ruanda 1992, un valor real documentado). Fijamos el corte transversal en **2007**.
+
+## Paso 3 · Limpieza y transformación
+
 ```{r}
-#| label: fig-scatter
-#| fig-cap: "Peso vs rendimiento por cilindros y transmisión"
-ggplot(datos, aes(x = wt, y = mpg, color = cilindros, shape = transmision)) +
-  geom_point(size = 3, alpha = 0.8) +
-  geom_smooth(method = "lm", se = FALSE, linetype = "dashed", size = 0.5) +
-  scale_color_manual(values = c("#2E86C1", "#E74C3C", "#1F4E79")) +
-  labs(title = "Peso vs Rendimiento",
-       x = "Peso (1000 lbs)", y = "MPG",
-       color = "Cilindros", shape = "Transmisión") +
-  theme_minimal()
+#| label: paso-limpieza
+datos <- gapminder %>%
+  filter(year == 2007) %>%
+  mutate(log_pib = log(gdpPercap),
+         grupo_pib = if_else(
+           gdpPercap >= median(gdpPercap),
+           "PIB alto", "PIB bajo"))
+datos %>% count(grupo_pib)
 ```
 
-### Matriz de correlaciones
+- `filter()`: solo el año 2007 (n = 142 países)
+- `log()`: doma el sesgo derecho del PIB (Sesión 1)
+- `grupo_pib`: corte por la **mediana** (6.124 USD) → dos grupos de 71 países; la mediana es robusta a los outliers de PIB
+
+## Paso 4 · Descriptivos por grupo
 
 ```{r}
-#| label: correlaciones
-vars_num <- datos %>% select(mpg, hp, wt, disp, qsec)
-cor_matrix <- cor(vars_num)
-cat("--- Matriz de correlaciones ---\n")
-print(round(cor_matrix, 2))
+#| label: paso-descriptivos
+datos %>% group_by(continent) %>%
+  summarise(n = n(), media = mean(lifeExp), de = sd(lifeExp),
+            mediana = median(lifeExp), iqr = IQR(lifeExp)) %>%
+  mutate(across(where(is.numeric), ~round(.x, 1))) %>% kable()
 ```
 
----
+África queda **20+ años** por debajo del resto y además es el continente más heterogéneo (DE = 9.6). Reportar siempre **n, media, DE, mediana e IQR** por grupo antes de cualquier prueba.
 
-## Parte 3: Probabilidad y distribuciones (Sesiones 2-3)
+## Paso 5 · Gráfico 1: la distribución de la variable clave
 
-### Test de normalidad
+:::: {.columns}
 
+::: {.column width="46%"}
 ```{r}
-#| label: normalidad
-cat("--- Test de normalidad para MPG ---\n")
-shapiro_test <- shapiro.test(datos$mpg)
-cat("Shapiro-Wilk: W =", round(shapiro_test$statistic, 4),
-    ", p-valor =", round(shapiro_test$p.value, 4), "\n")
-cat("→", ifelse(shapiro_test$p.value > 0.05,
-                "No rechazamos normalidad (p > 0.05)",
-                "Rechazamos normalidad (p ≤ 0.05)"), "\n")
+#| label: code-hist5
+#| eval: false
+p <- ggplot(datos, aes(x = lifeExp)) +
+  geom_histogram(bins = 18,
+                 fill = celeste,
+                 color = "white") +
+  geom_vline(
+    xintercept = mean(datos$lifeExp),
+    color = rojo, linewidth = 1,
+    linetype = "dashed") +
+  labs(x = "Esperanza de vida (años)",
+       y = "N° de países")
+ggplotly(p)  # interactivo en HTML
 ```
 
+`ggplotly(p)` vuelve interactivo cualquier ggplot en HTML; en PDF queda estático. Cola izquierda: media (67.0) < mediana (71.9).
+:::
+
+::: {.column width="54%"}
 ```{r}
-#| label: fig-qq
-#| fig-cap: "QQ-Plot para evaluar normalidad de MPG"
-ggplot(datos, aes(sample = mpg)) +
-  stat_qq(color = "#2E86C1", size = 2) +
-  stat_qq_line(color = "#E74C3C", size = 1) +
-  labs(title = "QQ-Plot de MPG",
-       subtitle = paste("Shapiro-Wilk p =", round(shapiro_test$p.value, 3)),
-       x = "Cuantiles teóricos", y = "Cuantiles muestrales") +
-  theme_minimal()
-```
-
-```{r}
-#| label: normalidad-grupo
-cat("Test de normalidad por grupo de cilindros:\n")
-datos %>%
-  group_by(cilindros) %>%
-  summarise(
-    n = n(),
-    W = round(shapiro.test(mpg)$statistic, 4),
-    p_valor = round(shapiro.test(mpg)$p.value, 4),
-    normal = ifelse(shapiro.test(mpg)$p.value > 0.05, "Sí", "No"),
-    .groups = "drop"
-  ) %>%
-  print()
-```
-
-### Probabilidades empíricas vs teóricas
-
-```{r}
-#| label: probabilidades
-cat("--- Probabilidades empíricas ---\n")
-cat("P(MPG > 25):", round(mean(datos$mpg > 25), 3), "\n")
-cat("P(MPG < 15):", round(mean(datos$mpg < 15), 3), "\n")
-cat("P(15 < MPG < 25):", round(mean(datos$mpg > 15 & datos$mpg < 25), 3), "\n")
-
-mu_mpg <- mean(datos$mpg)
-sd_mpg <- sd(datos$mpg)
-cat("\nSi asumimos MPG ~ N(", round(mu_mpg, 1), ",", round(sd_mpg, 1), "):\n")
-cat("P(MPG > 25):", round(1 - pnorm(25, mu_mpg, sd_mpg), 3), "\n")
-cat("P(MPG < 15):", round(pnorm(15, mu_mpg, sd_mpg), 3), "\n")
-```
-
----
-
-## Parte 4: Inferencia estadística (Sesión 4)
-
-### IC para la media de MPG
-
-```{r}
-#| label: ic-media
-cat("--- IC para la media de MPG ---\n")
-test_mpg <- t.test(datos$mpg, conf.level = 0.95)
-cat("x̄ =", round(test_mpg$estimate, 2), "\n")
-cat("IC 95%: [", round(test_mpg$conf.int[1], 2), ",",
-    round(test_mpg$conf.int[2], 2), "]\n")
-```
-
-### Test t: Manual vs Automático
-
-```{r}
-#| label: t-test
-cat("--- Comparación: Manual vs Automático ---\n")
-test_trans <- t.test(mpg ~ transmision, data = datos)
-cat("Media Automático:", round(test_trans$estimate[1], 2), "\n")
-cat("Media Manual:", round(test_trans$estimate[2], 2), "\n")
-cat("Diferencia:", round(diff(test_trans$estimate), 2), "\n")
-cat("IC 95% para diferencia: [", round(test_trans$conf.int[1], 2), ",",
-    round(test_trans$conf.int[2], 2), "]\n")
-cat("p-valor:", format(test_trans$p.value, digits = 4), "\n")
-cat("→", ifelse(test_trans$p.value < 0.05,
-                "Diferencia significativa (p < 0.05)",
-                "Diferencia no significativa (p ≥ 0.05)"), "\n")
-```
-
-```{r}
-#| label: fig-transmision
-#| fig-cap: "Comparación de MPG entre tipos de transmisión"
-ggplot(datos, aes(x = transmision, y = mpg, fill = transmision)) +
-  geom_violin(alpha = 0.5) +
-  geom_boxplot(width = 0.15, fill = "white", alpha = 0.8) +
-  geom_jitter(width = 0.1, alpha = 0.4) +
-  scale_fill_manual(values = c("#E74C3C", "#2E86C1")) +
-  labs(title = "MPG: Automático vs Manual",
-       subtitle = paste("p-valor =", format(test_trans$p.value, digits = 3)),
-       x = "Transmisión", y = "Millas por galón") +
-  theme_minimal() +
-  theme(legend.position = "none")
-```
-
-### ANOVA: MPG según cilindros
-
-```{r}
-#| label: anova
-cat("--- ANOVA: MPG según cilindros ---\n")
-anova_cil <- aov(mpg ~ cilindros, data = datos)
-cat("Tabla ANOVA:\n")
-print(summary(anova_cil))
-
-cat("\nComparaciones múltiples (Tukey HSD):\n")
-tukey <- TukeyHSD(anova_cil)
-print(tukey)
-```
-
----
-
-## Parte 5: Regresión lineal simple
-
-Modelamos el rendimiento (MPG) como función del peso del vehículo.
-
-```{r}
-#| label: regresion-simple
-modelo_simple <- lm(mpg ~ wt, data = datos)
-
-cat("--- Modelo: mpg ~ wt ---\n")
-print(summary(modelo_simple))
-
-cat("\nIC 95% para coeficientes:\n")
-print(confint(modelo_simple))
-
-cat("\nInterpretación:\n")
-cat("  Intercepto:", round(coef(modelo_simple)[1], 2),
-    "→ MPG estimado cuando peso = 0 (extrapolación)\n")
-cat("  Pendiente (wt):", round(coef(modelo_simple)[2], 2),
-    "→ Por cada 1000 lbs adicionales, MPG baja en",
-    round(abs(coef(modelo_simple)[2]), 2), "\n")
-cat("  R²:", round(summary(modelo_simple)$r.squared, 3),
-    "→ El peso explica", round(summary(modelo_simple)$r.squared * 100, 1),
-    "% de la variación en MPG\n")
-```
-
-### Predicciones
-
-```{r}
-#| label: predicciones
-nuevos_pesos <- data.frame(wt = c(2.0, 3.0, 4.0, 5.0))
-pred <- predict(modelo_simple, nuevos_pesos, interval = "confidence", level = 0.95)
-cat("Predicciones con IC 95%:\n")
-print(cbind(nuevos_pesos, round(pred, 2)))
-```
-
-```{r}
-#| label: fig-regresion
-#| fig-cap: "Regresión lineal: MPG como función del peso"
-ggplot(datos, aes(x = wt, y = mpg)) +
-  geom_point(aes(color = cilindros), size = 3, alpha = 0.7) +
-  geom_smooth(method = "lm", se = TRUE, color = "#1F4E79",
-              fill = "#2E86C1", alpha = 0.2) +
-  scale_color_manual(values = c("#2E86C1", "#E74C3C", "#1F4E79")) +
-  labs(title = "Regresión: MPG ~ Peso",
-       subtitle = paste("R² =", round(summary(modelo_simple)$r.squared, 3),
-                        "| Pendiente =", round(coef(modelo_simple)[2], 2)),
-       x = "Peso (1000 lbs)", y = "Millas por galón",
-       color = "Cilindros") +
-  theme_minimal()
-```
-
-### Diagnósticos del modelo
-
-```{r}
-#| label: diagnosticos
-datos$residuos <- residuals(modelo_simple)
-datos$predichos <- fitted(modelo_simple)
-
-shapiro_res <- shapiro.test(datos$residuos)
-cat("Normalidad de residuos (Shapiro-Wilk): p =",
-    round(shapiro_res$p.value, 4), "\n")
-```
-
-```{r}
-#| label: fig-residuos
-#| fig-cap: "Residuos vs valores predichos"
-ggplot(datos, aes(x = predichos, y = residuos)) +
-  geom_point(color = "#2E86C1", alpha = 0.7, size = 2) +
-  geom_hline(yintercept = 0, color = "red", linetype = "dashed") +
-  geom_smooth(method = "loess", se = FALSE, color = "#E74C3C", size = 0.8) +
-  labs(title = "Residuos vs Valores Predichos",
-       subtitle = "Buscar patrones → indica problemas de especificación",
-       x = "Valores predichos", y = "Residuos") +
-  theme_minimal()
-```
-
----
-
-## Parte 6: Regresión múltiple
-
-```{r}
-#| label: regresion-multiple
-modelo_multi <- lm(mpg ~ wt + hp + factor(cyl), data = datos)
-
-cat("--- Modelo: mpg ~ wt + hp + cilindros ---\n")
-print(summary(modelo_multi))
-
-cat("\nIC 95% para coeficientes:\n")
-print(confint(modelo_multi))
-```
-
-### Comparación de modelos
-
-```{r}
-#| label: comparacion-modelos
-modelo_1 <- lm(mpg ~ wt, data = datos)
-modelo_2 <- lm(mpg ~ wt + hp, data = datos)
-modelo_3 <- lm(mpg ~ wt + hp + factor(cyl), data = datos)
-
-comparacion <- data.frame(
-  modelo = c("mpg ~ wt", "mpg ~ wt + hp", "mpg ~ wt + hp + cyl"),
-  R2 = c(summary(modelo_1)$r.squared,
-         summary(modelo_2)$r.squared,
-         summary(modelo_3)$r.squared),
-  R2_adj = c(summary(modelo_1)$adj.r.squared,
-             summary(modelo_2)$adj.r.squared,
-             summary(modelo_3)$adj.r.squared),
-  AIC = c(AIC(modelo_1), AIC(modelo_2), AIC(modelo_3)),
-  BIC = c(BIC(modelo_1), BIC(modelo_2), BIC(modelo_3))
+#| label: plot-hist5
+#| echo: false
+#| fig-width: 5.6
+#| fig-height: 3.9
+#| out.width: "100%"
+interactivo(
+  ggplot(datos, aes(x = lifeExp)) +
+    geom_histogram(bins = 18, fill = celeste, color = "white") +
+    geom_vline(xintercept = mean(datos$lifeExp), color = rojo,
+               linewidth = 1, linetype = "dashed") +
+    labs(x = "Esperanza de vida (años)", y = "N° de países")
 )
-comparacion[, 2:5] <- round(comparacion[, 2:5], 3)
-print(comparacion)
+```
+:::
 
-cat("\nTest F: Modelo 2 vs Modelo 3 (¿cyl agrega información?):\n")
-print(anova(modelo_2, modelo_3))
+::::
+
+## Paso 5 · Gráfico 2: comparación entre continentes
+
+:::: {.columns}
+
+::: {.column width="46%"}
+```{r}
+#| label: code-box5
+#| eval: false
+ggplot(datos,
+       aes(x = reorder(continent,
+                       lifeExp, median),
+           y = lifeExp,
+           fill = continent)) +
+  geom_boxplot(alpha = .7,
+               outlier.color = rojo) +
+  geom_jitter(width = .12,
+              alpha = .3, size = 1) +
+  labs(x = NULL,
+       y = "Esperanza de vida (años)") +
+  theme(legend.position = "none")
 ```
 
----
+Ordenar por mediana facilita la lectura. África muestra la mayor dispersión y solapa poco con Europa.
+:::
 
-## Resumen del análisis
+::: {.column width="54%"}
+```{r}
+#| label: plot-box5
+#| echo: false
+#| fig-width: 5.6
+#| fig-height: 3.9
+#| out.width: "100%"
+interactivo(
+  ggplot(datos, aes(x = reorder(continent, lifeExp, median),
+                    y = lifeExp, fill = continent)) +
+    geom_boxplot(alpha = .7, outlier.color = rojo) +
+    geom_jitter(width = .12, alpha = .3, size = 1) +
+    labs(x = NULL, y = "Esperanza de vida (años)") +
+    theme(legend.position = "none")
+)
+```
+:::
+
+::::
+
+## Paso 5 · Gráfico 3: la relación PIB–vida
+
+:::: {.columns}
+
+::: {.column width="46%"}
+```{r}
+#| label: code-scatter5
+#| eval: false
+ggplot(datos,
+       aes(x = log_pib, y = lifeExp)) +
+  geom_point(aes(color = grupo_pib),
+             alpha = .7, size = 2) +
+  geom_smooth(method = "lm",
+              color = azul) +
+  scale_color_manual(
+    values = c(celeste, naranja)) +
+  labs(x = "log(PIB per cápita)",
+       y = "Esperanza de vida (años)",
+       color = NULL) +
+  theme(legend.position = "bottom")
+```
+
+Relación aproximadamente lineal **en logs**: justifica la transformación del Paso 3. En HTML, el tooltip identifica cada país.
+:::
+
+::: {.column width="54%"}
+```{r}
+#| label: plot-scatter5
+#| echo: false
+#| fig-width: 5.6
+#| fig-height: 3.9
+#| out.width: "100%"
+interactivo(
+  ggplot(datos, aes(x = log_pib, y = lifeExp)) +
+    geom_point(aes(color = grupo_pib, text = country),
+               alpha = .7, size = 2) +
+    geom_smooth(method = "lm", color = azul) +
+    scale_color_manual(values = c(celeste, naranja)) +
+    labs(x = "log(PIB per cápita)",
+         y = "Esperanza de vida (años)", color = NULL) +
+    theme(legend.position = "bottom")
+)
+```
+:::
+
+::::
+
+## Paso 5 · Gráfico 4: los dos grupos a contrastar
+
+:::: {.columns}
+
+::: {.column width="46%"}
+```{r}
+#| label: code-dens5
+#| eval: false
+ggplot(datos,
+       aes(x = lifeExp,
+           fill = grupo_pib)) +
+  geom_density(alpha = .55,
+               color = NA) +
+  scale_fill_manual(
+    values = c(celeste, naranja)) +
+  labs(x = "Esperanza de vida (años)",
+       y = "Densidad", fill = NULL) +
+  theme(legend.position = "top")
+```
+
+Separación clara entre grupos, con solapamiento parcial: exactamente lo que la prueba t del Paso 9 va a cuantificar.
+:::
+
+::: {.column width="54%"}
+```{r}
+#| label: plot-dens5
+#| echo: false
+#| fig-width: 5.6
+#| fig-height: 3.9
+#| out.width: "100%"
+interactivo(
+  ggplot(datos, aes(x = lifeExp, fill = grupo_pib)) +
+    geom_density(alpha = .55, color = NA) +
+    scale_fill_manual(values = c(celeste, naranja)) +
+    labs(x = "Esperanza de vida (años)",
+         y = "Densidad", fill = NULL) +
+    theme(legend.position = "top")
+)
+```
+:::
+
+::::
+
+## Paso 6 · Detección de outliers
+
+:::: {.columns}
+
+::: {.column width="55%"}
+```{r}
+#| label: paso-outliers
+Q1 <- quantile(datos$gdpPercap, .25)
+Q3 <- quantile(datos$gdpPercap, .75)
+lim <- Q3 + 1.5 * IQR(datos$gdpPercap)
+datos %>% filter(gdpPercap > lim) %>%
+  select(country, gdpPercap) %>%
+  arrange(desc(gdpPercap)) %>%
+  mutate(gdpPercap = round(gdpPercap))
+```
+:::
+
+::: {.column width="45%"}
+**Decisión documentada**
+
+1. Los 4 valores son **reales**, no errores.
+2. Se **conservan**: eliminar países sesgaría el análisis.
+3. El corte por **mediana** del Paso 3 ya es robusto a ellos.
+4. En `lifeExp` la regla IQR no marca ningún outlier.
+:::
+
+::::
+
+::: {.callout-tip appearance="simple"}
+Protocolo de la Sesión 1: verificar, documentar, analizar con y sin, y preferir medidas robustas. Nunca eliminar en silencio.
+:::
+
+## Paso 7 · Normalidad I: el QQ-plot
+
+:::: {.columns}
+
+::: {.column width="46%"}
+```{r}
+#| label: code-qq5
+#| eval: false
+ggplot(datos,
+       aes(sample = lifeExp)) +
+  stat_qq(color = celeste,
+          size = 2, alpha = .7) +
+  stat_qq_line(color = rojo,
+               linewidth = 1) +
+  labs(
+    x = "Cuantiles teóricos N(0,1)",
+    y = "Cuantiles muestrales")
+```
+
+La cola izquierda se despega de la recta: el sesgo negativo visto en el histograma, ahora contra la referencia normal.
+:::
+
+::: {.column width="54%"}
+```{r}
+#| label: plot-qq5
+#| echo: false
+#| fig-width: 5.6
+#| fig-height: 3.9
+#| out.width: "100%"
+ggplot(datos, aes(sample = lifeExp)) +
+  stat_qq(color = celeste, size = 2, alpha = .7) +
+  stat_qq_line(color = rojo, linewidth = 1) +
+  labs(x = "Cuantiles teóricos N(0,1)",
+       y = "Cuantiles muestrales")
+```
+:::
+
+::::
+
+## Paso 7 · Normalidad II: prueba de Shapiro-Wilk
 
 ```{r}
-#| label: resumen-final
-cat("Dataset: mtcars (32 automóviles)\n")
-cat("Variable dependiente: MPG (rendimiento)\n\n")
-
-cat("Hallazgos principales:\n")
-cat("1. El MPG promedio es", round(mean(datos$mpg), 1),
-    "(DE =", round(sd(datos$mpg), 1), ")\n")
-cat("2. Los autos manuales tienen mejor rendimiento que los automáticos\n")
-cat("   (diferencia:", round(abs(diff(test_trans$estimate)), 1), "MPG, p =",
-    format(test_trans$p.value, digits = 3), ")\n")
-cat("3. Hay diferencias significativas de MPG entre cilindros (ANOVA p < 0.001)\n")
-cat("4. El peso es el mejor predictor individual de MPG (R² =",
-    round(summary(modelo_1)$r.squared, 3), ")\n")
-cat("5. El modelo múltiple (wt + hp + cyl) explica",
-    round(summary(modelo_3)$r.squared * 100, 1), "% de la variación\n")
+#| label: paso-shapiro
+sw <- shapiro.test(datos$lifeExp)
+round(c(W = unname(sw$statistic), p = sw$p.value), 4)
 ```
 
----
+```{r}
+#| label: paso-shapiro-grupo
+datos %>% group_by(grupo_pib) %>%
+  summarise(p_shapiro = shapiro.test(lifeExp)$p.value)
+```
 
-## Conclusiones
+- Se **rechaza** la normalidad global y en ambos grupos (p < 0.01).
+- Pero la prueba t infiere sobre **medias**: con n = 71 por grupo, el TLC (Sesión 3) garantiza normalidad aproximada de $\bar{X}$.
+- Conclusión metodológica: reportar el diagnóstico y seguir con t de Welch.
 
-Esta sesión integradora demostró el flujo completo de un análisis estadístico en R: desde la exploración y descripción de los datos, pasando por pruebas de normalidad y tests de hipótesis (t-test para dos grupos, ANOVA para múltiples grupos), hasta la construcción y evaluación de modelos de regresión. El dataset mtcars, aunque simple, permite practicar todas las técnicas fundamentales cubiertas en el curso.
+## Paso 8 · Intervalo de confianza para la media
+
+```{r}
+#| label: paso-ic
+ic <- t.test(datos$lifeExp, conf.level = 0.95)
+round(c(media = unname(ic$estimate),
+        li = ic$conf.int[1], ls = ic$conf.int[2]), 2)
+```
+
+```{r}
+#| label: paso-ic-manual
+n <- nrow(datos)
+ee <- sd(datos$lifeExp) / sqrt(n)
+round(mean(datos$lifeExp) + qt(c(.025, .975), n - 1) * ee, 2)
+```
+
+`t.test()` automatiza la fórmula $\bar{x} \pm t_{0.975,\,n-1} \cdot s/\sqrt{n}$ de la Sesión 4: ambas rutas dan **[65.0; 69.0]**. El procedimiento captura a $\mu$ en el 95% de las muestras posibles.
+
+## Paso 8 · IC por continente: el gráfico de reporte
+
+:::: {.columns}
+
+::: {.column width="46%"}
+```{r}
+#| label: code-icgrupo
+#| eval: false
+ic_g <- datos %>%
+  group_by(continent) %>%
+  summarise(
+    m = mean(lifeExp),
+    ee = sd(lifeExp) / sqrt(n()),
+    tq = qt(.975, n() - 1))
+ggplot(ic_g,
+       aes(x = m,
+           y = reorder(continent, m))) +
+  geom_pointrange(
+    aes(xmin = m - tq * ee,
+        xmax = m + tq * ee),
+    color = azul, linewidth = .9) +
+  labs(x = "Media e IC 95% (años)",
+       y = NULL)
+```
+:::
+
+::: {.column width="54%"}
+```{r}
+#| label: plot-icgrupo
+#| echo: false
+#| fig-width: 5.6
+#| fig-height: 3.9
+#| out.width: "100%"
+interactivo({
+  ic_g <- datos %>% group_by(continent) %>%
+    summarise(m = mean(lifeExp), ee = sd(lifeExp) / sqrt(n()),
+              tq = qt(.975, n() - 1))
+  ggplot(ic_g, aes(x = m, y = reorder(continent, m))) +
+    geom_pointrange(aes(xmin = m - tq * ee, xmax = m + tq * ee),
+                    color = azul, linewidth = .9) +
+    labs(x = "Media e IC 95% (años)", y = NULL)
+})
+```
+
+El IC de Oceanía es engañosamente angosto: con n = 2 el error estándar casi no tiene información. El n manda.
+:::
+
+::::
+
+## Paso 9 · Prueba t de una muestra: ¿se alcanzó la meta?
+
+```{r}
+#| label: paso-t-una
+t1 <- t.test(datos$lifeExp, mu = 70)
+t1
+```
+
+Con t = -2.95 y p = 0.004 < $\alpha$, se **rechaza** $H_0$: la media mundial 2007 (67.0 años) quedó significativamente **por debajo** de la meta de 70. El IC [65.0; 69.0] no contiene 70 — misma conclusión por dos vías.
+
+## Paso 9 · Prueba t de dos muestras: la brecha de ingreso
+
+```{r}
+#| label: paso-t-dos-medias
+datos %>% group_by(grupo_pib) %>%
+  summarise(n = n(), media = round(mean(lifeExp), 1),
+            de = round(sd(lifeExp), 1))
+```
+
+```{r}
+#| label: paso-t-dos
+t2 <- t.test(lifeExp ~ grupo_pib, data = datos)
+round(c(dif = -diff(unname(t2$estimate)), li = t2$conf.int[1],
+        ls = t2$conf.int[2], t = unname(t2$statistic)), 2)
+```
+
+Los países de PIB alto viven **16.7 años más** (IC 95%: [13.7; 19.6]; p = 1.2e-20 < 0.001). `t.test()` usa **Welch** por defecto: no exige varianzas iguales (DE 6.6 vs 10.4).
+
+## Paso 10 · Tamaño del efecto: ¿la diferencia importa?
+
+```{r}
+#| label: paso-efecto
+g <- datos %>% group_by(grupo_pib) %>%
+  summarise(n = n(), m = mean(lifeExp), s = sd(lifeExp))
+sp <- sqrt(((g$n[1] - 1) * g$s[1]^2 + (g$n[2] - 1) * g$s[2]^2) /
+             (sum(g$n) - 2))
+d <- (g$m[1] - g$m[2]) / sp
+round(c(dif_medias = g$m[1] - g$m[2], sd_conjunta = sp, cohen_d = d), 2)
+```
+
+| $|d|$ de referencia | Magnitud (Cohen) | Lectura |
+|:-:|---|---|
+| 0.2 | Pequeño | Detectable solo con muestras grandes |
+| 0.5 | Mediano | Visible al inspeccionar los datos |
+| 0.8 | Grande | Diferencia evidente entre grupos |
+| **1.90 (este caso)** | Muy grande | Brecha de primer orden para política |
+
+Con n grande, casi todo es "significativo": el **d** dice si además es **relevante**.
+
+## Paso 11 · La tabla final de resultados
+
+```{r}
+#| label: paso-tabla-final
+tibble(
+  Resultado = c("Media mundial 2007",
+                "Prueba t vs meta de 70 años",
+                "Brecha PIB alto - PIB bajo",
+                "Tamaño del efecto"),
+  Valor = c(
+    sprintf("%.1f años [%.1f; %.1f]", ic$estimate,
+            ic$conf.int[1], ic$conf.int[2]),
+    sprintf("t = %.2f; p = %.3f", t1$statistic, t1$p.value),
+    sprintf("%.1f años [%.1f; %.1f]; p < 0.001",
+            -diff(unname(t2$estimate)),
+            t2$conf.int[1], t2$conf.int[2]),
+    sprintf("d = %.2f (muy grande)", d))) %>% kable()
+```
+
+**Estimación, IC y p-valor** por pregunta: el mínimo exigible de un informe técnico.
+
+## Paso 12 · Conclusiones estilo informe de política
+
+::: {.callout-note appearance="simple"}
+**Párrafo de resultados (ejemplo redactado):** "En 2007 la esperanza de vida promedio mundial fue de 67.0 años (IC 95%: 65.0–69.0), significativamente por debajo de la meta de 70 años (p = 0.004). Los países del grupo de PIB alto vivieron en promedio 16.7 años más que los del grupo de PIB bajo (IC 95%: 13.7–19.6; p < 0.001), una brecha de magnitud muy grande (d = 1.90). Estos resultados describen una asociación: no permiten afirmar que aumentar el PIB **cause** mayor longevidad."
+:::
+
+**Anatomía del párrafo — cada frase aporta un elemento:**
+
+- **Estimación puntual** con su unidad (67.0 años; 16.7 años)
+- **Incertidumbre**: IC 95% siempre junto a la estimación
+- **Decisión**: p-valor contra el $\alpha$ declarado en el Paso 1
+- **Magnitud**: tamaño del efecto, no solo significancia
+- **Alcance**: asociación $\neq$ causalidad (curso de econometría)
+
+## Paso 13 · Checklist de reproducibilidad
+
+:::: {.columns}
+
+::: {.column width="52%"}
+**Antes de entregar el informe**
+
+1. Un script único que corre de arriba abajo sin errores
+2. `set.seed()` antes de cualquier simulación o muestreo
+3. Datos crudos intactos; toda limpieza queda en código
+4. Decisiones documentadas (outliers, cortes, transformaciones)
+5. Versiones registradas: R, paquetes (`sessionInfo()`)
+6. Texto, código y resultados en un solo documento Quarto
+:::
+
+::: {.column width="48%"}
+**Por qué importa en políticas públicas**
+
+- Las decisiones basadas en evidencia deben ser **auditables**
+- Otro analista debe llegar al **mismo número** con los mismos datos
+- Los errores se detectan releyendo **código**, no recuerdos
+:::
+
+::::
+
+```{r}
+#| label: paso-repro
+set.seed(2026)
+R.version.string
+```
+
+## Síntesis: qué integró cada paso
+
+:::: {.columns}
+
+::: {.column width="55%"}
+**El flujo en una mirada**
+
+1. Pregunta e hipótesis **antes** de los datos (S4)
+2. Inspección, tipos de variables y calidad (S1)
+3. Transformación log y grupos por mediana (S1)
+4. Descriptivos y 4 gráficos exploratorios (S1)
+5. Outliers documentados, no eliminados (S1)
+6. Normalidad: QQ-plot + Shapiro; TLC al rescate (S2–S3)
+7. IC, pruebas t, tamaño del efecto (S4)
+8. Tabla final, párrafo de política, reproducibilidad
+:::
+
+::: {.column width="45%"}
+**Funciones R de esta sesión**
+
+`glimpse()` `filter()` `mutate()` `count()` `group_by()` `summarise()` `quantile()` `shapiro.test()` `qt()` `t.test()` `kable()` `sprintf()` `stat_qq()` `geom_pointrange()` `ggplotly()`
+
+**Próxima etapa:** curso de econometría — regresión lineal, del "¿difieren?" al "¿cuánto y bajo qué condiciones?".
+:::
+
+::::
+
+## Ejercicio para practicar (30 min)
+
+Replique el flujo completo con `gapminder` filtrado al año **1987**:
+
+1. Formule una pregunta de política y sus dos hipótesis ($\alpha = 0.05$) antes de tocar los datos.
+2. Cree `grupo_pib` por mediana de ese año y construya la tabla de descriptivos por grupo.
+3. Genere histograma, boxplot por continente y QQ-plot. ¿Cambia el diagnóstico de normalidad?
+4. Pruebe $H_0: \mu = 65$ para la media mundial de 1987 y contraste los dos grupos de PIB con Welch.
+5. Calcule d de Cohen, arme la tabla final y redacte el párrafo de resultados estilo informe.
+
+::: {.callout-note appearance="simple"}
+**Referencias:** Wickham & Grolemund, *R for Data Science* (caps. 7 y 27) · Illowsky & Dean, *Introductory Statistics* (caps. 8–10) · Cohen (1988), *Statistical Power Analysis* · Documentación de `gapminder` y `plotly`.
+:::

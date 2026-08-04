@@ -30,7 +30,7 @@ FIG_WIDTH = 5
 FIG_HEIGHT = 3.5
 DPI = 150
 
-OUTPUT_DIR = '/sessions/sweet-adoring-franklin/mnt/Nivelaciones/clases_econometria/figuras'
+OUTPUT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'figuras')
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 def save_figure(filename):
@@ -39,7 +39,9 @@ def save_figure(filename):
             fig = func(*args, **kwargs)
             filepath = os.path.join(OUTPUT_DIR, filename)
             fig.savefig(filepath, format='pdf', bbox_inches='tight', dpi=DPI)
-            print(f"  Guardado: {filename}")
+            fig.savefig(filepath.replace('.pdf', '.png'), format='png',
+                        bbox_inches='tight', dpi=200)
+            print(f"  Guardado: {filename} (+png)")
             plt.close(fig)
         return wrapper
     return decorator

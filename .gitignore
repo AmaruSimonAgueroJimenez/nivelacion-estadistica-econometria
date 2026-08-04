@@ -15,8 +15,6 @@
 # LaTeX source (compilar localmente)
 *.tex
 
-# Figuras PNG (solo versionamos PDF)
-clases_estadistica/figuras/*.png
 
 # Python
 __pycache__/

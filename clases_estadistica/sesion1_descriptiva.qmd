@@ -1,324 +1,734 @@
 ---
-title: "Sesión 1: Fundamentos y Estadística Descriptiva"
-subtitle: "Doctorado en Ciencias de la Complejidad Social — CICS, UDD"
-author: "Amaru Agüero (a.agueroj@udd.cl)"
-date: today
-format:
-  html:
-    theme: cosmo
-    toc: true
-    toc-depth: 3
-    code-fold: false
-    code-tools: true
-    self-contained: true
+title: "Sesión 1 · Estadística Descriptiva"
+subtitle: "Nivelación Estadística y Probabilidades — Doctorado en Políticas Públicas"
+author: "Amaru Agüero Jiménez (a.agueroj@udd.cl)"
+date: "Marzo 2026"
+date-format: "MMMM [de] YYYY"
 lang: es
+format:
+  revealjs:
+    theme: [default, estilo_slides.scss]
+    slide-number: c/t
+    footer: "Nivelación Estadística y Probabilidades — Doctorado en Políticas Públicas"
+    transition: fade
+    embed-resources: true
+    code-line-numbers: false
+    fig-align: center
+    menu: true
+  beamer:
+    aspectratio: 169
+    theme: Madrid
+    colortheme: whale
+    fontsize: 10pt
+    fig-align: center
+    include-in-header:
+      text: |
+        \definecolor{uddblue}{HTML}{1F4E79}
+        \definecolor{uddlight}{HTML}{2E86C1}
+        \setbeamercolor{structure}{fg=uddblue}
+        \setbeamercolor{frametitle}{bg=uddblue,fg=white}
+        \setbeamercolor{title}{bg=uddblue,fg=white}
+        \setbeamercolor{block title}{bg=uddblue,fg=white}
+        \setbeamercolor{block body}{bg=uddblue!10}
+        \fvset{fontsize=\scriptsize}
+        \AtBeginDocument{\setlength{\abovedisplayskip}{2pt}\setlength{\belowdisplayskip}{2pt}}
 execute:
   warning: false
   message: false
+  echo: true
+knitr:
+  opts_chunk:
+    dpi: 150
+    fig.width: 7.5
+    fig.height: 3.4
+    out.width: "82%"
 ---
-
-## Introducción
-
-En esta primera sesión abordaremos los fundamentos de la estadística descriptiva: tipos de datos, escalas de medición, medidas de tendencia central y dispersión, detección de outliers y visualización. Trabajaremos con el dataset **gapminder**, que contiene datos socioeconómicos de 142 países entre 1952 y 2007.
-
-### Paquetes necesarios
 
 ```{r}
 #| label: setup
-# install.packages(c("tidyverse", "ggplot2", "dplyr", "gapminder", "moments"))
+#| echo: false
 library(tidyverse)
-library(ggplot2)
-library(dplyr)
-library(gapminder)  # Dataset de países (esperanza de vida, PIB, población)
-library(moments)    # Sesgo y curtosis
-```
-
-------------------------------------------------------------------------
-
-## 1. Tipos de datos y escalas de medición
-
-El primer paso en cualquier análisis es identificar correctamente el tipo de cada variable, ya que esto determina las técnicas estadísticas apropiadas.
-
-```{r}
-#| label: tipos-datos
-data("gapminder")
-head(gapminder)
-str(gapminder)
-```
-
-### Clasificación de variables en gapminder
-
-| Variable    | Tipo                  | Escala    |
-|-------------|-----------------------|-----------|
-| `country`   | Cualitativa nominal   | Nominal   |
-| `continent` | Cualitativa nominal   | Nominal   |
-| `year`      | Cuantitativa discreta | Intervalo |
-| `lifeExp`   | Cuantitativa continua | Razón     |
-| `pop`       | Cuantitativa discreta | Razón     |
-| `gdpPercap` | Cuantitativa continua | Razón     |
-
-Filtramos los datos del año 2007 para trabajar con una sola observación por país:
-
-```{r}
-#| label: filtrar-2007
+library(gapminder)
+library(moments)
+library(knitr)
+library(plotly)
+theme_set(theme_minimal(base_size = 13))
+azul <- "#1F4E79"; celeste <- "#2E86C1"; rojo <- "#E74C3C"; verde <- "#27AE60"; naranja <- "#F39C12"
 datos <- gapminder %>% filter(year == 2007)
-cat("Dimensiones (2007):", dim(datos), "\n")
-```
-
-------------------------------------------------------------------------
-
-## 2. Medidas de tendencia central
-
-Las medidas de tendencia central resumen la ubicación "típica" de los datos. Las tres principales son la **media**, la **mediana** y la **moda**.
-
-```{r}
-#| label: tendencia-central
-cat("--- Medidas de tendencia central: Esperanza de vida (2007) ---\n")
-cat("Media:   ", mean(datos$lifeExp), "\n")
-cat("Mediana: ", median(datos$lifeExp), "\n")
-
-# Moda (no hay función base en R)
-moda <- function(x) {
-  tab <- table(round(x, 0))
-  as.numeric(names(tab)[which.max(tab)])
+# En HTML (revealjs) los graficos se vuelven interactivos con plotly;
+# en Beamer (PDF) se mantienen estaticos.
+es_html <- knitr::is_html_output()
+interactivo <- function(p) {
+  if (es_html) plotly::config(plotly::ggplotly(p), displayModeBar = FALSE) else p
 }
-cat("Moda (redondeada): ", moda(datos$lifeExp), "\n")
 ```
 
-### Comparación media vs mediana
+## Panorama de la sesión
 
-La relación entre media y mediana nos indica la forma de la distribución:
+| Bloque | Concepto clave | Herramienta en R |
+|---|---|---|
+| Tipos de variables | Nominal, ordinal, discreta, continua | `str()`, `factor()` |
+| Tendencia central | Media, mediana, moda, media recortada | `mean()`, `median()` |
+| Dispersión | Varianza, DE, IQR, coeficiente de variación | `sd()`, `IQR()` |
+| Posición | Cuartiles, z-scores, outliers | `quantile()`, `scale()` |
+| Forma | Sesgo y curtosis | `skewness()`, `kurtosis()` |
+| Visualización | Histograma, boxplot, dispersión, violín | `ggplot2` |
+
+::: {.callout-note appearance="simple"}
+**Datos de trabajo:** `gapminder` (142 países, año 2007): esperanza de vida, PIB per cápita y población. En políticas públicas, describir bien los datos precede a cualquier evaluación de impacto.
+:::
+
+## Tipos de variables: el árbol de decisión
+
+:::: {.columns}
+
+::: {.column width="48%"}
+```{r}
+#| label: arbol-tipos
+#| echo: false
+#| out.width: "100%"
+knitr::include_graphics("figuras/tipos_variables.png")
+```
+:::
+
+::: {.column width="52%"}
+**Ejemplos en políticas públicas y estadístico válido:**
+
+- **Nominal**: región, tipo de establecimiento → moda, proporciones
+- **Ordinal**: quintil de ingreso, nivel educativo → mediana, percentiles
+- **Discreta**: n° de hijos, delitos por comuna → media, tasas
+- **Continua**: ingreso, esperanza de vida → media, DE y todo lo anterior
+:::
+
+::::
+
+## Escalas de medición y operaciones válidas
+
+| Escala | ¿Orden? | ¿Distancias? | ¿Cero absoluto? | Ejemplo | Operación NO válida |
+|---|:-:|:-:|:-:|---|---|
+| Nominal | No | No | No | Partido político | Promediar categorías |
+| Ordinal | Sí | No | No | Likert 1–5 | "4 es el doble de 2" |
+| Intervalo | Sí | Sí | No | Año, temperatura °C | Cocientes ("el doble de") |
+| Razón | Sí | Sí | Sí | Ingreso, población | — |
+
+::: {.callout-important appearance="simple"}
+La escala determina la técnica: promediar una variable ordinal (p. ej., satisfacción 1–5) asume distancias iguales entre categorías — un supuesto, no un dato. Si la escala es solo ordinal, reporte medianas y proporciones.
+:::
+
+## El dataset: 142 países en 2007
 
 ```{r}
-#| label: media-vs-mediana
-cat("Diferencia media - mediana:",
-    round(mean(datos$lifeExp) - median(datos$lifeExp), 2), "\n")
-cat("Si media > mediana → sesgo positivo (cola derecha)\n")
-cat("Si media < mediana → sesgo negativo (cola izquierda)\n")
-
-# Media recortada (trimmed mean) — robusta a outliers
-cat("\nMedia recortada (10%):", mean(datos$lifeExp, trim = 0.10), "\n")
+#| label: datos-glimpse
+#| output-location: column
+glimpse(datos)
 ```
 
-------------------------------------------------------------------------
+- `country`, `continent`: **nominales**
+- `year`: cuantitativa de **intervalo**
+- `lifeExp`, `gdpPercap`: **continuas de razón**
+- `pop`: **discreta de razón**
 
-## 3. Medidas de dispersión
+## Tendencia central: tres definiciones de "centro"
 
-Las medidas de dispersión cuantifican la variabilidad de los datos. Analizaremos el PIB per cápita, que presenta alta heterogeneidad entre países.
+:::: {.columns}
+
+::: {.column width="33%"}
+**Media**
+$$\bar{x} = \frac{1}{n}\sum_{i=1}^{n} x_i$$
+
+- Usa toda la información
+- Sensible a outliers
+- Base de la inferencia
+:::
+
+::: {.column width="33%"}
+**Mediana**
+$$x_{(n+1)/2}$$
+
+- Parte la muestra en dos mitades
+- Robusta a outliers
+- Ideal para ingresos
+:::
+
+::: {.column width="33%"}
+**Moda**
+
+- Valor más frecuente
+- Única medida válida para nominales
+- Puede no existir o haber varias
+:::
+
+::::
+
+```{r}
+#| label: centro
+c(media = mean(datos$lifeExp), mediana = median(datos$lifeExp),
+  media_recortada_10 = mean(datos$lifeExp, trim = 0.10))
+```
+
+## La media es frágil: un solo punto la arrastra
+
+```{r}
+#| label: plot-outlier-media
+#| echo: false
+#| fig-height: 3.1
+set.seed(11)
+sueldos <- c(rnorm(29, 800, 120), 8000)
+df <- tibble(sueldo = sueldos)
+p <- ggplot(df, aes(x = sueldo, y = 0)) +
+  geom_jitter(height = 0.02, size = 3, alpha = 0.6, color = celeste) +
+  geom_vline(xintercept = mean(sueldos), color = rojo, linewidth = 1.2) +
+  geom_vline(xintercept = median(sueldos), color = verde, linewidth = 1.2) +
+  annotate("text", x = mean(sueldos) + 900, y = 0.09,
+           label = paste0("Media = ", round(mean(sueldos))), color = rojo, size = 4.5) +
+  annotate("text", x = median(sueldos) + 950, y = -0.09,
+           label = paste0("Mediana = ", round(median(sueldos))), color = verde, size = 4.5) +
+  scale_x_continuous(labels = scales::comma) +
+  labs(x = "Sueldo (miles de $)", y = NULL,
+       title = "30 sueldos: 29 cercanos a 800 y un gerente con 8.000") +
+  theme(axis.text.y = element_blank(), panel.grid.major.y = element_blank())
+interactivo(p)
+```
+
+Un outlier (3% de los datos) desplaza la media un 30%; la mediana casi no se mueve. Por eso los ingresos se reportan con **medianas**.
+
+## Media vs mediana: diagnóstico de asimetría
+
+:::: {.columns}
+
+::: {.column width="55%"}
+```{r}
+#| label: media-mediana
+media <- mean(datos$lifeExp)
+mediana <- median(datos$lifeExp)
+round(c(media = media, mediana = mediana,
+        diferencia = media - mediana), 2)
+```
+
+- Media **<** mediana → cola izquierda (sesgo negativo)
+- Media **>** mediana → cola derecha (sesgo positivo)
+- Media ≈ mediana → distribución simétrica
+:::
+
+::: {.column width="45%"}
+```{r}
+#| label: plot-asimetria
+#| echo: false
+#| fig-height: 3.6
+#| fig-width: 5
+#| out.width: "100%"
+p <- ggplot(datos, aes(x = lifeExp)) +
+  geom_histogram(bins = 22, fill = celeste, color = "white") +
+  geom_vline(xintercept = media, color = rojo, linewidth = 1) +
+  geom_vline(xintercept = mediana, color = verde, linewidth = 1) +
+  annotate("text", x = media - 6, y = 16, label = "media", color = rojo, size = 4.5) +
+  annotate("text", x = mediana + 4.5, y = 18, label = "mediana", color = verde, size = 4.5) +
+  labs(x = "Esperanza de vida (años)", y = "Frecuencia",
+       title = "Cola izquierda: media < mediana")
+interactivo(p)
+```
+:::
+
+::::
+
+## Medidas de dispersión: cuánto varían los datos
+
+| Medida | Fórmula | Unidad | Robusta |
+|---|---|:-:|:-:|
+| Varianza | $s^2 = \frac{1}{n-1}\sum (x_i - \bar{x})^2$ | unidades² | No |
+| Desviación estándar | $s = \sqrt{s^2}$ | original | No |
+| Rango | $\max - \min$ | original | No |
+| Rango intercuartílico | $IQR = Q_3 - Q_1$ | original | **Sí** |
+| Coef. de variación | $CV = s / \bar{x} \times 100$ | % (adimensional) | No |
 
 ```{r}
 #| label: dispersion
-cat("--- Medidas de dispersión: PIB per cápita (2007) ---\n")
-cat("Varianza:           ", var(datos$gdpPercap), "\n")
-cat("Desv. estándar:     ", sd(datos$gdpPercap), "\n")
-cat("Rango:              ", diff(range(datos$gdpPercap)), "\n")
-cat("Rango intercuartil: ", IQR(datos$gdpPercap), "\n")
-cat("Mínimo:             ", min(datos$gdpPercap), "\n")
-cat("Máximo:             ", max(datos$gdpPercap), "\n")
+round(c(sd = sd(datos$gdpPercap), IQR = IQR(datos$gdpPercap),
+        rango = diff(range(datos$gdpPercap))), 0)
 ```
 
-### Cuartiles y coeficiente de variación
+::: {.callout-tip appearance="simple"}
+Dos poblaciones pueden compartir la media y ser radicalmente distintas en dispersión — y la dispersión es, muchas veces, el problema de política (desigualdad).
+:::
+
+## Misma media, distinta historia
 
 ```{r}
-#| label: cuartiles-cv
-cat("Cuartiles:\n")
-print(quantile(datos$gdpPercap))
-
-# Coeficiente de variación
-cv_gdp <- sd(datos$gdpPercap) / mean(datos$gdpPercap) * 100
-cv_life <- sd(datos$lifeExp) / mean(datos$lifeExp) * 100
-cat("\nCoeficiente de Variación:\n")
-cat("  PIB per cápita: ", round(cv_gdp, 1), "%\n")
-cat("  Esperanza vida:  ", round(cv_life, 1), "%\n")
-cat("  → PIB tiene MUCHA más variabilidad relativa\n")
+#| label: plot-misma-media
+#| echo: false
+#| fig-height: 3.3
+set.seed(42)
+sim <- tibble(
+  A = rnorm(4000, 500, 30),
+  B = rnorm(4000, 500, 120)
+) %>% pivot_longer(everything(), names_to = "comuna", values_to = "ingreso")
+p <- ggplot(sim, aes(x = ingreso, fill = comuna)) +
+  geom_density(alpha = 0.55, color = NA) +
+  geom_vline(xintercept = 500, linetype = "dashed", color = azul, linewidth = 1) +
+  scale_fill_manual(values = c(A = celeste, B = naranja),
+                    labels = c("Comuna A (DE = 30)", "Comuna B (DE = 120)")) +
+  labs(x = "Ingreso del hogar (miles de $)", y = "Densidad", fill = NULL,
+       title = "Ambas comunas tienen media 500") +
+  theme(legend.position = "top")
+interactivo(p)
 ```
 
-------------------------------------------------------------------------
+Una transferencia plana beneficia igual a ambas comunas; una focalizada requiere conocer la **dispersión**.
 
-## 4. Z-Scores (Estandarización)
-
-El z-score nos permite identificar observaciones extremas al expresar cada valor en términos de desviaciones estándar respecto a la media: $z_i = \frac{x_i - \bar{x}}{s}$.
+## Cuartiles: la anatomía del boxplot
 
 ```{r}
-#| label: z-scores
-datos <- datos %>%
-  mutate(
-    z_lifeExp = (lifeExp - mean(lifeExp)) / sd(lifeExp),
-    z_gdpPercap = (gdpPercap - mean(gdpPercap)) / sd(gdpPercap)
-  )
-
-cat("--- Países con esperanza de vida extrema (|z| > 2) ---\n")
-extremos <- datos %>%
-  filter(abs(z_lifeExp) > 2) %>%
-  select(country, lifeExp, z_lifeExp) %>%
-  arrange(z_lifeExp)
-print(extremos)
+#| label: plot-anatomia-boxplot
+#| echo: false
+#| fig-height: 3.3
+q <- quantile(datos$gdpPercap, c(.25, .5, .75))
+iqr <- q[3] - q[1]
+lim_sup <- q[3] + 1.5 * iqr
+p <- ggplot(datos, aes(y = gdpPercap, x = "")) +
+  geom_boxplot(fill = celeste, alpha = 0.5, width = 0.25, outlier.color = rojo, outlier.size = 2.5) +
+  annotate("text", x = 1.28, y = q[1], label = paste0("Q1 = ", round(q[1])), hjust = 0, size = 4.2, color = azul) +
+  annotate("text", x = 1.28, y = q[2], label = paste0("Mediana = ", round(q[2])), hjust = 0, size = 4.2, color = azul) +
+  annotate("text", x = 1.28, y = q[3], label = paste0("Q3 = ", round(q[3])), hjust = 0, size = 4.2, color = azul) +
+  annotate("text", x = 1.28, y = lim_sup, label = paste0("Q3 + 1.5·IQR = ", round(lim_sup)), hjust = 0, size = 4.2, color = rojo) +
+  annotate("text", x = 0.78, y = 46000, label = "outliers", color = rojo, size = 4.5) +
+  scale_y_continuous(labels = scales::comma) +
+  scale_x_discrete(expand = expansion(add = c(0.4, 1.4))) +
+  labs(x = NULL, y = "PIB per cápita (USD)", title = "PIB per cápita mundial, 2007") +
+  theme(axis.text.x = element_blank())
+interactivo(p)
 ```
 
-------------------------------------------------------------------------
+La caja concentra el 50% central de los países; todo punto sobre $Q_3 + 1.5 \cdot IQR$ se marca como **outlier**.
 
-## 5. Detección de outliers (Método IQR)
+## Coeficiente de variación: comparar lo incomparable
 
-El método del rango intercuartílico define como outliers aquellos valores que caen fuera de $[Q_1 - 1.5 \cdot IQR,\; Q_3 + 1.5 \cdot IQR]$.
+:::: {.columns}
 
+::: {.column width="52%"}
 ```{r}
-#| label: outliers
-Q1 <- quantile(datos$gdpPercap, 0.25)
-Q3 <- quantile(datos$gdpPercap, 0.75)
-IQR_val <- IQR(datos$gdpPercap)
-limite_inf <- Q1 - 1.5 * IQR_val
-limite_sup <- Q3 + 1.5 * IQR_val
-
-cat("Q1:", Q1, " Q3:", Q3, " IQR:", IQR_val, "\n")
-cat("Límite inferior:", limite_inf, "\n")
-cat("Límite superior:", limite_sup, "\n")
-
-outliers <- datos %>%
-  filter(gdpPercap < limite_inf | gdpPercap > limite_sup) %>%
-  select(country, continent, gdpPercap)
-cat("\nOutliers encontrados:", nrow(outliers), "\n")
-print(outliers)
+#| label: cv
+cv <- function(x) sd(x) / mean(x) * 100
+round(c(cv_pib = cv(datos$gdpPercap),
+        cv_vida = cv(datos$lifeExp)), 1)
 ```
 
-------------------------------------------------------------------------
+- La DE del PIB (~12.860 USD) y la DE de la vida (~12 años) **no son comparables**: unidades distintas.
+- El CV las vuelve comparables: el PIB varía **7 veces más** en términos relativos.
+:::
 
-## 6. Visualización con ggplot2
+::: {.column width="48%"}
+```{r}
+#| label: plot-cv
+#| echo: false
+#| fig-height: 3.2
+#| fig-width: 5
+#| out.width: "100%"
+p <- tibble(variable = c("PIB per cápita", "Esperanza de vida"),
+            cv = c(cv(datos$gdpPercap), cv(datos$lifeExp))) %>%
+  ggplot(aes(x = cv, y = reorder(variable, cv), fill = variable)) +
+  geom_col(width = 0.55, show.legend = FALSE) +
+  geom_text(aes(label = paste0(round(cv, 1), "%")), hjust = -0.15, size = 5, color = azul) +
+  scale_fill_manual(values = c(celeste, naranja)) +
+  scale_x_continuous(limits = c(0, 135)) +
+  labs(y = NULL, x = "Coeficiente de variación (%)")
+interactivo(p)
+```
+:::
 
-La visualización es fundamental para explorar patrones en los datos. Usaremos `ggplot2` para crear distintos tipos de gráficos.
+::::
 
-### 6a. Histograma de esperanza de vida
+## Z-scores: ¿qué tan lejos del promedio?
+
+$$z_i = \frac{x_i - \bar{x}}{s} \quad \Rightarrow \quad \text{"a cuántas DE está } x_i \text{ de la media"}$$
 
 ```{r}
-#| label: fig-histograma
-#| fig-cap: "Distribución de la esperanza de vida en 2007"
+#| label: zscores
+datos <- datos %>% mutate(z_vida = (lifeExp - mean(lifeExp)) / sd(lifeExp))
+datos %>% filter(abs(z_vida) > 2) %>%
+  select(country, continent, lifeExp, z_vida) %>%
+  arrange(z_vida) %>% mutate(z_vida = round(z_vida, 2))
+```
+
+Con |z| > 2 detectamos los casos extremos: todos los países con esperanza de vida extremadamente baja en 2007 están en África subsahariana.
+
+## Outliers por regla IQR: código y resultado
+
+:::: {.columns}
+
+::: {.column width="55%"}
+```{r}
+#| label: outliers-iqr
+Q1 <- quantile(datos$gdpPercap, .25)
+Q3 <- quantile(datos$gdpPercap, .75)
+lim <- Q3 + 1.5 * IQR(datos$gdpPercap)
+datos %>% filter(gdpPercap > lim) %>%
+  select(country, gdpPercap) %>%
+  arrange(desc(gdpPercap)) %>% head(5)
+```
+:::
+
+::: {.column width="45%"}
+**Protocolo ante un outlier**
+
+1. **Verificar**: ¿error de digitación o valor real?
+2. **Documentar**: nunca eliminar en silencio.
+3. **Analizar con y sin**: reportar sensibilidad.
+4. **Usar medidas robustas**: mediana, IQR, media recortada.
+:::
+
+::::
+
+## Histograma: la forma de la distribución
+
+:::: {.columns}
+
+::: {.column width="46%"}
+```{r}
+#| label: code-hist
+#| eval: false
 ggplot(datos, aes(x = lifeExp)) +
-  geom_histogram(bins = 20, fill = "#2E86C1", color = "white", alpha = 0.8) +
-  geom_vline(aes(xintercept = mean(lifeExp)), color = "red",
-             linetype = "dashed", size = 1) +
-  geom_vline(aes(xintercept = median(lifeExp)), color = "darkgreen",
-             linetype = "dashed", size = 1) +
-  labs(title = "Distribución de Esperanza de Vida (2007)",
-       subtitle = "Rojo = media, Verde = mediana",
-       x = "Esperanza de vida (años)", y = "Frecuencia") +
-  theme_minimal()
+  geom_histogram(bins = 20,
+                 fill = celeste,
+                 color = "white") +
+  geom_vline(xintercept = media,
+             color = rojo,
+             linetype = "dashed",
+             linewidth = 1) +
+  labs(x = "Esperanza de vida (años)",
+       y = "N° de países")
 ```
 
-### 6b. Boxplot comparativo por continente
+El número de `bins` cambia la historia: probar 2–3 valores antes de interpretar.
+:::
 
+::: {.column width="54%"}
 ```{r}
-#| label: fig-boxplot
-#| fig-cap: "PIB per cápita por continente (escala logarítmica)"
-ggplot(datos, aes(x = continent, y = gdpPercap, fill = continent)) +
-  geom_boxplot(alpha = 0.7) +
-  geom_jitter(width = 0.2, alpha = 0.3, size = 1) +
+#| label: plot-hist
+#| echo: false
+#| fig-width: 5.6
+#| fig-height: 3.9
+#| out.width: "100%"
+interactivo(
+  ggplot(datos, aes(x = lifeExp)) +
+    geom_histogram(bins = 20, fill = celeste, color = "white") +
+    geom_vline(xintercept = media, color = rojo,
+               linetype = "dashed", linewidth = 1) +
+    labs(x = "Esperanza de vida (años)", y = "N° de países")
+)
+```
+:::
+
+::::
+
+## Boxplot comparativo: distribución por grupos
+
+:::: {.columns}
+
+::: {.column width="46%"}
+```{r}
+#| label: code-box
+#| eval: false
+ggplot(datos,
+       aes(x = continent, y = gdpPercap,
+           fill = continent)) +
+  geom_boxplot(alpha = .7,
+               outlier.color = rojo) +
+  geom_jitter(width = .15, alpha = .3,
+              size = 1) +
   scale_y_log10(labels = scales::comma) +
-  labs(title = "PIB per Cápita por Continente (2007)",
-       x = "Continente", y = "PIB per cápita (USD, escala log)") +
-  theme_minimal() +
+  labs(x = NULL, y = "PIB pc (USD, log)") +
   theme(legend.position = "none")
 ```
 
-### 6c. Scatter: PIB vs esperanza de vida
+Compara **mediana, dispersión y outliers** de 5 grupos a la vez — imposible con una tabla de medias.
+:::
 
+::: {.column width="54%"}
 ```{r}
-#| label: fig-scatter
-#| fig-cap: "Relación entre PIB per cápita y esperanza de vida"
-ggplot(datos, aes(x = gdpPercap, y = lifeExp,
-                   size = pop, color = continent)) +
-  geom_point(alpha = 0.7) +
+#| label: plot-box
+#| echo: false
+#| fig-width: 5.6
+#| fig-height: 3.9
+#| out.width: "100%"
+interactivo(
+  ggplot(datos, aes(x = continent, y = gdpPercap, fill = continent)) +
+    geom_boxplot(alpha = .7, outlier.color = rojo) +
+    geom_jitter(width = .15, alpha = .3, size = 1) +
+    scale_y_log10(labels = scales::comma) +
+    labs(x = NULL, y = "PIB pc (USD, log)") +
+    theme(legend.position = "none")
+)
+```
+:::
+
+::::
+
+## Dispersión: la relación entre dos variables
+
+:::: {.columns}
+
+::: {.column width="46%"}
+```{r}
+#| label: code-scatter
+#| eval: false
+ggplot(datos,
+       aes(x = gdpPercap, y = lifeExp,
+           size = pop, color = continent)) +
+  geom_point(alpha = .7) +
   scale_x_log10(labels = scales::comma) +
-  scale_size_continuous(range = c(1, 12), guide = "none") +
-  labs(title = "Esperanza de Vida vs PIB per Cápita (2007)",
-       x = "PIB per cápita (USD, escala log)",
+  scale_size(range = c(1, 12),
+             guide = "none") +
+  labs(x = "PIB pc (USD, log)",
        y = "Esperanza de vida (años)",
-       color = "Continente") +
-  theme_minimal()
+       color = NULL) +
+  theme(legend.position = "bottom")
 ```
 
-### 6d. Violin + boxplot por continente
+Relación **logarítmica**: cada duplicación del PIB se asocia a una ganancia similar en años de vida.
+:::
 
+::: {.column width="54%"}
 ```{r}
-#| label: fig-violin
-#| fig-cap: "Distribución de esperanza de vida por continente"
-ggplot(datos, aes(x = continent, y = lifeExp, fill = continent)) +
-  geom_violin(alpha = 0.5) +
-  geom_boxplot(width = 0.15, fill = "white", alpha = 0.8) +
-  labs(title = "Distribución de Esperanza de Vida por Continente",
-       x = "Continente", y = "Esperanza de vida (años)") +
-  theme_minimal() +
+#| label: plot-scatter
+#| echo: false
+#| fig-width: 5.6
+#| fig-height: 3.9
+#| out.width: "100%"
+interactivo(
+  ggplot(datos, aes(x = gdpPercap, y = lifeExp, size = pop,
+                    color = continent, text = country)) +
+    geom_point(alpha = .7) +
+    scale_x_log10(labels = scales::comma) +
+    scale_size(range = c(1, 12), guide = "none") +
+    labs(x = "PIB pc (USD, log)", y = "Esperanza de vida (años)",
+         color = NULL) +
+    theme(legend.position = "bottom")
+)
+```
+:::
+
+::::
+
+## Violín + boxplot: densidad y resumen a la vez
+
+:::: {.columns}
+
+::: {.column width="46%"}
+```{r}
+#| label: code-violin
+#| eval: false
+ggplot(datos,
+       aes(x = continent, y = lifeExp,
+           fill = continent)) +
+  geom_violin(alpha = .5, color = NA) +
+  geom_boxplot(width = .15,
+               fill = "white", alpha = .8) +
+  labs(x = NULL,
+       y = "Esperanza de vida (años)") +
   theme(legend.position = "none")
 ```
 
-------------------------------------------------------------------------
+El violín muestra lo que el boxplot esconde: **bimodalidad** dentro de África (dos grupos de países claramente distintos).
+:::
 
-## 7. Tabla resumen por continente
+::: {.column width="54%"}
+```{r}
+#| label: plot-violin
+#| echo: false
+#| fig-width: 5.6
+#| fig-height: 3.9
+#| out.width: "100%"
+interactivo(
+  ggplot(datos, aes(x = continent, y = lifeExp, fill = continent)) +
+    geom_violin(alpha = .5, color = NA) +
+    geom_boxplot(width = .15, fill = "white", alpha = .8) +
+    labs(x = NULL, y = "Esperanza de vida (años)") +
+    theme(legend.position = "none")
+)
+```
+:::
+
+::::
+
+## ¿Qué gráfico usar? Decisión según tipo de variable
+
+| Pregunta | Variables | Gráfico |
+|---|---|---|
+| ¿Cómo se distribuye X? | 1 continua | Histograma, densidad |
+| ¿Difiere X entre grupos? | 1 continua + 1 nominal | Boxplot, violín |
+| ¿Se asocian X e Y? | 2 continuas | Dispersión (+ escala log si hay sesgo) |
+| ¿Cómo se reparte una categoría? | 1 nominal | Barras (nunca torta con >4 categorías) |
+| ¿Cómo evoluciona X? | continua + tiempo | Líneas |
+
+::: {.callout-warning appearance="simple"}
+Errores frecuentes: truncar el eje Y en gráficos de barras, usar torta para comparar magnitudes similares, graficar medias sin mostrar dispersión.
+:::
+
+## Tabla resumen por grupo: el estándar de reporte
 
 ```{r}
 #| label: tabla-resumen
-resumen <- datos %>%
-  group_by(continent) %>%
-  summarise(
-    n = n(),
-    media = round(mean(lifeExp), 1),
-    mediana = round(median(lifeExp), 1),
-    desv_est = round(sd(lifeExp), 1),
-    min = round(min(lifeExp), 1),
-    max = round(max(lifeExp), 1),
-    cv = round(sd(lifeExp) / mean(lifeExp) * 100, 1),
-    .groups = "drop"
-  )
-
-cat("--- Resumen de Esperanza de Vida por Continente (2007) ---\n")
-print(as.data.frame(resumen))
+datos %>% group_by(continent) %>%
+  summarise(n = n(), media = mean(lifeExp), mediana = median(lifeExp),
+            de = sd(lifeExp), iqr = IQR(lifeExp), cv = sd(lifeExp)/mean(lifeExp)*100) %>%
+  mutate(across(where(is.numeric), ~round(.x, 1))) %>%
+  kable()
 ```
 
-------------------------------------------------------------------------
+Oceanía tiene solo **n = 2** países: su DE (0.5) no es comparable con la de África (n = 52). Reportar siempre el **n** junto a cada estadístico.
 
-## 8. Sesgo y curtosis
+## Sesgo y curtosis: cuantificar la forma
 
-La **asimetría** (skewness) y la **curtosis** (kurtosis) describen la forma de la distribución. Una distribución normal tiene sesgo = 0 y curtosis = 3.
+:::: {.columns}
+
+::: {.column width="50%"}
+```{r}
+#| label: forma
+round(c(sesgo_pib = skewness(datos$gdpPercap),
+        curtosis_pib = kurtosis(datos$gdpPercap),
+        sesgo_vida = skewness(datos$lifeExp)), 2)
+```
+
+- Sesgo > 0: cola derecha; < 0: cola izquierda
+- Curtosis > 3: colas más pesadas que la normal
+- Normal de referencia: sesgo 0, curtosis 3
+:::
+
+::: {.column width="50%"}
+```{r}
+#| label: plot-formas
+#| echo: false
+#| fig-height: 3.6
+#| fig-width: 5.4
+#| out.width: "100%"
+set.seed(7)
+formas <- tibble(
+  `Sesgo positivo` = rlnorm(5000, 0, 0.6),
+  `Simétrica` = rnorm(5000, 2, 0.6),
+  `Sesgo negativo` = 4 - rlnorm(5000, 0, 0.6)
+) %>% pivot_longer(everything())
+p <- ggplot(formas, aes(value, fill = name)) +
+  geom_density(alpha = .6, color = NA) +
+  scale_fill_manual(values = c(rojo, naranja, celeste)) +
+  coord_cartesian(xlim = c(-1, 6)) +
+  labs(x = NULL, y = "Densidad", fill = NULL) +
+  theme(legend.position = "top")
+interactivo(p)
+```
+:::
+
+::::
+
+## Transformación logarítmica: domar el sesgo
 
 ```{r}
-#| label: forma-distribucion
-cat("--- Forma de la distribución: PIB per cápita ---\n")
-cat("Sesgo (skewness):  ", round(skewness(datos$gdpPercap), 2), "\n")
-cat("Curtosis (kurtosis):", round(kurtosis(datos$gdpPercap), 2), "\n")
-cat("  Sesgo > 0 → cola derecha más larga\n")
-cat("  Curtosis > 3 → colas más pesadas que normal\n")
+#| label: plot-log
+#| echo: false
+#| fig-height: 3.1
+dlog <- bind_rows(
+  tibble(valor = datos$gdpPercap,
+         escala = paste0("PIB en USD (sesgo = ", round(skewness(datos$gdpPercap), 1), ")")),
+  tibble(valor = log(datos$gdpPercap),
+         escala = paste0("log(PIB) (sesgo = ", round(skewness(log(datos$gdpPercap)), 1), ")"))
+)
+p <- ggplot(dlog, aes(valor, fill = escala)) +
+  geom_histogram(bins = 25, color = "white", show.legend = FALSE) +
+  scale_fill_manual(values = c(verde, naranja)) +
+  facet_wrap(~escala, scales = "free") +
+  labs(x = NULL, y = "N° países")
+interactivo(p)
 ```
 
-------------------------------------------------------------------------
+El logaritmo comprime la cola derecha y convierte diferencias absolutas en **relativas** — la métrica natural para ingresos y precios.
 
-## 9. Caso práctico: Brecha por continente
+## Correlación: Pearson mide relaciones lineales
 
-Analizamos las brechas en esperanza de vida y PIB entre continentes, y la correlación entre ambas variables.
+:::: {.columns}
+
+::: {.column width="50%"}
+```{r}
+#| label: correlacion
+round(c(
+  pearson = cor(datos$gdpPercap, datos$lifeExp),
+  pearson_log = cor(log(datos$gdpPercap),
+                    datos$lifeExp),
+  spearman = cor(datos$gdpPercap, datos$lifeExp,
+                 method = "spearman")), 3)
+```
+:::
+
+::: {.column width="50%"}
+- Pearson sube de **0.68 a 0.81** al usar log: la relación es lineal en logs.
+- Spearman (rangos) ya la captura sin transformar: robusto a no-linealidad monótona.
+- Correlación **no** implica causalidad: países ricos también invierten más en salud y educación.
+:::
+
+::::
+
+::: {.callout-important appearance="simple"}
+$r$ solo mide asociación **lineal**: $r \approx 0$ no descarta una relación fuerte no lineal (p. ej., una U invertida). Siempre graficar antes de calcular.
+:::
+
+## Caso: brechas entre continentes
 
 ```{r}
-#| label: brecha
-brecha <- datos %>%
-  group_by(continent) %>%
-  summarise(
-    media_vida = mean(lifeExp),
-    media_pib = mean(gdpPercap),
-    .groups = "drop"
-  ) %>%
-  mutate(
-    brecha_vida = media_vida - max(media_vida),
-    brecha_pib = media_pib - max(media_pib)
-  )
-
-cat("--- Brecha respecto al continente con mayor esperanza de vida ---\n")
-print(as.data.frame(brecha))
-
-# Correlación
-cat("\nCorrelación PIB-Esperanza de vida:",
-    round(cor(datos$gdpPercap, datos$lifeExp), 3), "\n")
-cat("Correlación log(PIB)-Esperanza de vida:",
-    round(cor(log(datos$gdpPercap), datos$lifeExp), 3), "\n")
+#| label: brechas
+datos %>% group_by(continent) %>%
+  summarise(vida = mean(lifeExp), pib = mean(gdpPercap)) %>%
+  mutate(brecha_vida = round(vida - max(vida), 1),
+         brecha_pib = round(pib - max(pib), 0),
+         across(c(vida, pib), ~round(.x, 1))) %>% kable()
 ```
 
-------------------------------------------------------------------------
+África está **29 años** de vida y **28.000 USD** de PIB por debajo de Oceanía: la brecha descriptiva que motiva las preguntas causales de las próximas sesiones.
 
-## Conclusiones
+## Errores comunes en estadística descriptiva
 
-En esta sesión aprendimos a: identificar tipos de variables y escalas de medición, calcular medidas de tendencia central y dispersión, detectar outliers con el método IQR, estandarizar datos con z-scores, y crear visualizaciones informativas con `ggplot2`. Estos son los bloques fundamentales para cualquier análisis estadístico posterior.
+| Error | Consecuencia | Corrección |
+|---|---|---|
+| Reportar media de ingresos | Sobreestima el "caso típico" | Mediana + IQR |
+| Promediar escalas ordinales | Asume distancias iguales | Mediana, proporciones |
+| Eliminar outliers sin documentar | Resultados no reproducibles | Análisis de sensibilidad |
+| Comparar DE entre unidades distintas | Comparación sin sentido | Coeficiente de variación |
+| Tabla de medias sin n ni DE | Oculta precisión y dispersión | n, media, DE, mediana |
+| Interpretar r como causalidad | Conclusiones de política erradas | Diseños causales (curso de econometría) |
+
+## Síntesis: qué debe salir en su reporte
+
+:::: {.columns}
+
+::: {.column width="55%"}
+**Checklist del análisis descriptivo**
+
+1. Clasificar cada variable (tipo y escala)
+2. n, media, mediana, DE, IQR **por grupo**
+3. Histograma o densidad de las variables clave
+4. Boxplot/violín para comparaciones entre grupos
+5. Outliers identificados y documentados
+6. Transformaciones justificadas (log para sesgo)
+7. Correlaciones acompañadas de su gráfico
+:::
+
+::: {.column width="45%"}
+**Funciones R de esta sesión**
+
+`mean()` `median()` `sd()` `var()` `IQR()` `quantile()` `scale()` `cor()` `skewness()` `kurtosis()` `summarise()` `group_by()` `geom_histogram()` `geom_boxplot()` `geom_violin()` `geom_point()`
+
+**Próxima sesión:** probabilidad condicional y Teorema de Bayes.
+:::
+
+::::
+
+## Ejercicio para practicar (30 min)
+
+Con `gapminder` filtrado al año **1977**:
+
+1. Clasifique las 6 variables por tipo y escala.
+2. Calcule media, mediana, DE, IQR y CV de `gdpPercap` por continente. ¿Qué continente es más desigual en términos relativos?
+3. Detecte outliers de `pop` con la regla IQR. ¿Elimina o conserva? Justifique.
+4. Construya el scatter PIB–esperanza de vida con escala log. ¿Se mantiene el patrón de 2007?
+5. Compare `cor()` de Pearson y Spearman con y sin log. Explique las diferencias.
+
+::: {.callout-note appearance="simple"}
+**Referencias:** Wickham & Grolemund, *R for Data Science* (cap. 7, EDA) · Illowsky & Dean, *Introductory Statistics* (caps. 1–2) · Documentación de `gapminder` y `ggplot2`.
+:::

@@ -1,397 +1,326 @@
-# ==============================================================================
-# Sesión 1: Pruebas de Hipótesis
-# Doctorado en Ciencias de la Complejidad Social — CICS, UDD
-# Profesor: Amaru Agüero (a.agueroj@udd.cl)
-# ==============================================================================
-
-# --- Paquetes necesarios ---
-# install.packages(c("tidyverse", "ggplot2", "dplyr", "gapminder"))
+## -----------------------------------------------------------------------------
+#| label: setup
+#| echo: false
 library(tidyverse)
-library(ggplot2)
-library(dplyr)
 library(gapminder)
-
-# ==============================================================================
-# 1. LÓGICA Y FUNDAMENTOS DE LAS PRUEBAS DE HIPÓTESIS
-# ==============================================================================
-
-# Cargar datos y filtrar año 2007
-data("gapminder")
+library(knitr)
+library(broom)
+library(plotly)
+theme_set(theme_minimal(base_size = 13))
+azul <- "#1F4E79"; celeste <- "#2E86C1"; rojo <- "#E74C3C"; verde <- "#27AE60"; naranja <- "#F39C12"; morado <- "#8E44AD"
 datos <- gapminder %>% filter(year == 2007)
+# En HTML (revealjs) los graficos se vuelven interactivos con plotly;
+# en Beamer (PDF) se mantienen estaticos.
+es_html <- knitr::is_html_output()
+interactivo <- function(p) {
+  if (es_html) plotly::config(plotly::ggplotly(p), displayModeBar = FALSE) else p
+}
 
-cat("Dataset gapminder - Sesión 2007:\n")
-cat("Número de países:", nrow(datos), "\n")
-cat("Variables disponibles:\n")
-print(colnames(datos))
-cat("\nPrimeras observaciones:\n")
-print(head(datos))
-
-# ==============================================================================
-# 2. HIPÓTESIS NULA (H₀) E HIPÓTESIS ALTERNATIVA (H₁)
-# ==============================================================================
-
-# Ejemplo 1: Prueba bilateral sobre la esperanza de vida global
-cat("\n=== Ejemplo 1: Esperanza de vida global ===\n")
-cat("H₀: μ = 70 años (la esperanza de vida promedio global es 70)\n")
-cat("H₁: μ ≠ 70 años (la esperanza de vida promedio difiere de 70) [bilateral]\n\n")
-
-media_global <- mean(datos$lifeExp)
-cat("Media observada en la muestra:", round(media_global, 2), "años\n")
-cat("Diferencia respecto a H₀:", round(media_global - 70, 2), "años\n\n")
-
-# Ejemplo 2: Prueba unilateral sobre ingresos
-cat("=== Ejemplo 2: Ingresos por región ===\n")
-cat("Comparar esperanza de vida entre Asia y Europa\n")
-cat("H₀: μ_Asia = μ_Europa (esperanza de vida igual entre regiones)\n")
-cat("H₁: μ_Asia < μ_Europa (esperanza menor en Asia) [unilateral]\n\n")
-
-life_asia <- datos %>% filter(continent == "Asia") %>% pull(lifeExp) %>% mean()
-life_europe <- datos %>% filter(continent == "Europe") %>% pull(lifeExp) %>% mean()
-cat("Asia media:", round(life_asia, 2), "años\n")
-cat("Europa media:", round(life_europe, 2), "años\n")
-cat("Diferencia:", round(life_asia - life_europe, 2), "años\n")
-
-# ==============================================================================
-# 3. VALOR-P, ERRORES TIPO I Y II, POTENCIA
-# ==============================================================================
-
-# Simulación: distribución t bajo H₀
+# Datos simulados: programa de empleo juvenil (dos muestras independientes)
 set.seed(123)
-n <- 50
-mu_0 <- 70  # Valor bajo H₀
-
-# Generar muchas muestras bajo H₀ (simulación)
-simul_t <- replicate(10000, {
-  muestra <- rnorm(n, mean = mu_0, sd = sd(datos$lifeExp))
-  (mean(muestra) - mu_0) / (sd(muestra) / sqrt(n))
-})
-
-# Graficar distribución de t bajo H₀
-df_simul <- data.frame(t_stat = simul_t)
-
-p_h0 <- ggplot(df_simul, aes(x = t_stat)) +
-  geom_histogram(bins = 50, fill = "#2E86C1", alpha = 0.7, color = "white") +
-  geom_vline(aes(xintercept = 1.96), color = "red", linetype = "dashed", size = 1) +
-  geom_vline(aes(xintercept = -1.96), color = "red", linetype = "dashed", size = 1) +
-  annotate("text", x = 3.5, y = 700, label = "Zona de rechazo (α/2 = 0.025)",
-           size = 3, color = "red") +
-  annotate("text", x = -3.5, y = 700, label = "Zona de rechazo (α/2 = 0.025)",
-           size = 3, color = "red") +
-  labs(title = "Distribución del estadístico t bajo H₀ (bilateral, α = 0.05)",
-       x = "Estadístico t", y = "Frecuencia") +
-  theme_minimal()
-
-print(p_h0)
-
-cat("\nCrítica de rechazo: |t| > 1.96 (para α = 0.05, bilateral)\n")
-cat("Proporción de valores |t| > 1.96 en la simulación:",
-    round(mean(abs(simul_t) > 1.96), 4), "\n")
-
-# ==============================================================================
-# 4. PRUEBA t DE UNA MEDIA
-# ==============================================================================
-
-cat("\n=== Prueba t de una muestra: Esperanza de vida ===\n")
-cat("H₀: μ = 70 años\n")
-cat("H₁: μ ≠ 70 años\n")
-cat("α = 0.05\n\n")
-
-# Realizar prueba t
-resultado_t1 <- t.test(datos$lifeExp, mu = 70, alternative = "two.sided")
-print(resultado_t1)
-
-# Extraer elementos clave
-cat("\n--- Interpretación ---\n")
-cat("Estadístico t:", round(resultado_t1$statistic, 4), "\n")
-cat("Grados de libertad:", resultado_t1$parameter, "\n")
-cat("Valor-p:", round(resultado_t1$p.value, 4), "\n")
-cat("Media muestral:", round(resultado_t1$estimate, 2), "años\n")
-cat("IC 95%:", round(resultado_t1$conf.int[1], 2), "a", round(resultado_t1$conf.int[2], 2), "\n\n")
-
-if (resultado_t1$p.value < 0.05) {
-  cat("✓ Decisión: RECHAZAMOS H₀ (p < 0.05)\n")
-  cat("  Conclusión: Hay evidencia significativa de que la esperanza de vida\n")
-  cat("  promedio difiere de 70 años.\n")
-} else {
-  cat("✗ Decisión: NO RECHAZAMOS H₀ (p ≥ 0.05)\n")
-  cat("  Conclusión: No hay evidencia suficiente para afirmar que la\n")
-  cat("  esperanza de vida promedio difiere de 70 años.\n")
-}
-
-# ==============================================================================
-# 5. PRUEBA t DE DIFERENCIA DE MEDIAS
-# ==============================================================================
-
-cat("\n=== Prueba t de dos muestras: Asia vs Europa ===\n")
-cat("H₀: μ_Asia = μ_Europa (esperanza de vida igual)\n")
-cat("H₁: μ_Asia ≠ μ_Europa (esperanza de vida difiere) [bilateral]\n")
-cat("α = 0.05\n\n")
-
-# Preparar datos
-datos_asia <- datos %>% filter(continent == "Asia")
-datos_europa <- datos %>% filter(continent == "Europe")
-
-# Estadísticas descriptivas
-cat("--- Estadísticas descriptivas ---\n")
-cat("Asia: n =", nrow(datos_asia),
-    ", media =", round(mean(datos_asia$lifeExp), 2),
-    ", DE =", round(sd(datos_asia$lifeExp), 2), "\n")
-cat("Europa: n =", nrow(datos_europa),
-    ", media =", round(mean(datos_europa$lifeExp), 2),
-    ", DE =", round(sd(datos_europa$lifeExp), 2), "\n\n")
-
-# Prueba t con varianzas iguales
-resultado_t2 <- t.test(datos_asia$lifeExp, datos_europa$lifeExp,
-                        var.equal = TRUE, alternative = "two.sided")
-print(resultado_t2)
-
-# Interpretación
-cat("\n--- Interpretación ---\n")
-cat("Diferencia de medias:", round(mean(datos_asia$lifeExp) - mean(datos_europa$lifeExp), 2), "años\n")
-cat("Valor-p:", round(resultado_t2$p.value, 4), "\n\n")
-
-if (resultado_t2$p.value < 0.05) {
-  cat("✓ Decisión: RECHAZAMOS H₀ (p < 0.05)\n")
-  cat("  Conclusión: Hay evidencia significativa de que la esperanza de vida\n")
-  cat("  promedio difiere entre Asia y Europa.\n")
-} else {
-  cat("✗ Decisión: NO RECHAZAMOS H₀ (p ≥ 0.05)\n")
-  cat("  Conclusión: No hay evidencia suficiente para afirmar diferencia\n")
-  cat("  en la esperanza de vida entre regiones.\n")
-}
-
-# Visualización
-p_t2 <- ggplot(datos %>% filter(continent %in% c("Asia", "Europe")),
-               aes(x = continent, y = lifeExp, fill = continent)) +
-  geom_boxplot(alpha = 0.6) +
-  geom_jitter(width = 0.2, alpha = 0.3, size = 2) +
-  labs(title = "Esperanza de Vida: Asia vs Europa (2007)",
-       x = "Continente", y = "Esperanza de vida (años)") +
-  theme_minimal() +
-  theme(legend.position = "none")
-print(p_t2)
-
-# ==============================================================================
-# 6. PRUEBAS DE PROPORCIONES
-# ==============================================================================
-
-# Definir "alta esperanza de vida" como > 72 años (media global)
-datos$alta_esperanza <- ifelse(datos$lifeExp > 72, 1, 0)
-
-cat("\n=== Prueba de proporciones: Alta esperanza de vida (>72 años) ===\n")
-cat("H₀: p = 0.5 (50% de países tienen alta esperanza)\n")
-cat("H₁: p ≠ 0.5 (la proporción difiere de 50%)\n")
-cat("α = 0.05\n\n")
-
-n_total <- nrow(datos)
-n_alta <- sum(datos$alta_esperanza)
-prop_observada <- n_alta / n_total
-
-cat("Total de países:", n_total, "\n")
-cat("Países con alta esperanza (>72):", n_alta, "\n")
-cat("Proporción observada:", round(prop_observada, 3), "\n\n")
-
-# Prueba de proporción
-resultado_prop <- prop.test(n_alta, n_total, p = 0.5, alternative = "two.sided")
-print(resultado_prop)
-
-cat("\n--- Interpretación ---\n")
-cat("Valor-p:", round(resultado_prop$p.value, 4), "\n")
-
-if (resultado_prop$p.value < 0.05) {
-  cat("✓ RECHAZAMOS H₀: la proporción difiere significativamente de 0.5\n")
-} else {
-  cat("✗ NO RECHAZAMOS H₀: la proporción no difiere significativamente de 0.5\n")
-}
-
-# ==============================================================================
-# 7. PRUEBA CHI-CUADRADO DE INDEPENDENCIA
-# ==============================================================================
-
-cat("\n=== Prueba chi-cuadrado: Continente vs Alta Esperanza ===\n")
-cat("H₀: Continente y esperanza de vida son independientes\n")
-cat("H₁: Existe asociación entre ambas variables\n")
-cat("α = 0.05\n\n")
-
-# Crear tabla de contingencia
-tabla <- table(datos$continent, datos$alta_esperanza)
-colnames(tabla) <- c("Baja esperanza", "Alta esperanza")
-
-cat("--- Tabla de contingencia ---\n")
-print(tabla)
-cat("\n")
-
-# Prueba chi-cuadrado
-resultado_chi2 <- chisq.test(tabla)
-print(resultado_chi2)
-
-cat("\n--- Interpretación ---\n")
-cat("Valor-p:", round(resultado_chi2$p.value, 4), "\n")
-
-if (resultado_chi2$p.value < 0.05) {
-  cat("✓ RECHAZAMOS H₀: Existe asociación significativa\n")
-  cat("  entre continente y nivel de esperanza de vida.\n")
-} else {
-  cat("✗ NO RECHAZAMOS H₀: No hay asociación significativa.\n")
-}
-
-# Visualización de proporciones
-datos_cont <- datos %>%
-  group_by(continent) %>%
-  summarise(
-    total = n(),
-    alta = sum(alta_esperanza),
-    prop_alta = alta / total,
-    .groups = "drop"
-  )
-
-p_chi2 <- ggplot(datos_cont, aes(x = continent, y = prop_alta, fill = continent)) +
-  geom_col(alpha = 0.7) +
-  geom_hline(aes(yintercept = 0.5), linetype = "dashed", color = "red", size = 1) +
-  labs(title = "Proporción de Países con Alta Esperanza (>72 años) por Continente",
-       x = "Continente", y = "Proporción") +
-  theme_minimal() +
-  theme(legend.position = "none")
-print(p_chi2)
-
-# ==============================================================================
-# 8. SIMULACIÓN: DISTRIBUCIÓN DEL ESTADÍSTICO t BAJO H₀ Y H₁
-# ==============================================================================
-
-cat("\n=== Simulación: Error Tipo I, Tipo II y Potencia ===\n\n")
-
-set.seed(42)
-alpha <- 0.05
-n_sim <- 5000
-n_muestra <- 50
-mu_0 <- 70  # H₀
-mu_1 <- 73  # H₁ (efecto real)
-
-# Bajo H₀: generar muestras donde μ = 70
-t_h0 <- replicate(n_sim, {
-  muestra <- rnorm(n_muestra, mean = mu_0, sd = 8)
-  (mean(muestra) - mu_0) / (sd(muestra) / sqrt(n_muestra))
-})
-
-# Bajo H₁: generar muestras donde μ = 73
-t_h1 <- replicate(n_sim, {
-  muestra <- rnorm(n_muestra, mean = mu_1, sd = 8)
-  (mean(muestra) - mu_0) / (sd(muestra) / sqrt(n_muestra))
-})
-
-# Valores críticos para α = 0.05 bilateral
-t_crit <- qt(1 - alpha/2, df = n_muestra - 1)
-
-# Calcular errores
-tipo1 <- mean(abs(t_h0) > t_crit)  # Rechazar H₀ cuando es verdadera
-tipo2 <- mean(abs(t_h1) <= t_crit) # No rechazar H₀ cuando es falsa
-potencia <- 1 - tipo2
-
-cat("Parámetros de simulación:\n")
-cat("  n por muestra:", n_muestra, "\n")
-cat("  Número de replicaciones:", n_sim, "\n")
-cat("  H₀: μ = ", mu_0, "\n")
-cat("  H₁: μ = ", mu_1, "(diferencia real = ", mu_1 - mu_0, " unidades)\n\n")
-
-cat("Resultados:\n")
-cat("  Error Tipo I (α):", round(tipo1, 4), "(esperado ≈ 0.05)\n")
-cat("  Error Tipo II (β):", round(tipo2, 4), "\n")
-cat("  Potencia (1-β):", round(potencia, 4), "\n\n")
-
-# Graficar ambas distribuciones
-df_sim <- rbind(
-  data.frame(t_stat = t_h0, hipotesis = "Bajo H₀ (μ=70)"),
-  data.frame(t_stat = t_h1, hipotesis = "Bajo H₁ (μ=73)")
+empleo <- tibble(
+  grupo = rep(c("Control", "Tratamiento"), c(120, 110)),
+  salario = c(rnorm(120, mean = 520, sd = 90),
+              rnorm(110, mean = 555, sd = 130))
 )
+m_c <- mean(empleo$salario[empleo$grupo == "Control"])
+m_t <- mean(empleo$salario[empleo$grupo == "Tratamiento"])
+s_c <- sd(empleo$salario[empleo$grupo == "Control"])
+s_t <- sd(empleo$salario[empleo$grupo == "Tratamiento"])
 
-p_sim <- ggplot(df_sim, aes(x = t_stat, fill = hipotesis)) +
-  geom_histogram(bins = 40, alpha = 0.6, color = "white", position = "identity") +
-  geom_vline(aes(xintercept = t_crit), color = "red", linetype = "dashed", size = 1) +
-  geom_vline(aes(xintercept = -t_crit), color = "red", linetype = "dashed", size = 1) +
-  annotate("text", x = 3.8, y = 600, label = "Zona rechazo H₀",
-           size = 3, color = "red", fontface = "bold") +
-  labs(title = "Errores Tipo I y II: Distribución de t bajo H₀ y H₁",
-       subtitle = paste("Potencia =", round(potencia, 3)),
-       x = "Estadístico t", y = "Frecuencia", fill = "Supuesto") +
-  theme_minimal()
-print(p_sim)
+# Datos simulados: capacitacion (muestras pareadas)
+set.seed(456)
+antes <- rnorm(80, mean = 480, sd = 70)
+despues <- antes + rnorm(80, mean = 25, sd = 40)
 
-# ==============================================================================
-# 9. CASO PRÁCTICO: COMPARACIÓN SOCIOECONÓMICA
-# ==============================================================================
+# Tabla de contingencia: educacion y voto
+tabla <- matrix(c(180, 150, 90, 20, 50, 110), ncol = 2,
+                dimnames = list(Educacion = c("Superior", "Secundaria", "Primaria"),
+                                Voto = c("Voto", "No voto")))
 
-cat("\n=== CASO PRÁCTICO: Indicadores de Desarrollo por Región ===\n\n")
 
-# Crear variables binarias útiles
-datos_practico <- datos %>%
-  mutate(
-    alta_esperanza = ifelse(lifeExp > median(lifeExp), 1, 0),
-    alto_pib = ifelse(gdpPercap > median(gdpPercap), 1, 0),
-    es_desarrollado = ifelse(continent %in% c("Europe", "Oceania"), 1, 0)
-  )
+## -----------------------------------------------------------------------------
+#| label: img-flujo
+#| echo: false
+#| out.width: "100%"
+knitr::include_graphics("figuras/flujo_econometria.png")
 
-# 1. ¿Difiere PIB entre desarrollados y en desarrollo?
-cat("1. Prueba t: PIB per cápita (Desarrollados vs Otros)\n")
-cat("   H₀: μ_desarrollados = μ_otros\n")
-resultado_pib <- t.test(
-  datos_practico %>% filter(es_desarrollado == 1) %>% pull(gdpPercap),
-  datos_practico %>% filter(es_desarrollado == 0) %>% pull(gdpPercap),
-  var.equal = TRUE
-)
-cat("   p-valor:", round(resultado_pib$p.value, 4), "\n")
-cat("   Conclusión:", ifelse(resultado_pib$p.value < 0.05,
-                              "SÍ hay diferencia significativa ✓",
-                              "NO hay diferencia significativa ✗"), "\n\n")
 
-# 2. ¿Existe asociación entre desarrollo y alta esperanza?
-cat("2. Prueba chi-cuadrado: Desarrollo vs Alta Esperanza de Vida\n")
-cat("   H₀: Las variables son independientes\n")
-tabla_asoc <- table(datos_practico$es_desarrollado, datos_practico$alta_esperanza)
-resultado_asoc <- chisq.test(tabla_asoc)
-cat("   p-valor:", round(resultado_asoc$p.value, 4), "\n")
-cat("   Conclusión:", ifelse(resultado_asoc$p.value < 0.05,
-                              "SÍ hay asociación significativa ✓",
-                              "NO hay asociación significativa ✗"), "\n\n")
+## -----------------------------------------------------------------------------
+#| label: img-dist-t
+#| echo: false
+#| out.width: "92%"
+knitr::include_graphics("figuras/distribucion_prueba_t.png")
 
-# 3. ¿La esperanza de vida promedio en Africa es < media global?
-cat("3. Prueba t unilateral: Africa vs Media Global\n")
-cat("   H₀: μ_Africa = ", round(mean(datos$lifeExp), 1), "\n")
-cat("   H₁: μ_Africa < ", round(mean(datos$lifeExp), 1), " [unilateral]\n")
-africa_lifeexp <- datos %>% filter(continent == "Africa") %>% pull(lifeExp)
-resultado_africa <- t.test(africa_lifeexp, mu = mean(datos$lifeExp), alternative = "less")
-cat("   Media Africa:", round(mean(africa_lifeexp), 2), "\n")
-cat("   p-valor:", round(resultado_africa$p.value, 4), "\n")
-cat("   Conclusión:", ifelse(resultado_africa$p.value < 0.05,
-                              "SÍ es significativamente menor ✓",
-                              "NO hay diferencia significativa ✗"), "\n\n")
 
-# 4. Tabla resumen
-cat("4. Resumen estadístico por continente\n")
-resumen <- datos_practico %>%
-  group_by(continent) %>%
-  summarise(
-    n = n(),
-    media_esperanza = round(mean(lifeExp), 1),
-    media_pib = round(mean(gdpPercap), 0),
-    prop_alta_esperanza = round(mean(alta_esperanza), 2),
-    .groups = "drop"
-  )
-print(resumen)
+## -----------------------------------------------------------------------------
+#| label: plot-pvalor
+#| echo: false
+#| fig-height: 3.0
+t_obs <- 2.3; gl <- 24
+p_bilateral <- 2 * pt(-abs(t_obs), gl)
+curva <- tibble(x = seq(-4.5, 4.5, 0.01), d = dt(seq(-4.5, 4.5, 0.01), gl))
+p <- ggplot(curva, aes(x, d)) +
+  geom_area(data = filter(curva, x >= t_obs), fill = rojo, alpha = 0.65) +
+  geom_area(data = filter(curva, x <= -t_obs), fill = rojo, alpha = 0.65) +
+  geom_line(color = azul, linewidth = 1.1) +
+  geom_vline(xintercept = t_obs, color = rojo, linewidth = 1) +
+  annotate("text", x = t_obs, y = 0.33, label = "t observado = 2.3", color = rojo, size = 4.2) +
+  annotate("text", x = 3.1, y = 0.045, label = "p/2", color = rojo, size = 4.5) +
+  annotate("text", x = -3.1, y = 0.045, label = "p/2", color = rojo, size = 4.5) +
+  labs(x = "Estadístico t (distribución nula, 24 gl)", y = "Densidad",
+       title = paste0("Área sombreada = valor-p = ", round(p_bilateral, 3)))
+interactivo(p)
 
-# ==============================================================================
-# 10. VISUALIZACIONES FINALES
-# ==============================================================================
 
-# Comparación de esperanza de vida por continente con estadísticas
-p_final <- ggplot(datos, aes(x = reorder(continent, lifeExp, median),
-                              y = lifeExp, fill = continent)) +
-  geom_violin(alpha = 0.6) +
-  geom_boxplot(width = 0.2, fill = "white", alpha = 0.8) +
-  geom_point(alpha = 0.3, size = 1.5, position = position_jitter(width = 0.1)) +
-  labs(title = "Distribución de Esperanza de Vida por Continente (2007)",
-       x = "Continente", y = "Esperanza de vida (años)") +
-  theme_minimal() +
-  theme(legend.position = "none")
-print(p_final)
+## -----------------------------------------------------------------------------
+#| label: img-pvalor-escenarios
+#| echo: false
+#| out.width: "60%"
+knitr::include_graphics("figuras/h0_h1_pvalor.png")
 
-cat("\n✓ Fin de Sesión 1\n")
+
+## -----------------------------------------------------------------------------
+#| label: img-errores
+#| echo: false
+#| out.width: "100%"
+knitr::include_graphics("figuras/errores_tipo.png")
+
+
+## -----------------------------------------------------------------------------
+#| label: plot-potencia-anatomia
+#| echo: false
+#| fig-height: 3.2
+crit <- qnorm(0.975)
+malla <- tibble(x = seq(-4, 7, 0.01),
+                h0 = dnorm(seq(-4, 7, 0.01), 0, 1),
+                h1 = dnorm(seq(-4, 7, 0.01), 2.8, 1))
+p <- ggplot(malla, aes(x)) +
+  geom_area(data = filter(malla, x >= crit), aes(y = h1), fill = verde, alpha = 0.4) +
+  geom_area(data = filter(malla, x <= crit), aes(y = h1), fill = naranja, alpha = 0.55) +
+  geom_area(data = filter(malla, x >= crit), aes(y = h0), fill = rojo, alpha = 0.7) +
+  geom_line(aes(y = h0), color = azul, linewidth = 1.1) +
+  geom_line(aes(y = h1), color = rojo, linewidth = 1.1) +
+  geom_vline(xintercept = crit, linetype = "dashed", color = "grey30") +
+  annotate("text", x = -1.6, y = 0.36, label = "Bajo H0", color = azul, size = 4.5) +
+  annotate("text", x = 4.6, y = 0.36, label = "Bajo H1 (efecto real)", color = rojo, size = 4.5) +
+  annotate("text", x = 2.45, y = 0.085, label = "alfa", color = rojo, size = 4) +
+  annotate("text", x = 1.0, y = 0.05, label = "beta", color = "#A04000", size = 4) +
+  annotate("text", x = 4.7, y = 0.16, label = "Potencia = 1 - beta", color = verde, size = 4.5) +
+  annotate("text", x = 2.6, y = 0.42, label = "valor crítico", color = "grey30", size = 3.8) +
+  labs(x = "Valor del estadístico", y = "Densidad")
+interactivo(p)
+
+
+## -----------------------------------------------------------------------------
+#| label: img-potencia-n
+#| echo: false
+#| out.width: "100%"
+knitr::include_graphics("figuras/potencia_estadistica.png")
+
+
+## -----------------------------------------------------------------------------
+#| label: code-power
+# ¿Que n necesito? (d = 0.5)
+p1 <- power.t.test(delta = 0.5,
+                   sd = 1,
+                   sig.level = 0.05,
+                   power = 0.80)
+ceiling(p1$n)   # n por grupo
+
+# ¿Que potencia logro con n = 30?
+p2 <- power.t.test(n = 30,
+                   delta = 0.5,
+                   sd = 1,
+                   sig.level = 0.05)
+round(p2$power, 2)
+
+
+## -----------------------------------------------------------------------------
+#| label: plot-curvas-potencia
+#| echo: false
+#| fig-width: 5.6
+#| fig-height: 3.9
+#| out.width: "100%"
+malla_pot <- expand_grid(n = seq(10, 200, 5), d = c(0.2, 0.5, 0.8)) %>%
+  mutate(potencia = map2_dbl(n, d, ~ power.t.test(n = .x, delta = .y,
+                                                  sd = 1, sig.level = 0.05)$power),
+         efecto = factor(d, labels = c("d = 0.2 (pequeño)", "d = 0.5 (mediano)",
+                                       "d = 0.8 (grande)")))
+p <- ggplot(malla_pot, aes(n, potencia, color = efecto)) +
+  geom_line(linewidth = 1.2) +
+  geom_hline(yintercept = 0.8, linetype = "dashed", color = "grey40") +
+  annotate("text", x = 175, y = 0.86, label = "objetivo 0.80", color = "grey40", size = 4) +
+  scale_color_manual(values = c(celeste, verde, rojo)) +
+  labs(x = "n por grupo", y = "Potencia (1 - beta)", color = NULL,
+       title = "Curvas de potencia con power.t.test") +
+  theme(legend.position = "bottom")
+interactivo(p)
+
+
+## -----------------------------------------------------------------------------
+#| label: code-t-una
+t1 <- t.test(datos$lifeExp, mu = 70)
+tidy(t1) %>%
+  select(estimate, statistic, p.value, conf.low, conf.high) %>%
+  mutate(across(everything(), ~ round(.x, 3)))
+
+
+## -----------------------------------------------------------------------------
+#| label: code-t-dos
+welch  <- t.test(salario ~ grupo, data = empleo)
+pooled <- t.test(salario ~ grupo, data = empleo, var.equal = TRUE)
+tibble(version = c("Welch", "Pooled"),
+       t = c(welch$statistic, pooled$statistic),
+       gl = c(welch$parameter, pooled$parameter),
+       p = c(welch$p.value, pooled$p.value)) %>%
+  mutate(across(-version, ~ round(.x, 3)))
+
+
+## -----------------------------------------------------------------------------
+#| label: code-t-pareada
+res <- t.test(despues, antes,
+              paired = TRUE)
+# diferencia media
+round(as.numeric(res$estimate), 1)
+# IC 95% de la diferencia
+round(as.numeric(res$conf.int), 1)
+# valor-p
+signif(res$p.value, 2)
+
+
+## -----------------------------------------------------------------------------
+#| label: plot-pareada
+#| echo: false
+#| fig-width: 5.6
+#| fig-height: 3.9
+#| out.width: "100%"
+dif <- despues - antes
+p <- ggplot(tibble(dif), aes(dif)) +
+  geom_histogram(bins = 18, fill = celeste, color = "white") +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "grey40", linewidth = 0.9) +
+  geom_vline(xintercept = mean(dif), color = rojo, linewidth = 1.1) +
+  annotate("text", x = mean(dif) + 22, y = 11.5,
+           label = paste0("media = ", round(mean(dif), 1)), color = rojo, size = 4.3) +
+  labs(x = "Diferencia individual (después - antes)", y = "N° de trabajadores",
+       title = "Distribución de las diferencias pareadas")
+interactivo(p)
+
+
+## -----------------------------------------------------------------------------
+#| label: img-chi
+#| echo: false
+#| out.width: "94%"
+knitr::include_graphics("figuras/chi_cuadrado.png")
+
+
+## -----------------------------------------------------------------------------
+#| label: tabla-contingencia
+#| echo: false
+tab_m <- addmargins(tabla)
+dimnames(tab_m)[[1]][4] <- "Total"
+dimnames(tab_m)[[2]][3] <- "Total"
+kable(tab_m)
+
+
+## -----------------------------------------------------------------------------
+#| label: code-chi
+chisq.test(tabla)
+
+
+## -----------------------------------------------------------------------------
+#| label: plot-obs-esp
+#| echo: false
+#| fig-height: 3.1
+chi <- chisq.test(tabla)
+obs <- as.data.frame(as.table(chi$observed)) %>% mutate(tipo = "Observado")
+esp <- as.data.frame(as.table(chi$expected)) %>% mutate(tipo = "Esperado bajo H0")
+df_oe <- bind_rows(obs, esp) %>%
+  mutate(Educacion = factor(Educacion, levels = c("Superior", "Secundaria", "Primaria")),
+         tipo = factor(tipo, levels = c("Observado", "Esperado bajo H0")))
+p <- ggplot(df_oe, aes(Educacion, Freq, fill = tipo)) +
+  geom_col(position = position_dodge(width = 0.7), width = 0.62) +
+  facet_wrap(~ Voto) +
+  scale_fill_manual(values = c(celeste, naranja)) +
+  labs(x = NULL, y = "Frecuencia", fill = NULL,
+       title = "Frecuencias observadas vs esperadas bajo independencia") +
+  theme(legend.position = "top")
+interactivo(p)
+
+
+## -----------------------------------------------------------------------------
+#| label: code-prop-una
+# 132 de 200 comunas elegibles
+# implementaron el programa
+una <- prop.test(x = 132, n = 200,
+                 p = 0.5)
+round(as.numeric(una$estimate), 3)
+signif(una$p.value, 3)
+
+
+## -----------------------------------------------------------------------------
+#| label: code-prop-dos
+# empleo a 12 meses:
+# 96/160 tratados, 62/158 control
+dos <- prop.test(x = c(96, 62),
+                 n = c(160, 158))
+round(as.numeric(dos$estimate), 3)
+signif(dos$p.value, 3)
+
+
+## -----------------------------------------------------------------------------
+#| label: plot-relevancia
+#| echo: false
+#| fig-height: 2.9
+df_ic <- tibble(
+  estudio = c("Piloto RCT (n = 40)", "Registro administrativo (n = 250.000)"),
+  est = c(8, 0.4), lo = c(-1.2, 0.1), hi = c(17.2, 0.7),
+  etiqueta = c("p = 0.086", "p < 0.001"))
+p <- ggplot(df_ic, aes(x = est, y = estudio)) +
+  annotate("rect", xmin = -2, xmax = 2, ymin = -Inf, ymax = Inf, fill = "grey80", alpha = 0.5) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "grey40") +
+  geom_pointrange(aes(xmin = lo, xmax = hi), color = azul, linewidth = 1.1, size = 0.7) +
+  geom_text(aes(label = etiqueta), vjust = -1.3, color = rojo, size = 4.3) +
+  annotate("text", x = 9, y = 0.55, label = "zona sombreada: irrelevancia práctica (menos de 2 pp)",
+           color = "grey35", size = 3.6) +
+  coord_cartesian(xlim = c(-4, 19), ylim = c(0.4, 2.5)) +
+  labs(x = "Efecto sobre la tasa de empleo (puntos porcentuales)", y = NULL,
+       title = "Mismo programa, dos estudios")
+interactivo(p)
+
+
+## -----------------------------------------------------------------------------
+#| label: code-cohen
+sal_c <- empleo$salario[empleo$grupo == "Control"]
+sal_t <- empleo$salario[empleo$grupo == "Tratamiento"]
+sp <- sqrt(((length(sal_c) - 1) * var(sal_c) +
+            (length(sal_t) - 1) * var(sal_t)) / (nrow(empleo) - 2))
+round((mean(sal_t) - mean(sal_c)) / sp, 2)
+
+
+## -----------------------------------------------------------------------------
+#| label: plot-phacking
+#| echo: false
+#| fig-height: 3.2
+set.seed(2026)
+p_unico <- replicate(5000, t.test(rnorm(30), rnorm(30))$p.value)
+p_min5 <- replicate(2000, min(replicate(5, t.test(rnorm(30), rnorm(30))$p.value)))
+sim_ph <- bind_rows(
+  tibble(p = p_unico, escenario = "Una prueba por estudio"),
+  tibble(p = p_min5, escenario = "Se reporta el mínimo de 5 pruebas")
+) %>%
+  mutate(escenario = factor(escenario, levels = unique(escenario)))
+p <- ggplot(sim_ph, aes(p, fill = p < 0.05)) +
+  geom_histogram(breaks = seq(0, 1, 0.05), color = "white") +
+  scale_fill_manual(values = c("FALSE" = celeste, "TRUE" = rojo), guide = "none") +
+  facet_wrap(~ escenario, scales = "free_y") +
+  labs(x = "valor-p reportado", y = "Frecuencia")
+interactivo(p)
+
+
+## -----------------------------------------------------------------------------
+#| label: img-matriz
+#| echo: false
+#| out.width: "100%"
+knitr::include_graphics("figuras/matriz_decision.png")
+

@@ -1,594 +1,654 @@
 ---
-title: "Sesión 4: Práctica Integradora en R (Parte 1)"
-subtitle: "Doctorado en Ciencias de la Complejidad Social — CICS, UDD"
-author: "Amaru Agüero (a.agueroj@udd.cl)"
-date: today
-format:
-  html:
-    theme: cosmo
-    toc: true
-    toc-depth: 3
-    code-fold: false
-    code-tools: true
-    self-contained: true
+title: "Sesión 4 · Práctica Integradora en R (Parte 1)"
+subtitle: "Nivelación Econometría — Doctorado en Políticas Públicas"
+author: "Amaru Agüero Jiménez (a.agueroj@udd.cl)"
+date: "Marzo 2026"
+date-format: "MMMM [de] YYYY"
 lang: es
+format:
+  revealjs:
+    theme: [default, estilo_slides.scss]
+    slide-number: c/t
+    footer: "Nivelación Econometría — Doctorado en Políticas Públicas"
+    transition: fade
+    embed-resources: true
+    code-line-numbers: false
+    fig-align: center
+    menu: true
+  beamer:
+    aspectratio: 169
+    theme: Madrid
+    colortheme: whale
+    fontsize: 10pt
+    fig-align: center
+    include-in-header:
+      text: |
+        \definecolor{uddblue}{HTML}{1F4E79}
+        \definecolor{uddlight}{HTML}{2E86C1}
+        \setbeamercolor{structure}{fg=uddblue}
+        \setbeamercolor{frametitle}{bg=uddblue,fg=white}
+        \setbeamercolor{title}{bg=uddblue,fg=white}
+        \setbeamercolor{block title}{bg=uddblue,fg=white}
+        \setbeamercolor{block body}{bg=uddblue!10}
+        \fvset{fontsize=\scriptsize}
+        \AtBeginDocument{\setlength{\abovedisplayskip}{2pt}\setlength{\belowdisplayskip}{2pt}}
 execute:
   warning: false
   message: false
+  echo: true
+knitr:
+  opts_chunk:
+    dpi: 150
+    fig.width: 7.5
+    fig.height: 3.4
+    out.width: "82%"
 ---
-
-## Introducción
-
-En esta sesión realizamos **prácticas integrales** combinando pruebas de hipótesis y regresión lineal simple en R. Usaremos un dataset de encuesta social para aplicar herramientas estadísticas en análisis reales. Los objetivos son:
-
-1. Dominar las pruebas de hipótesis: t-test, prueba de proporciones, chi-cuadrado
-2. Estimar e interpretar regresiones lineales simples
-3. Validar supuestos del modelo lineal
-4. Visualizar resultados con `ggplot2`
-
-### Paquetes necesarios
 
 ```{r}
 #| label: setup
-# install.packages(c("tidyverse", "ggplot2", "lmtest", "car"))
+#| echo: false
 library(tidyverse)
-library(ggplot2)
+library(knitr)
+library(broom)
 library(lmtest)
-library(car)
+library(modelsummary)
+library(plotly)
+theme_set(theme_minimal(base_size = 13))
+azul <- "#1F4E79"; celeste <- "#2E86C1"; rojo <- "#E74C3C"; verde <- "#27AE60"; naranja <- "#F39C12"
+# En HTML (revealjs) los graficos se vuelven interactivos con plotly;
+# en Beamer (PDF) se mantienen estaticos.
+es_html <- knitr::is_html_output()
+interactivo <- function(p) {
+  if (es_html) plotly::config(plotly::ggplotly(p), displayModeBar = FALSE) else p
+}
 ```
 
----
+## Panorama de la sesión
 
-## 1. Carga y exploración de datos
+| Paso del análisis | Qué se hace | Herramienta en R |
+|---|---|---|
+| Pregunta y datos | pregunta, carga, diccionario | `read_csv()`, `glimpse()` |
+| Inspección y limpieza | NA, valores imposibles | `filter()`, `drop_na()` |
+| Descriptivos y gráficos | tabla por grupo, gráficos | `summarise()`, `ggplot2` |
+| Contrastes previos | t, proporciones, chi-cuadrado | `t.test()`, `prop.test()` |
+| Regresión simple | estimación, logs, IC, predicción | `lm()`, `broom`, `predict()` |
+| Diagnóstico | residuos, Breusch-Pagan, Shapiro | `bptest()`, `shapiro.test()` |
+| Informe | tabla final, lectura crítica | `modelsummary()` |
 
-Trabajaremos con un dataset simulado de encuesta social que contiene variables sobre ingresos, educación, género y región.
+::: {.callout-note appearance="simple"}
+**Datos de trabajo:** encuesta simulada de 150 hogares. Ventaja de simular: conocemos el proceso generador y al final compararemos lo **estimado** con lo **verdadero**.
+:::
 
-### 1.1 Crear el dataset
+## El mapa: hoy recorremos el flujo completo
+
+:::: {.columns}
+
+::: {.column width="55%"}
+```{r}
+#| label: img-flujo-mapa
+#| echo: false
+#| out.width: "100%"
+knitr::include_graphics("figuras/flujo_econometria.png")
+```
+:::
+
+::: {.column width="45%"}
+- Las sesiones 1 y 2 dieron la teoría: **contrastes de hipótesis** y **MCO**.
+- Hoy las integramos en **un solo caso**, de la pregunta de política al informe.
+- Cada slide es un paso preciso: su código, su salida y una línea de interpretación.
+- La regla de la práctica: **ningún número se reporta sin haber pasado por este flujo**.
+:::
+
+::::
+
+## Paso 1 · Pregunta de política y estrategia empírica
+
+| Elemento | En nuestro caso |
+|---|---|
+| Pregunta de política | ¿Cuánto mayor es el ingreso asociado a un año más de educación? |
+| Variable dependiente ($Y$) | ingreso mensual del hogar (USD) |
+| Variable explicativa ($X$) | años de educación del jefe de hogar |
+| Parámetro objetivo | $\beta_1$ en $Y = \beta_0 + \beta_1 X + u$ |
+| Contrastes previos | brechas por género y situación laboral (sesión 1) |
+| Producto final | tabla de regresión + lectura crítica |
+
+::: {.callout-warning appearance="simple"}
+$\beta_1$ medirá **asociación**. Si además es causal (o no) se discute en el Paso 13 — y la respuesta honesta será "todavía no lo sabemos".
+:::
+
+## Paso 2 · Cargar datos reales: los formatos usuales
 
 ```{r}
-#| label: crear-datos
+#| label: code-carga
+#| eval: false
+# CSV (readr, parte del tidyverse)
+encuesta <- read_csv("encuesta_hogares.csv")
+
+# Excel
+library(readxl)
+encuesta <- read_excel("encuesta.xlsx", sheet = "datos")
+
+# Stata / SPSS (archivos de encuestas oficiales)
+library(haven)
+encuesta <- read_dta("casen.dta")
+
+# Directamente desde una URL
+encuesta <- read_csv("https://ejemplo.org/datos.csv")
+```
+
+- Verificar siempre la **codificación** (UTF-8) y los **códigos de valores perdidos** (-99, 999, "NS/NR") que cada encuesta define en su manual.
+- Hoy, en lugar de cargar, **simulamos** la encuesta: así controlamos la verdad.
+
+## Paso 2 · La encuesta: 150 hogares simulados
+
+```{r}
+#| label: crea-encuesta
 set.seed(2026)
 n <- 150
-
-# Crear dataset de encuesta social
-datos <- data.frame(
-  id = 1:n,
-  ingresos = rnorm(n, mean = 2200, sd = 800) +
-    seq(0, 1500, length.out = n),  # Correlación con educación
-  educacion = rnorm(n, mean = 13, sd = 3),
-  genero = sample(c("Hombre", "Mujer"), n, replace = TRUE,
-                  prob = c(0.52, 0.48)),
-  region = sample(c("Norte", "Centro", "Sur"), n, replace = TRUE),
-  empleo = sample(c("Empleado", "Desempleado"), n, replace = TRUE,
-                  prob = c(0.85, 0.15)),
-  satisfaccion = sample(1:5, n, replace = TRUE)  # Escala 1-5
+encuesta <- tibble(
+  educacion = round(pmin(pmax(rnorm(n, 13, 3), 4), 21)),
+  genero    = sample(c("Hombre", "Mujer"), n, replace = TRUE, prob = c(0.52, 0.48)),
+  region    = sample(c("Norte", "Centro", "Sur"), n, replace = TRUE,
+                     prob = c(0.30, 0.45, 0.25)),
+  empleo    = sample(c("Empleado", "Desempleado"), n, replace = TRUE,
+                     prob = c(0.85, 0.15)),
+  ingresos  = round(exp(6.2 + 0.09 * educacion + 0.15 * (genero == "Hombre") -
+                        0.35 * (empleo == "Desempleado") + rnorm(n, 0, 0.30)))
 )
-
-# Corregir ingresos negativos (asegurar valores positivos)
-datos$ingresos <- pmax(datos$ingresos, 800)
-
-# Ver primeras filas
-head(datos, 10)
+encuesta$ingresos[c(17, 84)] <- NA   # dos hogares no reportan ingreso
+encuesta$educacion[131] <- 99        # un error de digitacion
 ```
 
-### 1.2 Exploración inicial
+El proceso generador es **log-lineal**: el retorno verdadero de la educación es **9% por año**. Como en la vida real, la base llega con problemas sembrados: dos NA y un valor imposible.
+
+## Diccionario de variables
+
+| Variable | Tipo | Valores | Rol en el análisis |
+|---|---|---|---|
+| `ingresos` | continua de razón | USD mensuales | dependiente ($Y$) |
+| `educacion` | discreta | 4–21 años | explicativa ($X$) |
+| `genero` | nominal | Hombre / Mujer | contraste de brechas |
+| `region` | nominal | Norte / Centro / Sur | contraste chi-cuadrado |
+| `empleo` | nominal | Empleado / Desempleado | proporciones y brechas |
+
+::: {.callout-tip appearance="simple"}
+El diccionario se escribe **antes** de tocar los datos: define unidades, rangos válidos y el rol de cada variable. Sin él, no hay forma de detectar el `99` de educación como error.
+:::
+
+## Paso 3 · Inspección: ¿qué llegó en la base?
 
 ```{r}
-#| label: exploracion
-dim(datos)
-str(datos)
-summary(datos)
+#| label: inspeccion-glimpse
+glimpse(encuesta)
 ```
 
-**Interpretación:**
-- Tenemos 150 observaciones y 7 variables
-- Ingresos varían entre \$800 y aproximadamente \$4800
-- Educación promedio: ~13 años
-- Proporción empleo: 85% empleado, 15% desempleado
+- `educacion` e `ingresos` son numéricas; las otras tres, texto (categóricas).
+- `glimpse()` muestra tipo y primeros valores de cada columna en una pantalla.
+- Todavía **no** calculamos nada: primero hay que validar rangos y valores perdidos.
 
----
-
-## 2. Estadística Descriptiva en R
-
-### 2.1 Medidas de tendencia central y dispersión
+## Paso 3 · Limpieza: NA y valores imposibles
 
 ```{r}
-#| label: estadistica-descriptiva
-# Por variable completa
-cat("INGRESOS:\n")
-cat("Media:", mean(datos$ingresos), "\n")
-cat("Mediana:", median(datos$ingresos), "\n")
-cat("Desv. Est.:", sd(datos$ingresos), "\n\n")
-
-# Resumen por grupos
-datos %>%
-  group_by(genero) %>%
-  summarise(
-    n = n(),
-    media_ingresos = mean(ingresos),
-    sd_ingresos = sd(ingresos),
-    media_educacion = mean(educacion),
-    .groups = 'drop'
-  )
+#| label: limpieza-na
+colSums(is.na(encuesta))       # ¿cuantos NA por variable?
+range(encuesta$educacion)      # el maximo 99 es imposible
+encuesta <- encuesta %>%
+  filter(educacion <= 22) %>%  # elimina el error de digitacion
+  drop_na()                    # elimina los ingresos no reportados
+nrow(encuesta)
 ```
 
-### 2.2 Tablas de frecuencias
+- Quedan **147 de 150** hogares: cada exclusión se **documenta** (cuántos, por qué).
+- Regla de oro: nunca eliminar observaciones "en silencio" — el informe final debe poder reproducirse desde la base cruda.
+
+## Paso 4 · Descriptivos: la tabla por grupo
 
 ```{r}
-#| label: tablas-frecuencia
-# Distribución por género
-table(datos$genero)
-
-# Distribución por región
-table(datos$region)
-
-# Tabla cruzada: género vs región
-table(datos$genero, datos$region)
+#| label: tabla-descriptiva
+encuesta %>% group_by(genero) %>%
+  summarise(n = n(), media = mean(ingresos), mediana = median(ingresos),
+            de = sd(ingresos), educ_media = mean(educacion)) %>%
+  mutate(across(where(is.numeric), ~ round(.x, 1))) %>%
+  kable()
 ```
 
----
+- La brecha de medias es de **105 USD** a favor de los hombres: ¿señal o ruido muestral? El Paso 6 lo contrasta formalmente.
+- En ambos grupos la mediana está bajo la media: distribuciones con **cola derecha**.
 
-## 3. Pruebas de Hipótesis: t-test
+## Paso 5 · La distribución del ingreso
 
-### 3.1 ¿Existe diferencia de ingresos entre hombres y mujeres?
+:::: {.columns}
 
-**Hipótesis:**
-- $H_0$: $\mu_{Hombre} = \mu_{Mujer}$ (No hay diferencia en ingresos promedio)
-- $H_a$: $\mu_{Hombre} \neq \mu_{Mujer}$ (Sí hay diferencia)
-
-**Solución:**
-
+::: {.column width="46%"}
 ```{r}
-#| label: t-test-genero
-# Prueba t de dos muestras independientes
-resultado_t <- t.test(ingresos ~ genero, data = datos)
-resultado_t
+#| label: code-hist-ing
+#| eval: false
+media_i   <- mean(encuesta$ingresos)
+mediana_i <- median(encuesta$ingresos)
+
+ggplot(encuesta, aes(x = ingresos)) +
+  geom_histogram(bins = 22,
+                 fill = celeste,
+                 color = "white") +
+  geom_vline(xintercept = media_i,
+             color = rojo) +
+  geom_vline(xintercept = mediana_i,
+             color = verde) +
+  labs(x = "Ingreso mensual (USD)",
+       y = "N° de hogares")
 ```
 
-**Interpretación:**
+Media (rojo) a la derecha de la mediana (verde): **sesgo positivo**, típico de ingresos. Anticipa la forma log del Paso 8.
+:::
+
+::: {.column width="54%"}
 ```{r}
-#| label: interpretacion-t-test
-cat("Estadístico t:", resultado_t$statistic, "\n")
-cat("Grados de libertad:", resultado_t$parameter, "\n")
-cat("p-value:", resultado_t$p.value, "\n\n")
-
-if (resultado_t$p.value < 0.05) {
-  cat("Conclusión: RECHAZAMOS H0 (p < 0.05)\n")
-  cat("Existe diferencia significativa en ingresos entre géneros.\n")
-} else {
-  cat("Conclusión: NO RECHAZAMOS H0 (p >= 0.05)\n")
-  cat("No hay evidencia de diferencia significativa en ingresos.\n")
-}
-```
-
-### 3.2 Ejercicio: ¿Hay diferencia de ingresos entre empleados y desempleados?
-
-```{r}
-#| label: ejercicio-t-test
-# Instrucción: Realiza un t-test para comparar ingresos por estado de empleo
-# Escribe tu código aquí (sustituye los puntos suspensivos)
-
-resultado_empleo <- t.test(ingresos ~ empleo, data = datos)
-resultado_empleo
-
-# Interpreta el resultado
-cat("\nInterpretación:\n")
-if (resultado_empleo$p.value < 0.05) {
-  cat("p-value =", round(resultado_empleo$p.value, 4), "< 0.05\n")
-  cat("Existe diferencia significativa de ingresos por empleo.\n")
-}
-```
-
-**Solución comentada:**
-Esperamos diferencia significativa en ingresos entre empleados y desempleados (desempleados típicamente ganan menos).
-
----
-
-## 4. Prueba de Proporciones
-
-### 4.1 ¿Es la proporción de mujeres igual a 0.5?
-
-**Hipótesis:**
-- $H_0$: $p = 0.5$ (50% mujeres)
-- $H_a$: $p \neq 0.5$
-
-**Solución:**
-
-```{r}
-#| label: prop-test
-# Frecuencia de género
-tabla_genero <- table(datos$genero)
-tabla_genero
-
-# Contar mujeres
-n_mujeres <- tabla_genero["Mujer"]
-n_total <- sum(tabla_genero)
-
-# Prueba de proporciones
-resultado_prop <- prop.test(n_mujeres, n_total, p = 0.5)
-resultado_prop
-
-cat("\nProporción observada:", n_mujeres / n_total, "\n")
-```
-
-### 4.2 Ejercicio: ¿Es la proporción de desempleados igual a 0.20?
-
-```{r}
-#| label: ejercicio-prop-test
-# Instrucción: Prueba si la proporción de desempleados es diferente de 0.20 (20%)
-
-tabla_empleo <- table(datos$empleo)
-n_desempleados <- tabla_empleo["Desempleado"]
-n_total_empleo <- sum(tabla_empleo)
-
-resultado_desempleo <- prop.test(n_desempleados, n_total_empleo, p = 0.20)
-resultado_desempleo
-```
-
----
-
-## 5. Prueba Chi-Cuadrado: Independencia
-
-### 5.1 ¿Son el género y la región independientes?
-
-**Hipótesis:**
-- $H_0$: Género y región son independientes
-- $H_a$: Género y región están asociados
-
-**Solución:**
-
-```{r}
-#| label: chi-square
-# Crear tabla de contingencia
-tabla_contin <- table(datos$genero, datos$region)
-print("Tabla de contingencia:")
-print(tabla_contin)
-
-# Prueba chi-cuadrado
-resultado_chi <- chisq.test(tabla_contin)
-resultado_chi
-
-cat("\n\nFrecuencias esperadas:\n")
-print(resultado_chi$expected)
-```
-
-**Interpretación:**
-```{r}
-#| label: interpretacion-chi
-if (resultado_chi$p.value < 0.05) {
-  cat("p-value =", resultado_chi$p.value, "< 0.05\n")
-  cat("RECHAZAMOS H0: Existe asociación entre género y región.\n")
-} else {
-  cat("p-value =", resultado_chi$p.value, ">= 0.05\n")
-  cat("NO RECHAZAMOS H0: Género y región son independientes.\n")
-}
-```
-
-### 5.2 Ejercicio: ¿Están asociados empleo y región?
-
-```{r}
-#| label: ejercicio-chi-square
-# Instrucción: Prueba la independencia entre empleo y región
-
-tabla_empleo_region <- table(datos$empleo, datos$region)
-print(tabla_empleo_region)
-
-resultado_emp_reg <- chisq.test(tabla_empleo_region)
-resultado_emp_reg
-```
-
----
-
-## 6. Regresión Lineal Simple
-
-### 6.1 Modelo: Ingresos explicados por Educación
-
-**Especificación:** $\text{ingresos}_i = \beta_0 + \beta_1 \cdot \text{educacion}_i + u_i$
-
-```{r}
-#| label: regresion-simple
-# Estimar el modelo
-modelo1 <- lm(ingresos ~ educacion, data = datos)
-
-# Ver resumen completo
-summary(modelo1)
-```
-
-**Interpretación:**
-
-```{r}
-#| label: interpret-regresion
-coef_edu <- coef(modelo1)[2]
-coef_const <- coef(modelo1)[1]
-
-cat("Ecuación estimada:\n")
-cat("ingresos = ", round(coef_const, 2), " + ",
-    round(coef_edu, 2), " * educacion\n\n")
-
-cat("Interpretación:\n")
-cat("- Intercepto:", round(coef_const, 2),
-    "(Ingreso cuando educación = 0)\n")
-cat("- Pendiente:", round(coef_edu, 2),
-    "(Cada año adicional de educación\n")
-cat("   se asocia con", round(coef_edu, 2), "USD más de ingreso)\n")
-
-# R-squared
-r2 <- summary(modelo1)$r.squared
-cat("\nR-squared:", round(r2, 3),
-    "(la educación explica", round(r2*100, 1), "% de la varianza en ingresos)\n")
-```
-
-### 6.2 Ejercicio: Modelo de Educación en Ingresos
-
-```{r}
-#| label: ejercicio-regresion
-# Instrucción: Interpreta manualmente los coeficientes
-# ¿Cuál es el ingreso predicho para alguien con 15 años de educación?
-
-pred_15 <- coef_const + coef_edu * 15
-cat("Ingreso predicho con 15 años de educación:", round(pred_15, 2), "\n")
-
-# Usar predict() para validar
-predict(modelo1, newdata = data.frame(educacion = 15))
-```
-
----
-
-## 7. Diagnósticos del Modelo
-
-### 7.1 Validación de Supuestos OLS
-
-Los supuestos del modelo lineal son:
-1. **Linealidad:** relación lineal entre X e Y
-2. **Normalidad:** residuos distribuidos normalmente
-3. **Homocedasticidad:** varianza constante de residuos
-4. **No autocorrelación:** residuos independientes
-
-```{r}
-#| label: diagnosticos
-# Gráficos de diagnóstico (4 gráficos automáticos)
-par(mfrow = c(2, 2))
-plot(modelo1)
-par(mfrow = c(1, 1))
-```
-
-### 7.2 Prueba de Shapiro-Wilk (Normalidad)
-
-```{r}
-#| label: normalidad
-residuos <- residuals(modelo1)
-
-resultado_sw <- shapiro.test(residuos)
-resultado_sw
-
-if (resultado_sw$p.value > 0.05) {
-  cat("p-value =", resultado_sw$p.value, "> 0.05\n")
-  cat("NO RECHAZAMOS H0: Los residuos son aproximadamente normales.\n")
-} else {
-  cat("p-value =", resultado_sw$p.value, "< 0.05\n")
-  cat("RECHAZAMOS H0: Posible violación de normalidad.\n")
-}
-```
-
-### 7.3 Prueba de Breusch-Pagan (Homocedasticidad)
-
-```{r}
-#| label: homocedasticidad
-resultado_bp <- bptest(modelo1)
-resultado_bp
-
-if (resultado_bp$p.value > 0.05) {
-  cat("\nNO RECHAZAMOS H0: La varianza es aproximadamente constante.\n")
-} else {
-  cat("\nRECHAZAMOS H0: Posible heteroscedasticidad.\n")
-}
-```
-
----
-
-## 8. Visualización con ggplot2
-
-### 8.1 Gráfico de dispersión con línea de regresión
-
-```{r}
-#| label: grafico-regresion
-ggplot(datos, aes(x = educacion, y = ingresos)) +
-  geom_point(color = "#1F4E79", alpha = 0.6, size = 2.5) +
-  geom_smooth(method = "lm", se = TRUE,
-              color = "#2E86C1", fill = "#2E86C1", alpha = 0.2) +
-  labs(
-    title = "Relación: Educación vs. Ingresos",
-    x = "Años de Educación",
-    y = "Ingresos Mensuales (USD)",
-    caption = "Datos: Encuesta social (n=150)"
-  ) +
-  theme_minimal() +
-  theme(
-    plot.title = element_text(hjust = 0.5, size = 14, face = "bold"),
-    axis.title = element_text(size = 11)
-  )
-```
-
-### 8.2 Gráfico de residuos
-
-```{r}
-#| label: grafico-residuos
-datos_diag <- tibble(
-  ajustados = fitted(modelo1),
-  residuos = residuals(modelo1)
+#| label: plot-hist-ing
+#| echo: false
+#| fig-width: 5.6
+#| fig-height: 3.9
+#| out.width: "100%"
+media_i   <- mean(encuesta$ingresos)
+mediana_i <- median(encuesta$ingresos)
+interactivo(
+  ggplot(encuesta, aes(x = ingresos)) +
+    geom_histogram(bins = 22, fill = celeste, color = "white") +
+    geom_vline(xintercept = media_i, color = rojo, linewidth = 1) +
+    geom_vline(xintercept = mediana_i, color = verde, linewidth = 1) +
+    labs(x = "Ingreso mensual (USD)", y = "N° de hogares")
 )
+```
+:::
 
-ggplot(datos_diag, aes(x = ajustados, y = residuos)) +
-  geom_point(color = "#1F4E79", alpha = 0.6, size = 2.5) +
-  geom_hline(yintercept = 0, linetype = "dashed", color = "red", size = 1) +
-  labs(
-    title = "Residuos vs. Valores Ajustados",
-    x = "Valores Ajustados",
-    y = "Residuos"
-  ) +
-  theme_minimal() +
-  theme(plot.title = element_text(hjust = 0.5, size = 12, face = "bold"))
+::::
+
+## Paso 5 · Educación e ingresos: el scatter clave
+
+:::: {.columns}
+
+::: {.column width="46%"}
+```{r}
+#| label: code-scatter-edu
+#| eval: false
+ggplot(encuesta,
+       aes(x = educacion,
+           y = ingresos)) +
+  geom_jitter(width = 0.2,
+              alpha = 0.5,
+              color = azul) +
+  geom_smooth(method = "lm",
+              color = rojo) +
+  labs(x = "Años de educación",
+       y = "Ingreso mensual (USD)")
 ```
 
-### 8.3 Gráfico de ingresos por género
+La recta MCO resume la asociación: pendiente positiva y nítida ($r = 0.61$). `geom_jitter()` separa los puntos apilados en cada año de educación.
+:::
+
+::: {.column width="54%"}
+```{r}
+#| label: plot-scatter-edu
+#| echo: false
+#| fig-width: 5.6
+#| fig-height: 3.9
+#| out.width: "100%"
+interactivo(
+  ggplot(encuesta, aes(x = educacion, y = ingresos)) +
+    geom_jitter(width = 0.2, alpha = 0.5, color = azul) +
+    geom_smooth(method = "lm", color = rojo) +
+    labs(x = "Años de educación", y = "Ingreso mensual (USD)")
+)
+```
+:::
+
+::::
+
+## Paso 6 · ¿Brecha por género? Prueba t de Welch
+
+$H_0: \mu_H = \mu_M$ vs $H_1: \mu_H \neq \mu_M$, con $\alpha = 0.05$ (sesión 1).
 
 ```{r}
-#| label: grafico-genero
-ggplot(datos, aes(x = genero, y = ingresos, fill = genero)) +
-  geom_boxplot(alpha = 0.6) +
-  geom_jitter(width = 0.2, alpha = 0.3, size = 2) +
-  labs(
-    title = "Distribución de Ingresos por Género",
-    x = "Género",
-    y = "Ingresos Mensuales (USD)",
-    fill = "Género"
-  ) +
-  theme_minimal() +
-  theme(
-    plot.title = element_text(hjust = 0.5, size = 12, face = "bold"),
-    legend.position = "right"
-  )
+#| label: ttest-genero
+t_gen <- t.test(ingresos ~ genero, data = encuesta)
+tidy(t_gen) %>%
+  select(estimate1, estimate2, statistic, p.value, conf.low, conf.high) %>%
+  kable(digits = 3, col.names = c("media H", "media M", "t", "valor-p",
+                                  "IC inf", "IC sup"))
 ```
 
----
+- Con $p = 0.45$ **no se rechaza** $H_0$: la brecha de 105 USD es indistinguible del ruido.
+- El IC 95% $[-170, 381]$ es ancho: con $n \approx 74$ por grupo la **potencia** es baja. Ausencia de evidencia no es evidencia de ausencia (el generador sí premia 15% a los hombres).
 
-## 9. Ejercicio Integrador Completo
+## Paso 6 · La brecha vista en el gráfico
 
-### Problema: Análisis de Factores que Explican Ingresos
+:::: {.columns}
 
-Realiza un análisis completo sobre los ingresos en la encuesta:
-
-**Parte A: Pruebas de Hipótesis**
-
+::: {.column width="46%"}
 ```{r}
-#| label: ejercicio-parte-a
-# 1. ¿Hay diferencia significativa de ingresos entre hombres y mujeres?
-#    (Realiza e interpreta un t-test)
-
-t_test_genero <- t.test(ingresos ~ genero, data = datos)
-print(t_test_genero)
-cat("\nConclusion sobre diferencia de género:\n")
-if (t_test_genero$p.value < 0.05) {
-  cat("SÍ hay diferencia significativa.\n")
-} else {
-  cat("NO hay diferencia significativa.\n")
-}
-
-# 2. ¿La proporción de empleados es diferente de 85%?
-#    (Realiza e interpreta una prueba de proporciones)
-
-tabla_emp <- table(datos$empleo)
-prop_test_emp <- prop.test(tabla_emp["Empleado"], sum(tabla_emp), p = 0.85)
-print(prop_test_emp)
-
-# 3. ¿Están asociados género y estado de empleo?
-#    (Realiza e interpreta un chi-cuadrado)
-
-tabla_genero_emp <- table(datos$genero, datos$empleo)
-chi_genero_emp <- chisq.test(tabla_genero_emp)
-print(chi_genero_emp)
-```
-
-**Parte B: Regresión Simple y Diagnósticos**
-
-```{r}
-#| label: ejercicio-parte-b
-# 4. Estima el modelo: ingresos ~ educacion
-#    Interpreta coeficientes, R², y significancia
-
-modelo_edu <- lm(ingresos ~ educacion, data = datos)
-summary(modelo_edu)
-
-# 5. ¿Son válidos los supuestos del modelo?
-#    Realiza Shapiro-Wilk y Breusch-Pagan
-
-residuos_edu <- residuals(modelo_edu)
-shapiro_test <- shapiro.test(residuos_edu)
-bp_test <- bptest(modelo_edu)
-
-cat("Shapiro-Wilk (normalidad):\n")
-print(shapiro_test)
-cat("\nBreusch-Pagan (homocedasticidad):\n")
-print(bp_test)
-
-# Interpretación
-cat("\nValidación de supuestos:\n")
-cat("Normalidad:", if(shapiro_test$p.value > 0.05) "✓ OK" else "✗ Violación", "\n")
-cat("Homocedasticidad:", if(bp_test$p.value > 0.05) "✓ OK" else "✗ Violación", "\n")
-```
-
-**Parte C: Visualización**
-
-```{r}
-#| label: ejercicio-parte-c
-# 6. Crea visualizaciones:
-#    - Scatter plot con línea de regresión
-#    - Boxplot de ingresos por género
-#    - Gráfico de residuos
-
-# Gráfico 1: Regresión
-g1 <- ggplot(datos, aes(x = educacion, y = ingresos)) +
-  geom_point(color = "#1F4E79", alpha = 0.5) +
-  geom_smooth(method = "lm", se = TRUE, color = "#2E86C1") +
-  labs(title = "Ingresos vs. Educación", x = "Educación (años)", y = "Ingresos (USD)") +
-  theme_minimal()
-
-# Gráfico 2: Por género
-g2 <- ggplot(datos, aes(x = genero, y = ingresos, fill = genero)) +
-  geom_boxplot(alpha = 0.6) +
-  labs(title = "Ingresos por Género", x = "Género", y = "Ingresos (USD)") +
-  theme_minimal() +
+#| label: code-box-gen
+#| eval: false
+ggplot(encuesta,
+       aes(x = genero, y = ingresos,
+           fill = genero)) +
+  geom_boxplot(alpha = .6,
+               outlier.color = rojo) +
+  geom_jitter(width = .15,
+              alpha = .3) +
+  labs(x = NULL,
+       y = "Ingreso mensual (USD)") +
   theme(legend.position = "none")
-
-# Mostrar gráficos
-gridExtra::grid.arrange(g1, g2, ncol = 2)
 ```
 
-**Parte D: Reporte Final**
+Las cajas se **superponen** casi por completo: la imagen es coherente con el $p = 0.45$ de la prueba t. Gráfico y contraste deben contarse la misma historia.
+:::
+
+::: {.column width="54%"}
+```{r}
+#| label: plot-box-gen
+#| echo: false
+#| fig-width: 5.6
+#| fig-height: 3.9
+#| out.width: "100%"
+interactivo(
+  ggplot(encuesta, aes(x = genero, y = ingresos, fill = genero)) +
+    geom_boxplot(alpha = .6, outlier.color = rojo) +
+    geom_jitter(width = .15, alpha = .3) +
+    labs(x = NULL, y = "Ingreso mensual (USD)") +
+    theme(legend.position = "none")
+)
+```
+:::
+
+::::
+
+## Paso 6 · Desempleo: prueba de proporciones
+
+¿La tasa de desempleo de la muestra difiere de la referencia nacional del 10%? $H_0: p = 0.10$.
 
 ```{r}
-#| label: ejercicio-parte-d
-# Resumen de hallazgos principales
-cat("=== REPORTE FINAL: ANÁLISIS DE INGRESOS ===\n\n")
-
-cat("1. DIFERENCIAS POR GÉNERO:\n")
-cat("   - Diferencia de ingresos significativa:",
-    if(t_test_genero$p.value < 0.05) "SÍ" else "NO", "\n")
-cat("   - p-value:", round(t_test_genero$p.value, 4), "\n\n")
-
-cat("2. FACTOR EDUCACIÓN:\n")
-cat("   - Coeficiente:", round(coef(modelo_edu)[2], 2),
-    "(cada año de educación suma", round(coef(modelo_edu)[2], 2), "USD)\n")
-cat("   - R²:", round(summary(modelo_edu)$r.squared, 3),
-    "(explica el", round(summary(modelo_edu)$r.squared*100, 1), "% de varianza)\n")
-cat("   - Significancia:",
-    if(summary(modelo_edu)$coefficients[2, 4] < 0.05) "***" else "No sig.", "\n\n")
-
-cat("3. SUPUESTOS DEL MODELO:\n")
-cat("   - Normalidad (Shapiro-Wilk):",
-    if(shapiro_test$p.value > 0.05) "✓ Cumplido" else "✗ Violado", "\n")
-cat("   - Homocedasticidad (BP):",
-    if(bp_test$p.value > 0.05) "✓ Cumplido" else "✗ Violado", "\n")
+#| label: prop-desempleo
+tab_empleo <- table(encuesta$empleo)
+tab_empleo
+prop.test(tab_empleo["Desempleado"], sum(tab_empleo), p = 0.10) %>%
+  tidy() %>%
+  select(estimate, statistic, p.value, conf.low, conf.high) %>%
+  kable(digits = 3)
 ```
 
----
+Con $\hat{p} = 0.177$ y $p = 0.003$ **se rechaza** $H_0$: la zona encuestada tiene un desempleo significativamente mayor que la referencia — dato relevante para focalizar el programa.
 
-## Resumen y Próximos Pasos
+## Paso 6 · ¿Empleo y región asociados? Chi-cuadrado
 
-### Conceptos Clave Cubiertos
+```{r}
+#| label: chi-tabla
+tab_er <- table(encuesta$empleo, encuesta$region)
+kable(tab_er)
+```
 
-✓ Carga y exploración de datos en R
-✓ Estadística descriptiva (medidas de tendencia y dispersión)
-✓ Pruebas de hipótesis: t-test, prop.test, chisq.test
-✓ Regresión lineal simple: estimación e interpretación
-✓ Diagnóstico de supuestos: normalidad, homocedasticidad
-✓ Visualización con ggplot2
+```{r}
+#| label: chi-prueba
+chisq.test(tab_er) %>% tidy() %>% kable(digits = 3)
+```
 
-### Próxima Sesión
+Con $p = 0.141$ **no se rechaza** la independencia: el desempleo no se concentra en una región. Requisito verificado: todas las frecuencias esperadas superan 5.
 
-En **Sesión 5 (27 de marzo)** ampliaremos con:
-- Regresión lineal múltiple
-- Variables dummy (categóricas)
-- Interacciones entre variables
-- Errores estándar robustos
-- Workflow econométrico completo
+## Paso 7 · Primera regresión: lm()
+
+$$\text{ingresos}_i = \beta_0 + \beta_1 \, \text{educacion}_i + u_i$$
+
+```{r}
+#| label: reg-niveles
+m1 <- lm(ingresos ~ educacion, data = encuesta)
+tidy(m1) %>%
+  mutate(across(c(estimate, std.error, statistic), ~ round(.x, 1)),
+         p.value = format.pval(p.value, digits = 2, eps = 0.001)) %>%
+  kable()
+```
+
+- Nunca reportar el `summary()` completo: `broom::tidy()` entrega los coeficientes como tabla ordenada, lista para el informe.
+- La ecuación estimada: $\widehat{\text{ingresos}} = -350 + 166.1 \cdot \text{educacion}$.
+
+## Paso 7 · Interpretación de los coeficientes
+
+$$\widehat{\text{ingresos}} = -350 + 166.1 \cdot \text{educacion}$$
+
+- **Pendiente** ($\hat{\beta}_1 = 166$): cada año adicional de educación se **asocia** con 166 USD más de ingreso mensual promedio. Es la cifra que responde la pregunta de política — en niveles.
+- **Intercepto** ($\hat{\beta}_0 = -350$): el "ingreso con 0 años de educación" es una **extrapolación sin soporte** — la educación mínima observada es 4 años. No se interpreta (y su $p = 0.15$ lo confirma irrelevante).
+- Las unidades importan: $\hat{\beta}_1$ está en **USD por año de educación**; si $Y$ estuviera en miles, el coeficiente sería 0.166.
+
+::: {.callout-important appearance="simple"}
+Decir "se asocia" no es modestia retórica: es la diferencia entre describir la encuesta y afirmar que **más aulas producen** 166 USD. Lo segundo requiere el Paso 13.
+:::
+
+## Paso 8 · Forma funcional: el modelo en logs
+
+```{r}
+#| label: reg-log
+m2 <- lm(log(ingresos) ~ educacion, data = encuesta)
+tidy(m2) %>%
+  mutate(across(c(estimate, std.error, statistic), ~ round(.x, 3)),
+         p.value = format.pval(p.value, digits = 2, eps = 0.001)) %>%
+  kable()
+```
+
+- Modelo **log-nivel**: $100 \cdot \hat{\beta}_1 \approx 8.5\%$ más de ingreso por año adicional de educación (una *semi-elasticidad*, el clásico retorno de Mincer).
+- El generador usaba **9%**: la regresión lo recupera dentro del error muestral.
+- El log respeta la naturaleza multiplicativa del ingreso y domará los residuos (Paso 12).
+
+## Paso 9 · Bondad de ajuste: R²
+
+```{r}
+#| label: ajuste-glance
+glance(m1) %>%
+  select(r.squared, adj.r.squared, sigma, statistic, nobs) %>%
+  kable(digits = 3, col.names = c("R2", "R2 ajustado", "sigma", "F", "n"))
+```
+
+- La educación explica el **36.9%** de la varianza del ingreso; el resto es heterogeneidad no modelada (experiencia, sector, suerte).
+- $\hat{\sigma} = 670$ USD: el error típico de predicción del modelo en niveles.
+- Un $R^2$ "bajo" **no invalida** el modelo para estimar $\beta_1$; y no comparar $R^2$ entre `m1` y `m2`: sus variables dependientes son distintas (niveles vs log).
+
+## Paso 10 · Inferencia sobre β1: t e intervalo
+
+$H_0: \beta_1 = 0$ (la educación no se asocia al ingreso) vs $H_1: \beta_1 \neq 0$.
+
+```{r}
+#| label: inferencia-beta1
+tidy(m1, conf.int = TRUE) %>%
+  filter(term == "educacion") %>%
+  select(term, estimate, std.error, statistic, conf.low, conf.high) %>%
+  kable(digits = 1)
+```
+
+- El estadístico es el de la sesión 1: $t = \hat{\beta}_1 / ee(\hat{\beta}_1) = 166.1 / 18 = 9.2$, con $p < 0.001$: **se rechaza** $H_0$ con holgura.
+- Lectura equivalente: el IC 95% $[130, 202]$ **no contiene el cero**.
+- La inferencia asume los supuestos MCO — que aún no verificamos (Paso 12): la tabla se firma solo después del diagnóstico.
+
+## Paso 11 · Predicción: puntual y por intervalo
+
+¿Qué ingreso predice el modelo para un hogar con 16 años de educación?
+
+```{r}
+#| label: prediccion-ic
+nuevo <- tibble(educacion = 16)
+predict(m1, nuevo, interval = "confidence")
+predict(m1, nuevo, interval = "prediction")
+```
+
+- Puntual: **2.306 USD**. IC de **confianza** $[2.152, 2.461]$: dónde está el ingreso *promedio* de los hogares con 16 años.
+- IC de **predicción** $[974, 3.639]$: dónde caerá un *hogar individual* — mucho más ancho porque suma la varianza de $u$.
+- Error frecuente en informes: usar el IC de confianza para prometer resultados a nivel individual.
+
+## Paso 12 · Diagnóstico visual: residuos
+
+:::: {.columns}
+
+::: {.column width="46%"}
+```{r}
+#| label: code-resid-m1
+#| eval: false
+diag1 <- tibble(
+  ajustado = fitted(m1),
+  residuo  = resid(m1))
+
+ggplot(diag1,
+       aes(ajustado, residuo)) +
+  geom_point(alpha = .5,
+             color = azul) +
+  geom_hline(yintercept = 0,
+             linetype = "dashed") +
+  geom_smooth(se = FALSE,
+              color = naranja) +
+  labs(x = "Valores ajustados",
+       y = "Residuos")
+```
+
+El **abanico** que se abre hacia la derecha es heterocedasticidad: la varianza del ingreso crece con su nivel.
+:::
+
+::: {.column width="54%"}
+```{r}
+#| label: plot-resid-m1
+#| echo: false
+#| fig-width: 5.6
+#| fig-height: 3.9
+#| out.width: "100%"
+diag1 <- tibble(ajustado = fitted(m1), residuo = resid(m1))
+interactivo(
+  ggplot(diag1, aes(ajustado, residuo)) +
+    geom_point(alpha = .5, color = azul) +
+    geom_hline(yintercept = 0, linetype = "dashed") +
+    geom_smooth(se = FALSE, color = naranja) +
+    labs(x = "Valores ajustados", y = "Residuos")
+)
+```
+:::
+
+::::
+
+## Paso 12 · Pruebas formales de los supuestos
+
+```{r}
+#| label: pruebas-formales
+list("Shapiro (niveles)" = shapiro.test(resid(m1)),
+     "Shapiro (log)"     = shapiro.test(resid(m2)),
+     "Breusch-Pagan (niveles)" = bptest(m1),
+     "Breusch-Pagan (log)"     = bptest(m2)) %>%
+  map_df(tidy, .id = "prueba") %>%
+  select(prueba, statistic, p.value) %>%
+  mutate(statistic = round(statistic, 2), p.value = signif(p.value, 2)) %>%
+  kable()
+```
+
+- En **niveles** se rechazan normalidad y homocedasticidad: la inferencia clásica de `m1` queda en duda.
+- El **log** corrige la heterocedasticidad (BP: $p = 0.59$); la normalidad queda justa, pero con $n = 147$ el TCL protege los IC. Decisión: **reportar el modelo log** (próxima sesión: errores robustos con `sandwich`).
+
+## Bonus · ggplotly(): interactividad en una línea
+
+:::: {.columns}
+
+::: {.column width="46%"}
+```{r}
+#| label: code-ggplotly
+#| eval: false
+library(plotly)
+
+p <- ggplot(encuesta,
+       aes(educacion, ingresos,
+           color = empleo)) +
+  geom_jitter(width = .2,
+              alpha = .6) +
+  labs(x = "Años de educación",
+       y = "Ingreso (USD)")
+
+ggplotly(p)   # eso es todo
+```
+
+`ggplotly()` convierte cualquier ggplot en un gráfico interactivo (tooltip, zoom, filtro por leyenda). Todas las figuras de esta sesión usan ese truco en la versión HTML; en el PDF quedan estáticas.
+:::
+
+::: {.column width="54%"}
+```{r}
+#| label: plot-ggplotly
+#| echo: false
+#| fig-width: 5.6
+#| fig-height: 3.9
+#| out.width: "100%"
+interactivo(
+  ggplot(encuesta, aes(educacion, ingresos, color = empleo)) +
+    geom_jitter(width = .2, alpha = .6) +
+    scale_color_manual(values = c(Empleado = celeste, Desempleado = rojo)) +
+    labs(x = "Años de educación", y = "Ingreso (USD)", color = NULL) +
+    theme(legend.position = "bottom")
+)
+```
+:::
+
+::::
+
+## Paso 13 · ¿Es causal el 8.5%? Lectura crítica
+
+| Amenaza | Mecanismo en este caso | Efecto sobre $\hat{\beta}_1$ |
+|---|---|---|
+| Variable omitida | la habilidad eleva educación e ingresos a la vez | sesgo al alza |
+| Causalidad inversa | familias con más ingreso compran más educación | sesgo al alza |
+| Selección muestral | los NA de ingreso rara vez son aleatorios | dirección incierta |
+| Error de medición en $X$ | años de educación auto-reportados | atenuación (hacia 0) |
+
+::: {.callout-important appearance="simple"}
+Aquí conocemos el generador y el 8.5% **sí** es (casi) el efecto verdadero — lujo que los datos reales no dan. Con encuestas reales, pasar de asociación a causa exige **diseño**: experimentos, variables instrumentales, discontinuidades (sesiones siguientes del doctorado).
+:::
+
+## Paso 14 · Mini-informe: la tabla final
+
+```{r}
+#| label: informe-modelsummary
+modelsummary(list("Ingresos (USD)" = m1, "log(Ingresos)" = m2),
+             output = "markdown", fmt = 2,
+             stars = c("*" = .05, "**" = .01, "***" = .001),
+             gof_map = c("nobs", "r.squared"))
+```
+
+**Cómo se redacta:** "Cada año adicional de educación se asocia con ingresos 8.5% mayores (IC 95%: 6.6–10.3%; $p < 0.001$; $n = 147$). La estimación es asociativa, no causal."
+
+## Síntesis: checklist del análisis integrador
+
+:::: {.columns}
+
+::: {.column width="55%"}
+**Antes de entregar un informe**
+
+1. Pregunta y parámetro objetivo definidos a priori
+2. Diccionario de variables y exclusiones documentadas
+3. Tabla descriptiva por grupo (siempre con $n$)
+4. Gráfico exploratorio antes de cualquier modelo
+5. Contrastes previos con hipótesis explícitas
+6. Coeficientes interpretados en sus unidades
+7. Diagnóstico de residuos antes de firmar la inferencia
+8. Asociación y causalidad claramente separadas
+:::
+
+::: {.column width="45%"}
+**Funciones de la sesión**
+
+`glimpse()` `drop_na()` `t.test()` `prop.test()` `chisq.test()` `lm()` `tidy()` `glance()` `confint()` `predict()` `bptest()` `shapiro.test()` `ggplotly()` `modelsummary()`
+
+**Próxima sesión:** Práctica Parte 2 — regresión múltiple, variables dummy, interacciones y errores robustos.
+:::
+
+::::
+
+## Ejercicio para practicar (30 min)
+
+Replique el flujo completo con datos **reales**: `data("wage1", package = "wooldridge")` (526 trabajadores, EE.UU. 1976; salario por hora `wage`, educación `educ`, mujer `female`).
+
+1. Escriba el diccionario de `wage`, `educ`, `female` y revise NA y rangos.
+2. Construya la tabla descriptiva de `wage` por género (n, media, mediana, DE).
+3. Contraste la brecha salarial por género con la prueba t de Welch e interprete el IC.
+4. Estime `wage ~ educ` y `log(wage) ~ educ`; interprete $\hat{\beta}_1$ en cada métrica y compare el retorno con el 8.5% de la encuesta simulada.
+5. Grafique residuos vs ajustados y aplique `bptest()` y `shapiro.test()` a ambos modelos. ¿Cuál reportaría?
+6. Prediga el salario con 16 años de educación con IC de confianza y de predicción, y explique la diferencia entre ambos a un tomador de decisiones.
+
+::: {.callout-note appearance="simple"}
+**Referencias:** Wooldridge, *Introductory Econometrics* (caps. 2, 4 y apéndice C) · Stock & Watson, *Introduction to Econometrics* (caps. 4–5) · Wickham & Grolemund, *R for Data Science* (importación y EDA).
+:::
