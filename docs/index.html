@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nivelación Estadística y Econometría — UDD</title>
+<style>
+  :root {
+    --azul: #1F4E79;
+    --celeste: #2E86C1;
+    --fondo: #f5f7fa;
+    --tarjeta: #ffffff;
+    --texto: #2c3e50;
+    --gris: #6b7a8c;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background: var(--fondo);
+    color: var(--texto);
+    line-height: 1.6;
+  }
+  header {
+    background: linear-gradient(135deg, var(--azul) 0%, var(--celeste) 100%);
+    color: #fff;
+    padding: 3rem 1.5rem 2.5rem;
+    text-align: center;
+  }
+  header h1 { font-size: 1.9rem; font-weight: 700; margin-bottom: 0.5rem; }
+  header p { font-size: 1.02rem; opacity: 0.92; max-width: 46rem; margin: 0 auto; }
+  main { max-width: 62rem; margin: 0 auto; padding: 2.2rem 1.5rem 3rem; }
+  section { margin-bottom: 2.4rem; }
+  h2 {
+    color: var(--azul);
+    font-size: 1.25rem;
+    border-bottom: 3px solid var(--celeste);
+    padding-bottom: 0.35rem;
+    margin-bottom: 0.4rem;
+  }
+  .descripcion { color: var(--gris); font-size: 0.92rem; margin-bottom: 1rem; }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(16.5rem, 1fr));
+    gap: 0.9rem;
+  }
+  a.tarjeta {
+    display: block;
+    background: var(--tarjeta);
+    border: 1px solid #e1e8ef;
+    border-left: 5px solid var(--celeste);
+    border-radius: 8px;
+    padding: 0.9rem 1.1rem;
+    text-decoration: none;
+    color: var(--texto);
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+  }
+  a.tarjeta:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(31, 78, 121, 0.15);
+    border-left-color: var(--azul);
+  }
+  .numero { color: var(--celeste); font-weight: 700; font-size: 0.8rem; letter-spacing: 0.06em; text-transform: uppercase; }
+  .titulo { font-weight: 600; font-size: 1.0rem; margin-top: 0.15rem; }
+  footer {
+    text-align: center;
+    color: var(--gris);
+    font-size: 0.85rem;
+    padding: 1.5rem;
+    border-top: 1px solid #e1e8ef;
+  }
+  footer a { color: var(--celeste); text-decoration: none; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Nivelación Estadística y Econometría</h1>
+  <p>Slides interactivas de los cursos de nivelación cuantitativa —
+  Doctorado en Ciencias de la Complejidad Social (CICS) y Doctorado en Políticas Públicas,
+  Universidad del Desarrollo · Marzo 2026</p>
+</header>
+
+<main>
+
+<section>
+  <h2>Fundamentos de Probabilidad y Estadística</h2>
+  <p class="descripcion">Nivelación intensiva de 2 días previa a Métodos Cuantitativos, con derivaciones formales y ejemplos resueltos paso a paso.</p>
+  <div class="grid">
+    <a class="tarjeta" href="sesion1_probabilidad.html">
+      <div class="numero">Sesión 1 · Día 1</div>
+      <div class="titulo">Fundamentos de Probabilidad</div>
+    </a>
+    <a class="tarjeta" href="sesion2_variables_aleatorias.html">
+      <div class="numero">Sesión 2 · Día 1</div>
+      <div class="titulo">Variables Aleatorias y Distribuciones</div>
+    </a>
+    <a class="tarjeta" href="sesion3_muestreo_inferencia.html">
+      <div class="numero">Sesión 3 · Día 2</div>
+      <div class="titulo">Muestreo e Inferencia Estadística</div>
+    </a>
+    <a class="tarjeta" href="sesion4_regresion.html">
+      <div class="numero">Sesión 4 · Día 2</div>
+      <div class="titulo">Regresión Lineal y Lectura de Resultados</div>
+    </a>
+  </div>
+</section>
+
+<section>
+  <h2>Curso de Estadística y Probabilidades</h2>
+  <p class="descripcion">Cinco sesiones: de la estadística descriptiva a la inferencia, con práctica integradora en R.</p>
+  <div class="grid">
+    <a class="tarjeta" href="sesion1_descriptiva.html">
+      <div class="numero">Sesión 1</div>
+      <div class="titulo">Estadística Descriptiva</div>
+    </a>
+    <a class="tarjeta" href="sesion2_probabilidad.html">
+      <div class="numero">Sesión 2</div>
+      <div class="titulo">Probabilidad y Teorema de Bayes</div>
+    </a>
+    <a class="tarjeta" href="sesion3_distribuciones.html">
+      <div class="numero">Sesión 3</div>
+      <div class="titulo">Distribuciones de Probabilidad</div>
+    </a>
+    <a class="tarjeta" href="sesion4_inferencia.html">
+      <div class="numero">Sesión 4</div>
+      <div class="titulo">Inferencia Estadística</div>
+    </a>
+    <a class="tarjeta" href="sesion5_practica.html">
+      <div class="numero">Sesión 5</div>
+      <div class="titulo">Práctica Integradora en R</div>
+    </a>
+  </div>
+</section>
+
+<section>
+  <h2>Curso de Econometría</h2>
+  <p class="descripcion">Cinco sesiones: pruebas de hipótesis, regresión lineal simple y múltiple, y dos prácticas integradoras en R.</p>
+  <div class="grid">
+    <a class="tarjeta" href="sesion1_hipotesis.html">
+      <div class="numero">Sesión 1</div>
+      <div class="titulo">Pruebas de Hipótesis</div>
+    </a>
+    <a class="tarjeta" href="sesion2_regresion_simple.html">
+      <div class="numero">Sesión 2</div>
+      <div class="titulo">Regresión Lineal Simple</div>
+    </a>
+    <a class="tarjeta" href="sesion3_regresion_multiple.html">
+      <div class="numero">Sesión 3</div>
+      <div class="titulo">Regresión Lineal Múltiple</div>
+    </a>
+    <a class="tarjeta" href="sesion4_practica_r1.html">
+      <div class="numero">Sesión 4</div>
+      <div class="titulo">Práctica Integradora en R (Parte 1)</div>
+    </a>
+    <a class="tarjeta" href="sesion5_practica_r2.html">
+      <div class="numero">Sesión 5</div>
+      <div class="titulo">Práctica Integradora en R (Parte 2)</div>
+    </a>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  Amaru Agüero Jiménez ·
+  <a href="https://github.com/AmaruSimonAgueroJimenez/nivelacion-estadistica-econometria">Repositorio del curso</a>
+  (fuentes QMD, PDF y scripts R)
+</footer>
+
+</body>
+</html>
