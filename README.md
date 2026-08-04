@@ -9,6 +9,21 @@ Cada sesión se genera desde un único archivo Quarto (`.qmd`) que produce dos s
 
 ---
 
+## Curso: Fundamentos de Probabilidad y Estadística
+
+Nivelación intensiva de 2 días (4 horas por día, 2 bloques diarios) previa a la asignatura **Métodos Cuantitativos** del Doctorado en Políticas Públicas. Énfasis en formalidad matemática con demostraciones y ejemplos numéricos resueltos paso a paso.
+
+| Sesión | Tema | Slides interactivas | PDF | Fuente | Script R |
+|:------:|------|:---:|:---:|:---:|:---:|
+| 1 (Día 1) | Fundamentos de Probabilidad | [HTML](clases_fundamentos/sesion1_probabilidad.html) | [PDF](clases_fundamentos/sesion1_probabilidad.pdf) | [QMD](clases_fundamentos/sesion1_probabilidad.qmd) | [R](clases_fundamentos/sesion1_probabilidad.R) |
+| 2 (Día 1) | Variables Aleatorias y Distribuciones | [HTML](clases_fundamentos/sesion2_variables_aleatorias.html) | [PDF](clases_fundamentos/sesion2_variables_aleatorias.pdf) | [QMD](clases_fundamentos/sesion2_variables_aleatorias.qmd) | [R](clases_fundamentos/sesion2_variables_aleatorias.R) |
+| 3 (Día 2) | Muestreo e Inferencia Estadística | [HTML](clases_fundamentos/sesion3_muestreo_inferencia.html) | [PDF](clases_fundamentos/sesion3_muestreo_inferencia.pdf) | [QMD](clases_fundamentos/sesion3_muestreo_inferencia.qmd) | [R](clases_fundamentos/sesion3_muestreo_inferencia.R) |
+| 4 (Día 2) | Regresión Lineal y Lectura de Resultados | [HTML](clases_fundamentos/sesion4_regresion.html) | [PDF](clases_fundamentos/sesion4_regresion.pdf) | [QMD](clases_fundamentos/sesion4_regresion.qmd) | [R](clases_fundamentos/sesion4_regresion.R) |
+
+**Contenidos:** axiomas de Kolmogorov y propiedades demostradas, probabilidad marginal/conjunta/condicional, ley de probabilidad total y Teorema de Bayes derivado paso a paso, variables aleatorias (PMF, CDF, densidad), esperanza/varianza/covarianza con derivaciones, distribución normal y cálculo de probabilidades de intervalos, distribuciones muestrales (demostraciones de E[X̄]=μ y Var(X̄)=σ²/n), TCL, propiedades de estimadores (sesgo, eficiencia, consistencia), intervalos de confianza derivados, contraste de hipótesis (errores I/II, valor-p, potencia), derivación completa de MCO con ejemplo a mano, y lectura guiada de tablas de regresión.
+
+---
+
 ## Curso de Estadística y Probabilidades
 
 | Sesión | Tema | Slides interactivas | PDF | Fuente | Script R |
