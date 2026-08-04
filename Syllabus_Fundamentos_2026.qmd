@@ -91,7 +91,8 @@ Al finalizar la asignatura, se espera que las y los estudiantes sean capaces de:
 
 - Población, muestra y estadísticos muestrales.
 - Distribuciones muestrales.
-- Teorema central del límite.
+- Ley de los grandes números: enunciado, demostración vía Chebyshev y convergencia de la media muestral.
+- Teorema central del límite y su contraste con la ley de los grandes números.
 - Estimación puntual y por intervalos.
 - Propiedades de los estimadores: sesgo, varianza, consistencia.
 - Contraste de hipótesis: errores tipo I y tipo II, valor p, potencia de un test.

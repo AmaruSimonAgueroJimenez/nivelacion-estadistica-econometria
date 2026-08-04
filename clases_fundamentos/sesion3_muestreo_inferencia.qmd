@@ -67,7 +67,8 @@ interactivo <- function(p) {
 | Bloque | Concepto clave | Herramienta en R |
 |---|---|---|
 | Muestreo | Población, muestra i.i.d., $\theta$ vs $\hat{\theta}$ | `sample()` |
-| Distribución muestral | $\mathbb{E}[\bar{X}] = \mu$, $\operatorname{Var}(\bar{X}) = \sigma^2/n$, TCL | `replicate()` |
+| Distribución muestral | $\mathbb{E}[\bar{X}] = \mu$, $\operatorname{Var}(\bar{X}) = \sigma^2/n$ | `replicate()` |
+| LGN y TCL | $\bar{X}_n \xrightarrow{p} \mu$ · fluctuaciones $\to N(0,1)$ | `cummean()`, simulación |
 | Propiedades | Insesgadez, eficiencia, consistencia | `var()`, simulación |
 | Intervalos | IC 95% con $z$ y con $t$ | `t.test()`, `qt()` |
 | Contraste de hipótesis | 6 pasos, valor-p, errores I y II | `t.test()` |
