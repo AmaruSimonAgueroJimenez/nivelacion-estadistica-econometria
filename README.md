@@ -68,8 +68,8 @@ Nivelación intensiva de 2 días (4 horas por día, 2 bloques diarios) previa a 
 |-----------|:---:|:---:|
 | Syllabus Estadística | [PDF](Syllabus_Nivelacion_Estadistica_2026.pdf) | [QMD](Syllabus_Nivelacion_Estadistica_2026.qmd) |
 | Syllabus Econometría | [PDF](Syllabus_Nivelacion_Econometria_2026.pdf) | [QMD](Syllabus_Nivelacion_Econometria_2026.qmd) |
-| Prueba Diagnóstica | [PDF](Prueba_Diagnostica_Nivelacion_2026.pdf) | — |
-| Pauta de Corrección | [PDF](Pauta_Correccion_Diagnostica_2026.pdf) | — |
+| Prueba Diagnóstica | [PDF](Prueba_Diagnostica_Nivelacion_2026.pdf) | [QMD](Prueba_Diagnostica_Nivelacion_2026.qmd) |
+| Pauta de Corrección | [PDF](Pauta_Correccion_Diagnostica_2026.pdf) | [QMD](Pauta_Correccion_Diagnostica_2026.qmd) |
 
 ---
 

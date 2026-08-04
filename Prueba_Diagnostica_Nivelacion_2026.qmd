@@ -1,0 +1,317 @@
+---
+format:
+  pdf:
+    documentclass: article
+    geometry: margin=2.2cm
+    fontsize: 11pt
+    colorlinks: true
+    linkcolor: "[HTML]{1F4E79}"
+    urlcolor: "[HTML]{2E86C1}"
+    include-in-header:
+      text: |
+        \usepackage{fancyhdr}
+        \pagestyle{fancy}
+        \fancyhf{}
+        \fancyfoot[C]{\footnotesize\itshape Docente: Denise Laroze | Ayudante: Amaru Agüero | Doctorados en Cs. de la Complejidad Social y Políticas Públicas — UDD \quad Página \thepage}
+        \renewcommand{\headrulewidth}{0pt}
+        \usepackage{xcolor}
+        \definecolor{uddblue}{HTML}{1F4E79}
+        \usepackage{colortbl}
+        \usepackage{sectsty}
+        \sectionfont{\color{uddblue}}
+        \subsectionfont{\color{uddblue}}
+        \usepackage{needspace}
+        \newcommand{\linresp}{\par\nopagebreak\vspace{0.4cm}\nopagebreak\noindent\rule{\linewidth}{0.4pt}}
+        \makeatletter
+        \@endparpenalty=\@M
+        \makeatother
+        \widowpenalty=10000
+        \clubpenalty=10000
+        \raggedbottom
+lang: es
+---
+
+```{=latex}
+\begin{center}
+\includegraphics[width=5cm]{logo_gobierno.png}
+
+\vspace{0.4cm}
+{\color{uddblue}\Huge\bfseries EVALUACIÓN DIAGNÓSTICA}
+
+\vspace{0.25cm}
+{\Large Nivelación en Estadística y Econometría}
+
+Doctorado en Ciencias de la Complejidad Social — CICS, UDD · Doctorado en Políticas Públicas \\ Marzo 2026
+\end{center}
+\vspace{0.3cm}
+\noindent\textbf{Nombre:}\enspace\rule{11.5cm}{0.4pt}
+
+\vspace{0.35cm}
+\noindent\textbf{Fecha:}\enspace\hspace{0.32cm}\rule{11.5cm}{0.4pt}
+\vspace{0.25cm}
+```
+
+**Instrucciones:** Esta evaluación diagnóstica tiene como objetivo identificar el nivel de entrada de cada estudiante en conceptos básicos de estadística y econometría. **No tiene calificación ni carácter aprobatorio.** Responda con lo que sepa; si no conoce la respuesta, deje el espacio en blanco. Dispone de **20 minutos**.
+
+```{=latex}
+\needspace{4.5cm}
+\vspace{0.1cm}
+\begin{center}
+\colorbox{uddblue}{\makebox[0.93\linewidth][c]{\rule[-5pt]{0pt}{16pt}\color{white}\large\bfseries PARTE I: ESTADÍSTICA BÁSICA}}
+\end{center}
+```
+
+## Pregunta 1. Defina formalmente los siguientes conceptos del contraste de hipótesis
+
+a) Hipótesis nula ($H_0$) e hipótesis alternativa ($H_1$):
+
+```{=latex}
+\linresp
+\linresp
+```
+
+b) p-valor:
+
+```{=latex}
+\linresp
+\linresp
+```
+
+c) Error Tipo I y Error Tipo II:
+
+```{=latex}
+\linresp
+\linresp
+```
+
+d) Nivel de significancia ($\alpha$):
+
+```{=latex}
+\linresp
+\linresp
+```
+
+e) Potencia estadística ($1-\beta$):
+
+```{=latex}
+\linresp
+\linresp
+```
+
+f) Nivel de confianza:
+
+```{=latex}
+\linresp
+\linresp
+```
+
+## Pregunta 2. Matriz del contraste de hipótesis
+
+Complete la siguiente matriz. Indique en cada celda: **(1)** el nombre del resultado (p. ej. "Decisión correcta", "Error Tipo I") y **(2)** la probabilidad asociada (p. ej. $\alpha$, $\beta$, $1-\alpha$, $1-\beta$).
+
+```{=latex}
+\needspace{6cm}
+\vspace{0.2cm}
+\begin{center}
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{|p{3.4cm}|p{4.8cm}|p{4.8cm}|}
+\hline
+\rowcolor{uddblue!12} \textbf{Realidad} & \multicolumn{2}{c|}{\textbf{Decisión del investigador}} \\
+\hline
+\rowcolor{uddblue!12} & \textbf{No rechazar $H_0$} & \textbf{Rechazar $H_0$} \\
+\hline
+$H_0$ es verdadera & \rule{0pt}{1.6cm} & \\
+\hline
+$H_0$ es falsa & \rule{0pt}{1.6cm} & \\
+\hline
+\end{tabular}
+\end{center}
+```
+
+## Pregunta 3. Interpretación de un intervalo de confianza
+
+En una encuesta a 500 personas, el 60% apoya una política pública. Se construye un intervalo de confianza al 95% y se obtiene $[0.557,\ 0.643]$. ¿Cuál de las siguientes interpretaciones es **correcta**?
+
+a) Hay un 95% de probabilidad de que la verdadera proporción poblacional esté entre 0.557 y 0.643.
+b) Si repitiéramos el muestreo muchas veces, aproximadamente el 95% de los intervalos construidos contendrían la verdadera proporción poblacional.
+c) El 95% de las personas de la población tiene una opinión entre 0.557 y 0.643.
+d) Estamos 95% seguros de que la muestra es representativa.
+
+**Respuesta y justificación** (por qué las otras opciones son incorrectas):
+
+```{=latex}
+\linresp
+\linresp
+\linresp
+```
+
+## Pregunta 4. Decisión con valor-p, potencia y tamaño muestral
+
+Un estudio compara el ingreso promedio entre dos grupos (tratamiento vs. control) y reporta: $t = 1.87$, valor-p $= 0.062$, $n = 45$ por grupo.
+
+a) Usando un nivel de significancia del 5%, ¿rechaza la hipótesis nula? ¿Por qué?
+
+```{=latex}
+\linresp
+\linresp
+```
+
+b) ¿Significa esto que definitivamente no hay diferencia entre los grupos? Explique considerando la potencia estadística y el tamaño muestral.
+
+```{=latex}
+\linresp
+\linresp
+\linresp
+```
+
+## Pregunta 5. Elección de prueba estadística
+
+Un investigador quiere saber si hay relación entre nivel educativo (básica, media, superior) y preferencia electoral (candidato A, B, C). ¿Qué prueba estadística debería utilizar? ¿Cuáles son las hipótesis nula y alternativa? ¿Qué supuestos debe verificar?
+
+```{=latex}
+\linresp
+\linresp
+\linresp
+\linresp
+```
+
+```{=latex}
+\needspace{4.5cm}
+\vspace{0.1cm}
+\begin{center}
+\colorbox{uddblue}{\makebox[0.93\linewidth][c]{\rule[-5pt]{0pt}{16pt}\color{white}\large\bfseries PARTE II: ECONOMETRÍA BÁSICA}}
+\end{center}
+```
+
+## Pregunta 6. Lectura de una tabla de regresión
+
+La siguiente tabla muestra los resultados de tres modelos de regresión lineal que estiman el **logaritmo del ingreso mensual** (log pesos) en función de distintas variables. Los errores estándar se reportan entre paréntesis. \*\*\* p<0.01, \*\* p<0.05, \* p<0.1.
+
+```{=latex}
+\needspace{8cm}
+```
+
+| Variable | Modelo 1 | Modelo 2 | Modelo 3 |
+|:---------|:--------:|:--------:|:--------:|
+| (Intercepto) | 8.241\*\*\* | 6.853\*\*\* | 5.127\*\*\* |
+| | (0.612) | (0.734) | (0.891) |
+| Escolaridad (años) | 0.487\*\*\* | 0.412\*\*\* | 0.389\*\*\* |
+| | (0.045) | (0.048) | (0.047) |
+| Experiencia (años) | | 0.083\*\*\* | 0.076\*\*\* |
+| | | (0.021) | (0.020) |
+| Mujer (dummy) | | | $-0.952$\*\*\* |
+| | | | (0.198) |
+| Escolaridad × Mujer | | | 0.064 |
+| | | | (0.041) |
+| N | 1,250 | 1,250 | 1,250 |
+| R² | 0.184 | 0.211 | 0.267 |
+| R² ajustado | 0.183 | 0.210 | 0.264 |
+
+a) Interprete el coeficiente de Escolaridad en el Modelo 1. Dado que la variable dependiente está en logaritmo, ¿qué significa concretamente un coeficiente de 0.487?
+
+```{=latex}
+\linresp
+\linresp
+\linresp
+```
+
+b) Compare el coeficiente de Escolaridad entre el Modelo 1 (0.487) y el Modelo 2 (0.412). ¿Por qué cambia al agregar Experiencia? ¿Qué nos dice esto sobre el Modelo 1?
+
+```{=latex}
+\linresp
+\linresp
+\linresp
+```
+
+c) En el Modelo 3, interprete el coeficiente de la dummy Mujer ($-0.952$). ¿Qué significa en términos del ingreso?
+
+```{=latex}
+\linresp
+\linresp
+\linresp
+```
+
+d) El término de interacción Escolaridad × Mujer tiene coeficiente 0.064 y **no es significativo**. ¿Qué implicancia tiene esto para la relación entre escolaridad e ingreso según género?
+
+```{=latex}
+\linresp
+\linresp
+\linresp
+```
+
+e) ¿Qué modelo elegiría y por qué? Considere R², parsimonia y significancia de las variables.
+
+```{=latex}
+\linresp
+\linresp
+\linresp
+```
+
+## Pregunta 7. Lectura de código en R
+
+Observe el siguiente código en R y responda las preguntas:
+
+```r
+library(tidyverse)
+
+datos <- read_csv("encuesta_social.csv")
+
+# Modelo A
+modelo_a <- lm(log(ingreso) ~ educacion + edad + I(edad^2), data = datos)
+summary(modelo_a)
+
+# Modelo B
+modelo_b <- lm(log(ingreso) ~ educacion * factor(region), data = datos)
+summary(modelo_b)
+```
+
+a) ¿Cuál es la variable dependiente en ambos modelos? ¿Por qué se usa `log(ingreso)` en vez de `ingreso` directamente?
+
+```{=latex}
+\linresp
+\linresp
+\linresp
+```
+
+b) En el Modelo A, ¿qué significa incluir `I(edad^2)`? ¿Qué tipo de relación entre edad e ingreso está modelando?
+
+```{=latex}
+\linresp
+\linresp
+\linresp
+```
+
+c) En el Modelo B, ¿qué hace `educacion * factor(region)`? ¿Cuántos coeficientes adicionales genera si región tiene 4 categorías?
+
+```{=latex}
+\linresp
+\linresp
+\linresp
+```
+
+## Pregunta 8. Formulación de un modelo econométrico
+
+Un investigador quiere estudiar si la participación en un programa de capacitación laboral afecta el ingreso de los participantes. Dispone de datos de 2,000 individuos con las siguientes variables: ingreso mensual, participación en el programa (sí/no), años de escolaridad, edad, género y región.
+
+a) Formule el modelo econométrico que estimaría. Escriba la ecuación completa especificando variable dependiente, independientes y término de error.
+
+```{=latex}
+\linresp
+\linresp
+\linresp
+```
+
+b) ¿Qué coeficiente captura el efecto del programa? ¿Cómo lo interpretaría?
+
+```{=latex}
+\linresp
+\linresp
+```
+
+c) Un colega le dice que el modelo podría tener un problema de endogeneidad. ¿Qué significa esto? Dé un ejemplo concreto de por qué podría ocurrir en este caso.
+
+```{=latex}
+\linresp
+\linresp
+\linresp
+```

@@ -1,0 +1,269 @@
+---
+format:
+  pdf:
+    documentclass: article
+    geometry: margin=2.2cm
+    fontsize: 11pt
+    colorlinks: true
+    linkcolor: "[HTML]{1F4E79}"
+    urlcolor: "[HTML]{2E86C1}"
+    include-in-header:
+      text: |
+        \usepackage{fancyhdr}
+        \pagestyle{fancy}
+        \fancyhf{}
+        \fancyfoot[C]{\footnotesize\itshape Docente: Denise Laroze | Ayudante: Amaru Agüero | Doctorados en Cs. de la Complejidad Social y Políticas Públicas — UDD \quad Página \thepage}
+        \renewcommand{\headrulewidth}{0pt}
+        \usepackage{xcolor}
+        \definecolor{uddblue}{HTML}{1F4E79}
+        \usepackage{colortbl}
+        \usepackage{sectsty}
+        \sectionfont{\color{uddblue}}
+        \subsectionfont{\color{uddblue}}
+        \usepackage{needspace}
+        \makeatletter
+        \@endparpenalty=\@M
+        \makeatother
+        \widowpenalty=10000
+        \clubpenalty=10000
+        \raggedbottom
+lang: es
+---
+
+```{=latex}
+\begin{center}
+\includegraphics[width=5cm]{logo_gobierno.png}
+
+\vspace{0.4cm}
+{\color{uddblue}\Huge\bfseries EVALUACIÓN DIAGNÓSTICA}
+
+\vspace{0.25cm}
+{\Large Nivelación en Estadística y Econometría}
+
+Doctorado en Ciencias de la Complejidad Social — CICS, UDD · Doctorado en Políticas Públicas \\ Marzo 2026
+
+\vspace{0.3cm}
+{\color{uddblue}\LARGE\bfseries PAUTA DE CORRECCIÓN}
+\end{center}
+\vspace{0.2cm}
+```
+
+**Instrucciones (versión estudiante):** Esta evaluación diagnóstica tiene como objetivo identificar el nivel de entrada de cada estudiante en conceptos básicos de estadística y econometría. **No tiene calificación ni carácter aprobatorio.** Tiempo estimado: **20 minutos**. Esta pauta contiene las mismas preguntas de la prueba con la respuesta esperada de cada una.
+
+```{=latex}
+\needspace{4.5cm}
+\vspace{0.1cm}
+\begin{center}
+\colorbox{uddblue}{\makebox[0.93\linewidth][c]{\rule[-5pt]{0pt}{16pt}\color{white}\large\bfseries PARTE I: ESTADÍSTICA BÁSICA}}
+\end{center}
+```
+
+## Pregunta 1. Defina formalmente los siguientes conceptos del contraste de hipótesis
+
+a) Hipótesis nula ($H_0$) e hipótesis alternativa ($H_1$):
+
+::: {.callout-tip title="Respuesta"}
+La **hipótesis nula** ($H_0$) es la afirmación inicial que se asume verdadera y que generalmente plantea la ausencia de efecto, diferencia o relación (por ejemplo, $H_0\!: \mu_1 = \mu_2$). La **hipótesis alternativa** ($H_1$) es la afirmación que se busca probar y que contradice a $H_0$ (por ejemplo, $H_1\!: \mu_1 \neq \mu_2$ bilateral, o $H_1\!: \mu_1 > \mu_2$ unilateral). El contraste estadístico evalúa si los datos proporcionan evidencia suficiente para rechazar $H_0$ en favor de $H_1$.
+:::
+
+b) p-valor:
+
+::: {.callout-tip title="Respuesta"}
+El **p-valor** es la probabilidad de obtener un resultado tan extremo o más extremo que el observado en los datos, asumiendo que la hipótesis nula es verdadera. Formalmente: $P(T \geq t_{obs} \mid H_0)$. Un p-valor pequeño indica que los datos observados son poco compatibles con $H_0$, lo que proporciona evidencia en contra de ella. **No** es la probabilidad de que $H_0$ sea verdadera.
+:::
+
+c) Error Tipo I y Error Tipo II:
+
+::: {.callout-tip title="Respuesta"}
+**Error Tipo I (falso positivo):** rechazar $H_0$ cuando en realidad es verdadera; su probabilidad está acotada por el nivel de significancia $\alpha$. **Error Tipo II (falso negativo):** no rechazar $H_0$ cuando en realidad es falsa (es decir, $H_1$ es verdadera); su probabilidad se denota $\beta$. Ambos errores están inversamente relacionados: al disminuir $\alpha$, generalmente aumenta $\beta$.
+:::
+
+d) Nivel de significancia ($\alpha$):
+
+::: {.callout-tip title="Respuesta"}
+El **nivel de significancia** ($\alpha$) es la probabilidad máxima de cometer un Error Tipo I que el investigador está dispuesto a tolerar. Se fija antes de realizar el contraste (comúnmente $\alpha = 0.05$ o $\alpha = 0.01$). Si el p-valor es menor que $\alpha$, se rechaza $H_0$. Define el umbral de decisión y el tamaño de la región crítica de la distribución de prueba.
+:::
+
+e) Potencia estadística ($1-\beta$):
+
+::: {.callout-tip title="Respuesta"}
+La **potencia estadística** ($1-\beta$) es la probabilidad de rechazar correctamente $H_0$ cuando efectivamente es falsa: la capacidad de la prueba para detectar un efecto cuando realmente existe. Depende de: (1) el tamaño del efecto, (2) el tamaño muestral $n$, (3) el nivel de significancia $\alpha$, y (4) la varianza de los datos. Una potencia aceptable suele ser $\geq 0.80$ (80%).
+:::
+
+f) Nivel de confianza:
+
+::: {.callout-tip title="Respuesta"}
+El **nivel de confianza** ($1-\alpha$) indica la proporción de intervalos de confianza que, en muestreo repetido, contendrían el verdadero parámetro poblacional. Un nivel de confianza del 95% ($\alpha = 0.05$) significa que si construyéramos 100 intervalos con diferentes muestras, aproximadamente 95 de ellos contendrían el valor verdadero. Es el complemento del nivel de significancia.
+:::
+
+## Pregunta 2. Matriz del contraste de hipótesis
+
+::: {.callout-tip title="Respuesta"}
+```{=latex}
+\begin{center}
+\renewcommand{\arraystretch}{1.35}
+\begin{tabular}{|p{3.2cm}|p{4.6cm}|p{4.6cm}|}
+\hline
+\rowcolor{uddblue!12} \textbf{Realidad} & \multicolumn{2}{c|}{\textbf{Decisión del investigador}} \\
+\hline
+\rowcolor{uddblue!12} & \textbf{No rechazar $H_0$} & \textbf{Rechazar $H_0$} \\
+\hline
+$H_0$ es verdadera & Decisión correcta \newline $P = 1-\alpha$ & Error Tipo I (falso positivo) \newline $P = \alpha$ \\
+\hline
+$H_0$ es falsa & Error Tipo II (falso negativo) \newline $P = \beta$ & Decisión correcta (potencia) \newline $P = 1-\beta$ \\
+\hline
+\end{tabular}
+\end{center}
+```
+:::
+
+## Pregunta 3. Interpretación de un intervalo de confianza
+
+::: {.callout-tip title="Respuesta"}
+**La respuesta correcta es b).**
+
+**a) es incorrecta** porque el parámetro poblacional es un valor fijo (no aleatorio); una vez construido el intervalo, la proporción verdadera está dentro o no está — no hay "95% de probabilidad". La interpretación frecuentista se refiere al procedimiento repetido, no a un intervalo particular.
+
+**c) es incorrecta** porque el intervalo de confianza se refiere a un parámetro poblacional (la proporción), no a la distribución de opiniones individuales de las personas.
+
+**d) es incorrecta** porque el intervalo de confianza no mide la representatividad de la muestra; esta depende del diseño muestral (aleatorización), no del intervalo.
+:::
+
+## Pregunta 4. Decisión con valor-p, potencia y tamaño muestral
+
+a) Usando un nivel de significancia del 5%, ¿rechaza la hipótesis nula? ¿Por qué?
+
+::: {.callout-tip title="Respuesta"}
+**No se rechaza $H_0$** al nivel de significancia del 5%: el p-valor (0.062) es mayor que $\alpha = 0.05$, por lo que no existe evidencia estadísticamente significativa de diferencia en el ingreso promedio entre grupos. Sin embargo, el p-valor está marginalmente por encima del umbral, lo que sugiere que la evidencia no es concluyente.
+:::
+
+b) ¿Significa esto que definitivamente no hay diferencia entre los grupos?
+
+::: {.callout-tip title="Respuesta"}
+**No: no rechazar $H_0$ no implica que $H_0$ sea verdadera** — "ausencia de evidencia no es evidencia de ausencia". Con $n = 45$ por grupo (muestra relativamente pequeña), la prueba puede tener **baja potencia estadística**: poca capacidad para detectar un efecto real si existe. El p-valor de 0.062 es cercano a 0.05, lo que sugiere que una muestra mayor podría alcanzar significancia. Se recomienda: (1) calcular la potencia ex post, (2) determinar el tamaño muestral necesario, y (3) reportar el tamaño del efecto con su intervalo de confianza.
+:::
+
+## Pregunta 5. Elección de prueba estadística
+
+::: {.callout-tip title="Respuesta"}
+**Prueba:** test de **chi-cuadrado ($\chi^2$) de independencia**, ya que ambas variables son categóricas nominales.
+
+**Hipótesis:** $H_0$: el nivel educativo y la preferencia electoral son independientes (no hay asociación); $H_1$: existe asociación entre nivel educativo y preferencia electoral.
+
+**Supuestos a verificar:** observaciones independientes entre sí; frecuencias esperadas $\geq 5$ en cada celda de la tabla de contingencia (regla de Cochran; si no se cumple, usar el test exacto de Fisher); muestreo aleatorio; categorías mutuamente excluyentes y exhaustivas.
+:::
+
+```{=latex}
+\needspace{4.5cm}
+\vspace{0.1cm}
+\begin{center}
+\colorbox{uddblue}{\makebox[0.93\linewidth][c]{\rule[-5pt]{0pt}{16pt}\color{white}\large\bfseries PARTE II: ECONOMETRÍA BÁSICA}}
+\end{center}
+```
+
+## Pregunta 6. Lectura de una tabla de regresión
+
+La tabla estima el **logaritmo del ingreso mensual**. Errores estándar entre paréntesis. \*\*\* p<0.01, \*\* p<0.05, \* p<0.1.
+
+```{=latex}
+\needspace{8cm}
+```
+
+| Variable | Modelo 1 | Modelo 2 | Modelo 3 |
+|:---------|:--------:|:--------:|:--------:|
+| (Intercepto) | 8.241\*\*\* | 6.853\*\*\* | 5.127\*\*\* |
+| | (0.612) | (0.734) | (0.891) |
+| Escolaridad (años) | 0.487\*\*\* | 0.412\*\*\* | 0.389\*\*\* |
+| | (0.045) | (0.048) | (0.047) |
+| Experiencia (años) | | 0.083\*\*\* | 0.076\*\*\* |
+| | | (0.021) | (0.020) |
+| Mujer (dummy) | | | $-0.952$\*\*\* |
+| | | | (0.198) |
+| Escolaridad × Mujer | | | 0.064 |
+| | | | (0.041) |
+| N | 1,250 | 1,250 | 1,250 |
+| R² | 0.184 | 0.211 | 0.267 |
+| R² ajustado | 0.183 | 0.210 | 0.264 |
+
+a) Interprete el coeficiente de Escolaridad en el Modelo 1.
+
+::: {.callout-tip title="Respuesta"}
+En un modelo **log-lineal** (dependiente en logaritmo, independiente en nivel), el coeficiente se interpreta como cambio porcentual aproximado. Un coeficiente de **0.487** significa que, *ceteris paribus*, cada año adicional de escolaridad se asocia con un aumento aproximado del **48.7%** en el ingreso mensual (más precisamente, $(e^{0.487}-1)\times 100 \approx 62.7\%$; la aproximación lineal $\beta \times 100$ es válida para coeficientes pequeños). Es estadísticamente significativo al 1% (\*\*\*), y el error estándar de 0.045 indica una estimación precisa.
+:::
+
+b) ¿Por qué cambia el coeficiente de Escolaridad de 0.487 (Modelo 1) a 0.412 (Modelo 2)?
+
+::: {.callout-tip title="Respuesta"}
+El cambio indica que en el Modelo 1 existía un **sesgo por variable omitida**: la escolaridad estaba correlacionada con la experiencia (variable omitida), por lo que su coeficiente capturaba parte del efecto de la experiencia. Al controlar por Experiencia en el Modelo 2, el efecto "puro" de la escolaridad es menor. El Modelo 1 **sobreestimaba** el retorno a la educación por no controlar por la experiencia laboral.
+:::
+
+c) Interprete el coeficiente de la dummy Mujer ($-0.952$) en el Modelo 3.
+
+::: {.callout-tip title="Respuesta"}
+El coeficiente es significativo al 1% (\*\*\*). Dado que la dependiente es log(ingreso), las mujeres con 0 años de escolaridad ganan aproximadamente un 95.2% menos que los hombres según la aproximación lineal (más exactamente, $(e^{-0.952}-1)\times 100 \approx -61.4\%$), *ceteris paribus*. Como existe la interacción Escolaridad × Mujer, el efecto total de ser mujer depende del nivel de escolaridad: $\text{Efecto} = -0.952 + 0.064 \times \text{Escolaridad}$.
+:::
+
+d) Implicancia de que la interacción Escolaridad × Mujer (0.064) no sea significativa:
+
+::: {.callout-tip title="Respuesta"}
+Al no ser estadísticamente significativo ($p > 0.10$), **no hay evidencia suficiente para afirmar que el retorno a la escolaridad difiera entre hombres y mujeres**: cada año adicional de educación tiene un efecto similar en el ingreso para ambos géneros. La brecha salarial de género (capturada por la dummy) parece constante independientemente del nivel educativo. Si el coeficiente fuera significativo y positivo, indicaría que la educación reduce parcialmente la brecha de género.
+:::
+
+e) ¿Qué modelo elegiría y por qué?
+
+::: {.callout-tip title="Respuesta"}
+Se podría elegir el **Modelo 3 (o una versión sin la interacción)**. A favor: tiene el R² ajustado más alto (0.264), todas las variables principales significativas al 1%, y controla por género (teóricamente relevante). Consideración: la interacción no es significativa, por lo que un modelo con Escolaridad + Experiencia + Mujer sería más parsimonioso y preferible. No se recomienda el Modelo 1 (omite variables relevantes: sesgo de variable omitida) ni el Modelo 2 (no controla por género).
+:::
+
+## Pregunta 7. Lectura de código en R
+
+```r
+# Modelo A
+modelo_a <- lm(log(ingreso) ~ educacion + edad + I(edad^2), data = datos)
+# Modelo B
+modelo_b <- lm(log(ingreso) ~ educacion * factor(region), data = datos)
+```
+
+a) ¿Cuál es la variable dependiente? ¿Por qué `log(ingreso)`?
+
+::: {.callout-tip title="Respuesta"}
+La variable dependiente es **log(ingreso)** en ambos modelos. La transformación logarítmica se usa porque: (1) la distribución del ingreso suele estar sesgada a la derecha y el log la aproxima a la normalidad; (2) permite interpretar los coeficientes como cambios porcentuales aproximados; (3) reduce la heterocedasticidad (la varianza del ingreso tiende a crecer con su nivel); (4) es consistente con la teoría económica (ecuación de Mincer).
+:::
+
+b) ¿Qué significa incluir `I(edad^2)`?
+
+::: {.callout-tip title="Respuesta"}
+`I(edad^2)` incluye el cuadrado de la edad como regresor adicional (la función `I()` protege la operación aritmética dentro de la fórmula; sin ella, `^` se interpretaría como interacción). Modela una **relación cuadrática (no lineal)** entre edad e ingreso: $\log(ingreso) = \beta_0 + \beta_1 educ + \beta_2 edad + \beta_3 edad^2 + \varepsilon$. Típicamente se espera $\beta_2 > 0$ y $\beta_3 < 0$ (parábola invertida): el ingreso aumenta con la edad hasta un punto óptimo ($edad^* = -\beta_2/(2\beta_3)$) y luego decrece, capturando el ciclo de vida laboral.
+:::
+
+c) ¿Qué hace `educacion * factor(region)` y cuántos coeficientes adicionales genera con 4 categorías?
+
+::: {.callout-tip title="Respuesta"}
+El operador `*` incluye efectos principales e interacción: equivale a `educacion + factor(region) + educacion:factor(region)`. `factor(region)` convierte región en categórica y genera **3 dummies** (regla $k-1$: una categoría queda como referencia). Coeficientes adicionales respecto a un modelo con solo intercepto: 1 (educación) + 3 (dummies de región) + 3 (interacciones educación × región) = **7 coeficientes + intercepto = 8 parámetros**. Las interacciones permiten que el retorno a la educación varíe según la región (pendientes distintas).
+:::
+
+## Pregunta 8. Formulación de un modelo econométrico
+
+a) Formule el modelo:
+
+::: {.callout-tip title="Respuesta"}
+$$\log(ingreso_i) = \beta_0 + \beta_1 Programa_i + \beta_2 Escolaridad_i + \beta_3 Edad_i + \beta_4 Edad_i^2 + \beta_5 Mujer_i + \beta_6 Region_i + \varepsilon_i$$
+
+Donde: log(ingreso) es el logaritmo del ingreso mensual (dependiente); *Programa* es dummy (1 = participó); *Escolaridad* en años (continua); *Edad* y *Edad²* capturan la relación cuadrática; *Mujer* es dummy de género; *Región* es un conjunto de dummies regionales; y $\varepsilon_i$ es el término de error aleatorio.
+:::
+
+b) ¿Qué coeficiente captura el efecto del programa?
+
+::: {.callout-tip title="Respuesta"}
+El coeficiente $\beta_1$. Al ser la dependiente log(ingreso) y *Programa* una dummy, $\beta_1$ se interpreta como: *ceteris paribus*, los participantes tienen un ingreso aproximadamente $\beta_1 \times 100\%$ mayor (o menor si $\beta_1 < 0$) que los no participantes. Por ejemplo, si $\beta_1 = 0.15$, los participantes ganan aproximadamente un 15% más, controlando por escolaridad, edad, género y región.
+:::
+
+c) ¿Qué significa el problema de endogeneidad en este caso?
+
+::: {.callout-tip title="Respuesta"}
+**Endogeneidad** ocurre cuando una variable explicativa está correlacionada con el término de error, $\operatorname{Cov}(X, \varepsilon) \neq 0$, lo que genera estimadores MCO sesgados e inconsistentes.
+
+**Ejemplo concreto:** la participación en el programa probablemente no es aleatoria — los individuos más motivados, con mayor capital social o mejor información tienden a autoseleccionarse. Esas características no observadas (motivación, habilidad, redes) también afectan el ingreso y están en $\varepsilon$; por lo tanto $\operatorname{Cov}(Programa, \varepsilon) > 0$ y $\beta_1$ **sobreestimaría** el verdadero efecto causal (sesgo de autoselección).
+
+**Posibles soluciones:** variables instrumentales (IV), regresión discontinua, diferencias en diferencias o *propensity score matching*, según el contexto y los datos disponibles.
+:::
