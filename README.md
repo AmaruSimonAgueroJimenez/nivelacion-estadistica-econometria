@@ -1,6 +1,6 @@
-# Nivelación Estadística y Econometría — Doctorado en Políticas Públicas (2026)
+# Nivelación Estadística y Econometría — UDD (2026)
 
-Material docente para los cursos de nivelación en **estadística y probabilidades** y **econometría** del Doctorado en Políticas Públicas.
+Material docente para los cursos de nivelación en **estadística y probabilidades** y **econometría** del **Doctorado en Políticas Públicas** y del **Doctorado en Ciencias de la Complejidad Social** (CICS), Universidad del Desarrollo.
 
 Cada sesión se genera desde un único archivo Quarto (`.qmd`) que produce dos salidas:
 
