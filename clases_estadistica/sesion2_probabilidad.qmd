@@ -15,6 +15,7 @@ format:
     code-line-numbers: false
     fig-align: center
     menu: true
+    scrollable: true
   beamer:
     aspectratio: 169
     theme: Madrid
@@ -122,6 +123,67 @@ $$(A \cap B)^c = A^c \cup B^c$$
 
 ::::
 
+## Las operaciones, una a una
+
+```{r}
+#| label: venn-operaciones
+#| echo: false
+#| dev: png
+#| fig-width: 10
+#| fig-height: 2.7
+#| out-width: "100%"
+library(ggforce)
+niveles <- c("Unión: A o B (o ambos)", "Intersección: A y B",
+             "Complemento: no ocurre A", "Disjuntos: no coexisten")
+circ <- bind_rows(
+  tibble(panel = niveles[1], x0 = c(-0.5, 0.5), y0 = 0, r = 1,
+         fill = celeste, al = 0.45),
+  tibble(panel = niveles[2], x0 = c(-0.5, 0.5), y0 = 0, r = 1,
+         fill = NA_character_, al = 1),
+  tibble(panel = niveles[3], x0 = -0.2, y0 = 0, r = 1,
+         fill = "white", al = 1),
+  tibble(panel = niveles[4], x0 = c(-1.05, 1.05), y0 = 0, r = 0.9,
+         fill = c(celeste, naranja), al = 0.45)
+) %>% mutate(panel = factor(panel, levels = niveles))
+t1 <- seq(-pi/3, pi/3, length.out = 60)
+t2 <- seq(2*pi/3, 4*pi/3, length.out = 60)
+lente <- tibble(panel = factor(niveles[2], levels = niveles),
+                x = c(-0.5 + cos(t1), 0.5 + cos(t2)),
+                y = c(sin(t1), sin(t2)))
+fondo <- tibble(panel = factor(niveles[3], levels = niveles))
+etiq <- bind_rows(
+  tibble(panel = niveles[1], x = c(-0.95, 0.95), y = 1.25, lab = c("A", "B")),
+  tibble(panel = niveles[2], x = c(-0.95, 0.95), y = 1.25, lab = c("A", "B")),
+  tibble(panel = niveles[3], x = c(-0.2, 1.55), y = c(1.25, -1.25),
+         lab = c("A", "A^c")),
+  tibble(panel = niveles[4], x = c(-1.05, 1.05), y = 1.15, lab = c("A", "B"))
+) %>% mutate(panel = factor(panel, levels = niveles))
+ggplot() +
+  geom_rect(data = fondo,
+            aes(xmin = -2.05, xmax = 2.05, ymin = -1.45, ymax = 1.45),
+            fill = alpha(celeste, 0.45), color = NA) +
+  geom_polygon(data = lente, aes(x, y), fill = alpha(rojo, 0.65), color = NA) +
+  geom_circle(data = circ,
+              aes(x0 = x0, y0 = y0, r = r, fill = fill, alpha = al),
+              color = azul, linewidth = 0.6) +
+  scale_fill_identity() + scale_alpha_identity() +
+  annotate("rect", xmin = -2.05, xmax = 2.05, ymin = -1.45, ymax = 1.45,
+           fill = NA, color = "gray40", linewidth = 0.5) +
+  geom_text(data = etiq, aes(x, y, label = lab), color = azul, parse = TRUE,
+            fontface = "bold.italic", size = 4.2) +
+  facet_wrap(~panel, nrow = 1) +
+  coord_fixed(xlim = c(-2.1, 2.1), ylim = c(-1.5, 1.5), expand = FALSE) +
+  theme_void(base_size = 12) +
+  theme(strip.text = element_text(size = 10.5, face = "bold", color = azul,
+                                  margin = margin(b = 4)))
+```
+
+En el ejemplo de la comuna: unión $=$ recibe al menos un beneficio; intersección $=$ recibe ambos; complemento $=$ no recibe vivienda; disjuntos $=$ categorías excluyentes de un registro.
+
+::: {.callout-tip title="Intuición" appearance="simple"}
+Unión: pertenecer a al menos uno de los dos clubes. Intersección: estar inscrito en ambos a la vez. Complemento: todo el resto de la sala. Disjuntos: clubes que no comparten ningún miembro.
+:::
+
 ## Axiomas de Kolmogorov: las tres reglas del juego
 
 Una medida de probabilidad es una función $P$ que asigna un número a cada evento y cumple:
@@ -152,6 +214,10 @@ Si un informe reporta probabilidades que suman más de 1 sobre categorías exclu
 - Eventos únicos (¿se aprobará la reforma?) no tienen frecuencia: solo admiten lectura bayesiana.
 - Esta sesión usa las tres: conteo (tablas), frecuencia (simulación) y actualización (Bayes).
 
+::: {.callout-tip title="Intuición" appearance="simple"}
+Tres maneras de responder "¿qué tan seguro estoy?": contar casos como en un juego de mesa, mirar qué pasó las mil veces anteriores, o decidir cuánto apostaría hoy y revisarlo al ver los datos.
+:::
+
 ## Reglas de adición y complemento
 
 $$P(A \cup B) = P(A) + P(B) - P(A \cap B) \qquad \qquad P(A^c) = 1 - P(A)$$
@@ -169,6 +235,12 @@ c(al_menos_uno = pA + pB - pAB,
 - Sumar $0.30 + 0.25 = 0.55$ **sobreestima**: cuenta dos veces al 10% que recibe ambos.
 - Solo si $A$ y $B$ son disjuntos vale $P(A \cup B) = P(A) + P(B)$.
 - El complemento es el atajo clásico: $P(\text{al menos un beneficio}) = 1 - P(\text{ninguno})$.
+
+::: {.content-visible when-format="html"}
+::: {.callout-tip title="Intuición" appearance="simple"}
+Sumar los dos grupos cuenta dos veces a quienes están en ambos círculos del Venn: por eso se descuenta una vez la zona compartida.
+:::
+:::
 
 ## Ley de grandes números: frecuencia → probabilidad
 
@@ -224,6 +296,86 @@ interactivo(
 
 Con $n$ pequeño la frecuencia fluctúa violentamente; con $n$ grande converge a $1/6 \approx 0.167$. Este es el puente entre datos y probabilidad — y la base de toda simulación **Monte Carlo**.
 
+::: {.content-visible when-format="html"}
+::: {.callout-tip title="Intuición" appearance="simple"}
+El azar es salvaje en lo pequeño y disciplinado en lo grande: ninguna tirada individual es predecible, pero el promedio de miles sí lo es.
+:::
+:::
+
+## Laboratorio: ley de los grandes números
+
+Mueva los controles y observe cómo la frecuencia relativa acumulada se adhiere a $p$ cuando crece $n$. Cada movimiento genera una simulación nueva.
+
+::: {.content-visible when-format="html"}
+
+```{=html}
+<div style="display:flex; gap:1.5em; align-items:center; flex-wrap:wrap; font-size:0.62em; margin-bottom:0.3em;">
+  <label>Numero de repeticiones n: <input type="range" id="lab2-n" min="100" max="10000" step="100" value="1000" style="width:170px; vertical-align:middle;"> <span id="lab2-n-val"></span></label>
+  <label>Probabilidad p del evento: <input type="range" id="lab2-p" min="0.05" max="0.95" step="0.01" value="0.17" style="width:170px; vertical-align:middle;"> <span id="lab2-p-val"></span></label>
+</div>
+<div id="lab2-plot" style="width:100%; height:400px;"></div>
+<div id="lab2-lectura" style="font-size:0.6em; color:#1F4E79; font-weight:600;"></div>
+<script>
+(function() {
+  function dibujar() {
+    var n = parseInt(document.getElementById('lab2-n').value, 10);
+    var p = parseFloat(document.getElementById('lab2-p').value);
+    document.getElementById('lab2-n-val').textContent = n;
+    document.getElementById('lab2-p-val').textContent = p.toFixed(2);
+    var xs = [], ys = [], s = 0;
+    for (var i = 1; i <= n; i++) {
+      if (Math.random() < p) { s += 1; }
+      xs.push(i);
+      ys.push(s / i);
+    }
+    var frecFinal = ys[n - 1];
+    var trazaFrec = {
+      x: xs, y: ys, type: 'scatter', mode: 'lines',
+      line: {color: '#2E86C1', width: 2},
+      name: 'Frecuencia acumulada'
+    };
+    var trazaP = {
+      x: [1, 10000], y: [p, p], type: 'scatter', mode: 'lines',
+      line: {color: '#E74C3C', width: 2, dash: 'dash'},
+      name: 'p verdadera'
+    };
+    Plotly.react('lab2-plot', [trazaFrec, trazaP], {
+      margin: {t: 10, r: 20, b: 40, l: 50},
+      xaxis: {type: 'log', range: [0, 4], title: {text: 'N de repeticiones (escala log)'}},
+      yaxis: {range: [0, 1], title: {text: 'Frecuencia relativa acumulada'}},
+      showlegend: true,
+      legend: {orientation: 'h', x: 0.5, xanchor: 'center', y: 1.08}
+    }, {displayModeBar: false});
+    document.getElementById('lab2-lectura').textContent =
+      'Con n = ' + n + ' y p = ' + p.toFixed(2) +
+      ': frecuencia final = ' + frecFinal.toFixed(3) +
+      ' (desvio |frec - p| = ' + Math.abs(frecFinal - p).toFixed(3) +
+      '). Con n pequeno la linea fluctua; con n grande se pega a la linea roja.';
+  }
+  function init() {
+    if (typeof Plotly === 'undefined') { setTimeout(init, 200); return; }
+    ['lab2-n', 'lab2-p'].forEach(function(id) {
+      document.getElementById(id).addEventListener('input', dibujar);
+    });
+    dibujar();
+  }
+  if (document.readyState === 'complete') { init(); } else { window.addEventListener('load', init); }
+})();
+</script>
+```
+
+:::
+
+::: {.content-visible unless-format="html"}
+
+En la versión HTML este laboratorio simula $n$ repeticiones de un evento con probabilidad $p$ (elegidos con deslizadores) y grafica la frecuencia relativa acumulada en vivo:
+
+- Con $n < 100$ la trayectoria fluctúa con violencia: rachas largas alejan la frecuencia de $p$.
+- Con $n \approx 10.000$ la trayectoria queda pegada a la línea de $p$, cualquiera sea el $p$ elegido.
+- Es el mismo fenómeno del dado de la figura anterior y el fundamento de la verificación Monte Carlo del final de la sesión: **simular es calcular**.
+
+:::
+
 ## Conjunta, marginal y condicional: el mapa de conceptos
 
 | Concepto | Notación | Pregunta que responde | En una tabla de datos |
@@ -237,6 +389,12 @@ Con $n$ pequeño la frecuencia fluctúa violentamente; con $n$ grande converge a
 $$P(A \mid B) = \frac{P(A \cap B)}{P(B)}, \; P(B) > 0 \qquad \qquad P(A) = \sum_i P(A \cap B_i)$$
 
 Condicionar **reduce el espacio muestral**: al saber que $B$ ocurrió, el universo relevante ya no es $\Omega$ sino $B$.
+
+::: {.content-visible when-format="html"}
+::: {.callout-tip title="Intuición" appearance="simple"}
+Marginal: mirar toda la sala. Condicional: repartir el 100% solo en la esquina donde ocurrió el evento.
+:::
+:::
 
 ## Tabla de contingencia: encuesta de 500 ciudadanos
 
@@ -320,6 +478,61 @@ interactivo(p)
 
 ::::
 
+## Condicionar es restringir el universo
+
+```{r}
+#| label: venn-condicional
+#| echo: false
+#| dev: png
+#| fig-width: 7.5
+#| fig-height: 3.0
+#| out-width: "70%"
+niveles3 <- c("Antes: el universo es Ω", "Al saber B: el universo es B")
+c3 <- bind_rows(
+  tibble(panel = niveles3[1], x0 = c(-0.5, 0.5), y0 = 0, r = 1,
+         fill = c(alpha(celeste, 0.45), alpha(naranja, 0.45)),
+         col = c(azul, naranja)),
+  tibble(panel = niveles3[2], x0 = c(-0.5, 0.5), y0 = 0, r = 1,
+         fill = c(NA_character_, alpha(naranja, 0.5)),
+         col = c("gray70", naranja))
+) %>% mutate(panel = factor(panel, levels = niveles3))
+t1 <- seq(-pi/3, pi/3, length.out = 60)
+t2 <- seq(2*pi/3, 4*pi/3, length.out = 60)
+lente3 <- tibble(panel = factor(niveles3[2], levels = niveles3),
+                 x = c(-0.5 + cos(t1), 0.5 + cos(t2)),
+                 y = c(sin(t1), sin(t2)))
+etiq3 <- bind_rows(
+  tibble(panel = niveles3[1], x = c(-1.0, 1.0), y = 1.25, lab = c("A", "B"),
+         col = c(azul, naranja)),
+  tibble(panel = niveles3[2], x = c(-1.0, 1.0), y = 1.25, lab = c("A", "B"),
+         col = c("gray60", naranja))
+) %>% mutate(panel = factor(panel, levels = niveles3))
+ggplot() +
+  annotate("rect", xmin = -2.05, xmax = 2.05, ymin = -1.45, ymax = 1.45,
+           fill = NA, color = "gray45", linewidth = 0.5) +
+  geom_circle(data = c3, aes(x0 = x0, y0 = y0, r = r, fill = fill, color = col),
+              linewidth = 0.7) +
+  geom_polygon(data = lente3, aes(x, y), fill = alpha(rojo, 0.6), color = NA) +
+  scale_fill_identity() + scale_color_identity() +
+  geom_text(data = etiq3, aes(x, y, label = lab, color = col),
+            fontface = "bold.italic", size = 4.6) +
+  geom_text(data = tibble(panel = factor(niveles3[2], levels = niveles3),
+                          x = 0, y = 0),
+            aes(x, y), label = "A∩B", color = "white",
+            fontface = "bold", size = 3.6) +
+  facet_wrap(~panel, nrow = 1) +
+  coord_fixed(xlim = c(-2.1, 2.1), ylim = c(-1.5, 1.5), expand = FALSE) +
+  theme_void(base_size = 12) +
+  theme(strip.text = element_text(size = 11, face = "bold", color = azul,
+                                  margin = margin(b = 4)))
+```
+
+$P(A \mid B)$ compara el área roja ($A \cap B$) con el área total de $B$: lo que queda fuera de $B$ deja de contar.
+
+::: {.callout-tip title="Intuición" appearance="simple"}
+Saber que $B$ ocurrió encoge el mundo: la pregunta ya no es "¿qué tan grande es A en todo el universo?" sino "¿qué fracción del territorio de B está ocupada por A?".
+:::
+
 ## Independencia: definición y verificación empírica
 
 **Definición:** $A$ y $B$ son independientes si $P(A \cap B) = P(A) \cdot P(B)$, o equivalentemente $P(A \mid B) = P(A)$: saber $B$ no cambia la probabilidad de $A$.
@@ -360,6 +573,12 @@ round(c(dos_irregulares = (4/20) * (3/19),
 - La segunda extracción **depende** de la primera: el condicional $3/19$ registra que ya salió un irregular.
 - Si los eventos fueran independientes: $P(A \cap B) = P(A) \cdot P(B)$ — caso especial, no regla general.
 
+::: {.content-visible when-format="html"}
+::: {.callout-tip title="Intuición" appearance="simple"}
+Para que ocurran dos cosas en secuencia, la segunda se evalúa en el mundo donde la primera ya pasó: por eso la segunda auditoría enfrenta 3 irregulares entre 19, no 4 entre 20.
+:::
+:::
+
 ## Ley de probabilidad total: promediar sobre una partición
 
 Si $B_1, \ldots, B_k$ particionan $\Omega$ (disjuntos y exhaustivos):
@@ -377,6 +596,50 @@ $$P(A) = \sum_{i=1}^{k} P(A \mid B_i) \cdot P(B_i)$$
 
 La tasa nacional (10.6%) es un **promedio ponderado** de las tasas regionales. Y de regalo, ya podemos invertir: $P(\text{Norte} \mid D) = 0.030/0.106 = 0.28$ — el Norte aporta 28% de la deserción con solo 20% de los beneficiarios.
 
+## La partición en imágenes: sumar los pedazos de A
+
+```{r}
+#| label: venn-particion
+#| echo: false
+#| dev: png
+#| fig-width: 7
+#| fig-height: 2.9
+#| out-width: "62%"
+bandas <- tibble(xmin = c(-2.1, -0.7, 0.7), xmax = c(-0.7, 0.7, 2.1),
+                 fill = c(alpha(celeste, 0.25), alpha(verde, 0.22),
+                          alpha(naranja, 0.25)))
+ggplot() +
+  geom_rect(data = bandas,
+            aes(xmin = xmin, xmax = xmax, ymin = -1.3, ymax = 1.3, fill = fill),
+            color = "gray55", linewidth = 0.4) +
+  scale_fill_identity() +
+  ggforce::geom_ellipse(aes(x0 = 0, y0 = -0.15, a = 1.45, b = 0.62, angle = 0),
+                        fill = alpha(rojo, 0.35), color = rojo,
+                        linewidth = 0.8) +
+  geom_vline(xintercept = c(-0.7, 0.7), color = "gray35", linewidth = 0.5) +
+  annotate("text", x = c(-1.4, 0, 1.4), y = 1.08,
+           label = c("B[1]", "B[2]", "B[3]"), parse = TRUE,
+           color = azul, fontface = "bold", size = 4.6) +
+  annotate("text", x = 0, y = -0.15, label = "A", color = rojo,
+           fontface = "bold.italic", size = 5) +
+  annotate("text", x = c(-1.05, 0, 1.05), y = -0.95,
+           label = c("A*'∩'*B[1]", "A*'∩'*B[2]", "A*'∩'*B[3]"), parse = TRUE,
+           color = "gray25", size = 3.4) +
+  annotate("segment", x = c(-1.05, 0, 1.05), xend = c(-1.05, 0, 1.05),
+           y = -0.83, yend = c(-0.52, -0.72, -0.52),
+           color = "gray45", linewidth = 0.4) +
+  annotate("text", x = -1.95, y = 1.18, label = "Omega", parse = TRUE,
+           color = "gray30", size = 4.6) +
+  coord_fixed(xlim = c(-2.15, 2.15), ylim = c(-1.35, 1.35), expand = FALSE) +
+  theme_void()
+```
+
+Las bandas $B_1, B_2, B_3$ (las regiones) cubren todo $\Omega$ sin traslaparse; el evento $A$ (desertar) queda cortado en tres pedazos y $P(A)$ es la suma de sus áreas.
+
+::: {.callout-tip title="Intuición" appearance="simple"}
+La tasa global es una mezcla: cada región aporta su propia tasa, pesada por su tamaño. Recuperar el total es volver a juntar los pedazos del evento que quedaron en cada banda.
+:::
+
 ## Teorema de Bayes: derivación en tres pasos
 
 **Paso 1 — la regla del producto, escrita en ambos sentidos:**
@@ -392,6 +655,12 @@ $$P(B \mid A) = \frac{P(A \mid B) \cdot P(B)}{P(A)}$$
 $$P(B_j \mid A) = \frac{P(A \mid B_j) \cdot P(B_j)}{\sum_{i=1}^{k} P(A \mid B_i) \cdot P(B_i)}$$
 
 **Nomenclatura:** $P(B)$ = *prior* · $P(A \mid B)$ = *verosimilitud* · $P(A)$ = *evidencia* · $P(B \mid A)$ = *posterior*. Bayes es la regla para **actualizar creencias con datos**.
+
+::: {.content-visible when-format="html"}
+::: {.callout-tip title="Intuición" appearance="simple"}
+Bayes invierte la pregunta: de "qué tan típica es esta evidencia entre los enfermos" a "qué tan probable es la enfermedad a la vista de la evidencia". La respuesta mezcla lo que muestra el dato con lo que ya se sabía antes de verlo.
+:::
+:::
 
 ## El árbol del test diagnóstico
 
@@ -477,6 +746,88 @@ $$P(\text{Enf} \mid +) = \frac{95}{95 + 990} = \frac{95}{1.085} = 0.0876$$
 
 - De cada 1.085 alertas positivas, solo 95 son reales: la baja prevalencia hace que las 990 falsas alarmas de la población sana dominen.
 - Gigerenzer: presentar riesgos como **frecuencias naturales** ("95 de cada 1.085") reduce drásticamente los errores de interpretación de médicos, jueces y policymakers.
+
+## Laboratorio: Teorema de Bayes
+
+Mueva los controles del test diagnóstico y observe cómo el posterior $P(\text{Enf} \mid +)$ responde a la prevalencia, la sensibilidad y la especificidad.
+
+::: {.content-visible when-format="html"}
+
+```{=html}
+<div style="display:flex; gap:1.5em; align-items:center; flex-wrap:wrap; font-size:0.62em; margin-bottom:0.3em;">
+  <label>Prevalencia: <input type="range" id="lab1-prev" min="0.001" max="0.30" step="0.001" value="0.01" style="width:170px; vertical-align:middle;"> <span id="lab1-prev-val"></span></label>
+  <label>Sensibilidad: <input type="range" id="lab1-sens" min="0.50" max="1" step="0.01" value="0.95" style="width:170px; vertical-align:middle;"> <span id="lab1-sens-val"></span></label>
+  <label>Especificidad: <input type="range" id="lab1-esp" min="0.50" max="1" step="0.01" value="0.90" style="width:170px; vertical-align:middle;"> <span id="lab1-esp-val"></span></label>
+</div>
+<div id="lab1-plot" style="width:100%; height:400px;"></div>
+<div id="lab1-lectura" style="font-size:0.6em; color:#1F4E79; font-weight:600;"></div>
+<script>
+(function() {
+  function pct(x, dec) { return (100 * x).toFixed(dec) + '%'; }
+  function dibujar() {
+    var prev = parseFloat(document.getElementById('lab1-prev').value);
+    var sens = parseFloat(document.getElementById('lab1-sens').value);
+    var esp = parseFloat(document.getElementById('lab1-esp').value);
+    document.getElementById('lab1-prev-val').textContent = pct(prev, 1);
+    document.getElementById('lab1-sens-val').textContent = pct(sens, 0);
+    document.getElementById('lab1-esp-val').textContent = pct(esp, 0);
+    var pPos = sens * prev + (1 - esp) * (1 - prev);
+    var post = sens * prev / pPos;
+    var pNeg = (1 - sens) * prev + esp * (1 - prev);
+    var postNeg = pNeg > 0 ? (1 - sens) * prev / pNeg : 0;
+    var etiquetas = ['Prior: P(Enf)', 'Posterior: P(Enf | +)', 'Posterior: P(Enf | -)'];
+    var valores = [prev, post, postNeg];
+    var traza = {
+      x: etiquetas, y: valores, type: 'bar',
+      marker: {color: ['#2E86C1', '#E74C3C', '#F39C12']},
+      text: valores.map(function(v) { return pct(v, 1); }),
+      textposition: 'outside',
+      textfont: {color: '#1F4E79', size: 13},
+      width: 0.55
+    };
+    Plotly.react('lab1-plot', [traza], {
+      margin: {t: 10, r: 20, b: 40, l: 50},
+      yaxis: {range: [0, 1.05], title: {text: 'Probabilidad'}, tickformat: ',.0%'},
+      xaxis: {fixedrange: true},
+      showlegend: false
+    }, {displayModeBar: false});
+    document.getElementById('lab1-lectura').textContent =
+      'P(+) = ' + pct(pPos, 1) + ' de la poblacion. De cada 1.000 positivos, ' +
+      Math.round(1000 * post) + ' estan realmente enfermos; el resto son falsas alarmas. ' +
+      'Un resultado negativo deja la probabilidad en ' + pct(postNeg, 2) + '.';
+  }
+  function init() {
+    if (typeof Plotly === 'undefined') { setTimeout(init, 200); return; }
+    ['lab1-prev', 'lab1-sens', 'lab1-esp'].forEach(function(id) {
+      document.getElementById(id).addEventListener('input', dibujar);
+    });
+    dibujar();
+  }
+  if (document.readyState === 'complete') { init(); } else { window.addEventListener('load', init); }
+})();
+</script>
+```
+
+:::
+
+::: {.content-visible unless-format="html"}
+
+En la versión HTML este laboratorio permite mover prevalencia, sensibilidad y especificidad, y compara en vivo el prior con los posteriores tras un test positivo o negativo. Con sensibilidad 95% y especificidad 90%:
+
+```{r}
+#| label: tabla-lab-bayes
+#| echo: false
+prevs <- c(0.001, 0.01, 0.05, 0.20)
+posts <- 0.95 * prevs / (0.95 * prevs + 0.10 * (1 - prevs))
+tibble(
+  `Prevalencia (prior)` = scales::percent(prevs, accuracy = 0.1),
+  `P(Enf | +) (posterior)` = scales::percent(posts, accuracy = 0.1)
+) %>% kable(align = "rr")
+```
+
+La conclusión del laboratorio: el posterior es esclavo del prior. Subir la especificidad rinde más que subir la sensibilidad cuando la prevalencia es baja.
+
+:::
 
 ## Prior → posterior: incluso un test excelente decepciona
 
@@ -627,6 +978,12 @@ round(c(P_pos_simulada = mean(positivo),
 
 - La frecuencia simulada coincide con el valor teórico: la **ley de grandes números** en acción.
 - Método general: cuando la fórmula es intratable (modelos jerárquicos, sistemas complejos), **simular es calcular**. Es la base del análisis bayesiano computacional moderno (MCMC).
+
+::: {.content-visible when-format="html"}
+::: {.callout-tip title="Intuición" appearance="simple"}
+Cuando la fórmula se vuelve intratable, fabrique el mundo cien mil veces en el computador y cuente cuántas veces ocurre el evento: contar reemplaza a integrar.
+:::
+:::
 
 ## De eventos a variables aleatorias
 

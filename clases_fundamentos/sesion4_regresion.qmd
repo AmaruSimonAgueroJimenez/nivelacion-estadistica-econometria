@@ -15,6 +15,7 @@ format:
     code-line-numbers: false
     fig-align: center
     menu: true
+    scrollable: true
   beamer:
     aspectratio: 169
     theme: Madrid
@@ -89,7 +90,7 @@ interactivo <- function(p) {
 ```{r}
 #| label: plot-ancla
 #| echo: false
-#| fig-height: 3.0
+#| fig-height: 2.3
 p <- ggplot(wage1, aes(x = educ, y = wage)) +
   geom_jitter(width = 0.25, alpha = 0.35, color = celeste, size = 1.6) +
   geom_smooth(method = "lm", se = FALSE, color = rojo, linewidth = 1.1) +
@@ -99,6 +100,10 @@ interactivo(p)
 ```
 
 Para diseñar subsidios a la educación superior o evaluar la gratuidad, necesitamos **cuantificar** esta asociación: la regresión lineal convierte la nube de puntos en **un número interpretable** (la pendiente) con su margen de error.
+
+::: {.callout-tip title="Intuición" appearance="simple"}
+La regresión es una máquina de resumir: convierte 526 puntos en una sola frase — "cada año extra de educación viaja con medio dólar más por hora".
+:::
 
 ## El modelo poblacional de regresión lineal simple
 
@@ -174,6 +179,12 @@ interactivo(p)
 
 ::::
 
+::: {.content-visible when-format="html"}
+::: {.callout-tip title="Intuición" appearance="simple"}
+Exigir media condicional cero es pedir que, a cada nivel de educación, la suerte y la habilidad estén repartidas por igual: nada oculto camina junto a la educación.
+:::
+:::
+
 ## $\beta_1$ es una derivada: el efecto marginal
 
 **Definición.** Bajo $\mathbb{E}[u \mid x]=0$, la pendiente es la derivada de la media condicional:
@@ -198,6 +209,10 @@ $$(\hat{\beta}_0, \hat{\beta}_1) = \arg\min_{b_0,\, b_1} \; Q(b_0, b_1), \qquad 
 3. $Q$ es **diferenciable y convexa** en $(b_0,b_1)$: el mínimo se obtiene con cálculo y tiene **solución cerrada**.
 
 **Qué significa:** buscamos la recta que deja los datos "lo menos mal explicados posible", midiendo el desajuste con la suma de errores al cuadrado.
+
+::: {.callout-tip title="Intuición" appearance="simple"}
+La recta MCO es el equilibrio de una varilla apoyada sobre la nube: cada punto tira de ella, y los lejanos tiran mucho más fuerte.
+:::
 
 ## Derivación de MCO (2/3): condiciones de primer orden
 
@@ -332,6 +347,94 @@ interactivo(p)
 
 MCO minimiza las distancias **verticales** (errores al predecir $y$), no las perpendiculares a la recta. Cualquier otra recta —aquí una con pendiente $0.40$— produce una suma de cuadrados **mayor**: $6.04 > 0.60$.
 
+## Laboratorio: mínimos cuadrados a mano
+
+**Objetivo:** encontrar a mano la recta que minimiza la suma de cuadrados de los residuos $SSR(b_0, b_1)$ para 8 trabajadores.
+
+::: {.content-visible when-format="html"}
+
+Mueva $b_0$ y $b_1$ y trate de igualar el mínimo que alcanza MCO.
+
+```{=html}
+<div style="display:flex; gap:1.5em; align-items:center; flex-wrap:wrap; font-size:0.62em; margin-bottom:0.3em;">
+  <label>Intercepto b0: <input type="range" id="lab1-b0" min="-6" max="6" step="0.1" value="1.5" style="width:170px; vertical-align:middle;"> <span id="lab1-b0-val"></span></label>
+  <label>Pendiente b1: <input type="range" id="lab1-b1" min="-0.2" max="1.4" step="0.01" value="0.3" style="width:170px; vertical-align:middle;"> <span id="lab1-b1-val"></span></label>
+</div>
+<div id="lab1-plot" style="width:100%; height:400px;"></div>
+<div id="lab1-lectura" style="font-size:0.6em; color:#1F4E79; font-weight:600;"></div>
+<script>
+(function() {
+  var xs = [8, 9, 10, 11, 12, 13, 14, 16];
+  var ys = [4.5, 4.0, 6.0, 5.2, 6.8, 6.4, 8.2, 8.6];
+  var n = xs.length;
+  var xbar = 0, ybar = 0;
+  for (var i = 0; i < n; i++) { xbar += xs[i]; ybar += ys[i]; }
+  xbar /= n; ybar /= n;
+  var sxy = 0, sxx = 0;
+  for (i = 0; i < n; i++) { sxy += (xs[i] - xbar) * (ys[i] - ybar); sxx += (xs[i] - xbar) * (xs[i] - xbar); }
+  var b1opt = sxy / sxx, b0opt = ybar - b1opt * xbar, ssrOpt = 0;
+  for (i = 0; i < n; i++) { var e = ys[i] - b0opt - b1opt * xs[i]; ssrOpt += e * e; }
+  function dibujar() {
+    var b0 = parseFloat(document.getElementById('lab1-b0').value);
+    var b1 = parseFloat(document.getElementById('lab1-b1').value);
+    document.getElementById('lab1-b0-val').textContent = b0.toFixed(1);
+    document.getElementById('lab1-b1-val').textContent = b1.toFixed(2);
+    var ssr = 0, rx = [], ry = [];
+    for (var i = 0; i < n; i++) {
+      var yhat = b0 + b1 * xs[i], res = ys[i] - yhat;
+      ssr += res * res;
+      rx.push(xs[i], xs[i], null);
+      ry.push(ys[i], yhat, null);
+    }
+    Plotly.react('lab1-plot', [
+      {x: rx, y: ry, mode: 'lines', line: {color: '#F39C12', width: 2}, hoverinfo: 'skip', name: 'Residuos'},
+      {x: [7, 17], y: [b0 + 7 * b1, b0 + 17 * b1], mode: 'lines', line: {color: '#E74C3C', width: 3}, name: 'Recta candidata'},
+      {x: xs, y: ys, mode: 'markers', marker: {color: '#1F4E79', size: 9}, name: 'Datos'}
+    ], {margin: {t: 10, r: 20, b: 40, l: 50},
+        xaxis: {range: [7, 17], title: {text: 'Educación (años)'}},
+        yaxis: {range: [1, 12], title: {text: 'Salario por hora (USD)'}},
+        showlegend: false},
+       {displayModeBar: false});
+    var brecha = ssr - ssrOpt;
+    document.getElementById('lab1-lectura').textContent =
+      'SSR(b0, b1) = ' + ssr.toFixed(2) + '   |   Minimo MCO: SSR = ' + ssrOpt.toFixed(2) +
+      ' (b0 = ' + b0opt.toFixed(2) + ', b1 = ' + b1opt.toFixed(2) + ')   |   Exceso sobre el minimo: ' + brecha.toFixed(2);
+  }
+  function init() {
+    if (typeof Plotly === 'undefined') { setTimeout(init, 200); return; }
+    ['lab1-b0', 'lab1-b1'].forEach(function(id) { document.getElementById(id).addEventListener('input', dibujar); });
+    dibujar();
+  }
+  if (document.readyState === 'complete') { init(); } else { window.addEventListener('load', init); }
+})();
+</script>
+```
+
+:::
+
+::: {.content-visible unless-format="html"}
+
+```{r}
+#| label: lab1-pdf
+#| echo: false
+#| fig-height: 2.7
+d8 <- tibble(x = c(8, 9, 10, 11, 12, 13, 14, 16),
+             y = c(4.5, 4.0, 6.0, 5.2, 6.8, 6.4, 8.2, 8.6))
+m8 <- lm(y ~ x, data = d8)
+d8 <- d8 %>% mutate(yhat = fitted(m8))
+p <- ggplot(d8, aes(x, y)) +
+  geom_segment(aes(xend = x, yend = yhat), color = naranja, linewidth = 0.9) +
+  geom_abline(intercept = coef(m8)[1], slope = coef(m8)[2], color = rojo, linewidth = 1.1) +
+  geom_point(color = azul, size = 2.8) +
+  labs(x = "Educación (años)", y = "Salario por hora (USD)",
+       title = "La recta ganadora: -0.46 + 0.57x, con SSR = 2.49")
+p
+```
+
+En la versión HTML se mueven $b_0$ y $b_1$ con deslizadores: cualquier otra recta deja un $SSR$ mayor que $2.49$, el mínimo que MCO alcanza de una sola vez con las fórmulas.
+
+:::
+
 ## Propiedades algebraicas de la recta MCO
 
 Tres propiedades que valen **siempre** (con intercepto en el modelo), sea cual sea la muestra:
@@ -392,6 +495,12 @@ La clave de la prueba es que el término cruzado $\sum (\hat{y}_i - \bar{y})\hat
 $$R^2 = \frac{SSE}{SST} = 1 - \frac{SSR}{SST}, \qquad 0 \le R^2 \le 1$$
 
 **Qué significa:** la variación total de $y$ se reparte —sin traslape— entre lo que la recta captura y lo que queda en los residuos. Cuidado con la notación: en Wooldridge $SSE$ es la *explicada* y $SSR$ la *residual*; otros textos invierten los nombres.
+
+::: {.content-visible when-format="html"}
+::: {.callout-tip title="Intuición" appearance="simple"}
+Piense en la variación del salario como una torta: la recta se sirve una porción (lo explicado) y deja el resto en el plato de los residuos. El R cuadrado solo dice qué fracción de la torta se sirvió.
+:::
+:::
 
 ## Bondad de ajuste (2): qué mide y qué NO mide $R^2$
 
@@ -470,6 +579,110 @@ La educación "explica" el 96.6% de la varianza salarial **en estos 6 casos arti
 
 ::::
 
+## Laboratorio: ruido y $R^2$
+
+**Experimento:** el modelo verdadero es siempre $y = 2 + 0.5x + u$; solo cambia el ruido $\sigma$. ¿Qué le pasa al $R^2$?
+
+::: {.content-visible when-format="html"}
+
+Suba $\sigma$ y cambie la semilla: la recta MCO sigue cerca de la verdadera, pero el $R^2$ se desploma.
+
+```{=html}
+<div style="display:flex; gap:1.5em; align-items:center; flex-wrap:wrap; font-size:0.62em; margin-bottom:0.3em;">
+  <label>Ruido sigma: <input type="range" id="lab2-sigma" min="0.5" max="8" step="0.1" value="1.5" style="width:170px; vertical-align:middle;"> <span id="lab2-sigma-val"></span></label>
+  <label>Semilla (nueva muestra): <input type="range" id="lab2-seed" min="1" max="30" step="1" value="7" style="width:170px; vertical-align:middle;"> <span id="lab2-seed-val"></span></label>
+</div>
+<div id="lab2-plot" style="width:100%; height:400px;"></div>
+<div id="lab2-lectura" style="font-size:0.6em; color:#1F4E79; font-weight:600;"></div>
+<script>
+(function() {
+  function mulberry32(a) {
+    return function() {
+      a |= 0; a = a + 0x6D2B79F5 | 0;
+      var t = Math.imul(a ^ a >>> 15, 1 | a);
+      t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+  }
+  function dibujar() {
+    var sigma = parseFloat(document.getElementById('lab2-sigma').value);
+    var seed = parseInt(document.getElementById('lab2-seed').value, 10);
+    document.getElementById('lab2-sigma-val').textContent = sigma.toFixed(1);
+    document.getElementById('lab2-seed-val').textContent = seed;
+    var rand = mulberry32(seed * 9301 + 49297);
+    var n = 80, xs = [], ys = [];
+    for (var i = 0; i < n; i++) {
+      var x = 10 * rand();
+      var u1 = rand(); if (u1 < 1e-12) { u1 = 1e-12; }
+      var u2 = rand();
+      var z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+      xs.push(x);
+      ys.push(2 + 0.5 * x + sigma * z);
+    }
+    var xbar = 0, ybar = 0;
+    for (i = 0; i < n; i++) { xbar += xs[i]; ybar += ys[i]; }
+    xbar /= n; ybar /= n;
+    var sxy = 0, sxx = 0;
+    for (i = 0; i < n; i++) { sxy += (xs[i] - xbar) * (ys[i] - ybar); sxx += (xs[i] - xbar) * (xs[i] - xbar); }
+    var b1 = sxy / sxx, b0 = ybar - b1 * xbar;
+    var ssr = 0, sst = 0;
+    for (i = 0; i < n; i++) {
+      var e = ys[i] - b0 - b1 * xs[i]; ssr += e * e;
+      var d = ys[i] - ybar; sst += d * d;
+    }
+    var r2 = 1 - ssr / sst;
+    var r2teo = 2.083 / (2.083 + sigma * sigma);
+    Plotly.react('lab2-plot', [
+      {x: xs, y: ys, mode: 'markers', marker: {color: '#2E86C1', size: 6, opacity: 0.65}, name: 'Muestra'},
+      {x: [0, 10], y: [2, 7], mode: 'lines', line: {color: '#1F4E79', width: 2, dash: 'dash'}, name: 'Recta verdadera'},
+      {x: [0, 10], y: [b0, b0 + 10 * b1], mode: 'lines', line: {color: '#E74C3C', width: 3}, name: 'Recta MCO'}
+    ], {margin: {t: 10, r: 20, b: 40, l: 50},
+        xaxis: {range: [0, 10], title: {text: 'x'}},
+        yaxis: {range: [-20, 30], title: {text: 'y'}},
+        legend: {orientation: 'h', y: 1.08, font: {size: 10}}},
+       {displayModeBar: false});
+    document.getElementById('lab2-lectura').textContent =
+      'Recta MCO: y = ' + b0.toFixed(2) + ' + ' + b1.toFixed(2) + 'x   |   R2 muestral = ' + r2.toFixed(3) +
+      '   |   R2 teorico con este sigma = ' + r2teo.toFixed(3);
+  }
+  function init() {
+    if (typeof Plotly === 'undefined') { setTimeout(init, 200); return; }
+    ['lab2-sigma', 'lab2-seed'].forEach(function(id) { document.getElementById(id).addEventListener('input', dibujar); });
+    dibujar();
+  }
+  if (document.readyState === 'complete') { init(); } else { window.addEventListener('load', init); }
+})();
+</script>
+```
+
+:::
+
+::: {.content-visible unless-format="html"}
+
+```{r}
+#| label: lab2-pdf
+#| echo: false
+#| fig-height: 2.7
+set.seed(7)
+sim2 <- purrr::map_dfr(c(1, 6), function(s) {
+  x <- runif(80, 0, 10)
+  y <- 2 + 0.5 * x + rnorm(80, 0, s)
+  r2 <- summary(lm(y ~ x))$r.squared
+  tibble(x, y, panel = sprintf("DE del error = %.0f:  R2 = %.2f", s, r2))
+})
+p <- ggplot(sim2, aes(x, y)) +
+  geom_point(color = celeste, alpha = 0.55, size = 1.5) +
+  geom_abline(intercept = 2, slope = 0.5, color = azul, linetype = "dashed") +
+  geom_smooth(method = "lm", se = FALSE, color = rojo, linewidth = 1) +
+  facet_wrap(~panel) +
+  labs(x = "x", y = "y")
+p
+```
+
+Mismo modelo verdadero, distinto ruido: con más varianza del error el $R^2$ cae de $0.74$ a $0.02$, aunque la recta MCO (roja) siga pegada a la verdadera (azul). Un $R^2$ bajo **no** dice que el modelo esté mal.
+
+:::
+
 ## Inferencia (1): error estándar y estadístico $t$
 
 :::: {.columns}
@@ -510,6 +723,12 @@ interactivo(p)
 
 ::::
 
+::: {.content-visible when-format="html"}
+::: {.callout-tip title="Intuición" appearance="simple"}
+El error estándar mide cuánto "bailaría" la pendiente si repitiéramos el muestreo una y otra vez; el estadístico t pregunta a cuántos pasos de ese baile está el cero.
+:::
+:::
+
 ## Inferencia (2): IC 95% del retorno a la educación, paso a paso
 
 Modelo $wage = \beta_0 + \beta_1\, educ + u$ con `wage1` ($n = 526$). Todo con la salida de `lm()`:
@@ -546,6 +765,12 @@ modelsummary(list("(1) Salario" = m1, "(2) Salario" = m2),
 ```
 
 Cada celda: **coeficiente** arriba y **(error estándar)** debajo; las estrellas codifican el valor-$p$: `+` $p<0.1$, `*` $p<0.05$, `**` $p<0.01$, `***` $p<0.001$. El modelo (2) agrega experiencia y antigüedad como controles.
+
+::: {.content-visible when-format="html"}
+::: {.callout-tip title="Intuición" appearance="simple"}
+Una tabla de regresión es un parte médico: el coeficiente es el diagnóstico (cuánto), el error estándar es la letra chica (con qué certeza) y las estrellas son solo el semáforo de esa certeza.
+:::
+:::
 
 ## Anatomía de la tabla: qué es cada número — modelo (1)
 
@@ -585,6 +810,10 @@ $$\beta_j = \frac{\partial\, \mathbb{E}[y \mid x_1,\dots,x_k]}{\partial x_j} \qq
 En nuestro ejemplo: $wage = \beta_0 + \beta_1\, educ + \beta_2\, exper + \beta_3\, tenure + u$. Ahora $\beta_1$ compara personas con **la misma** experiencia y antigüedad que difieren en un año de educación.
 
 **Qué significa:** agregar controles cambia la pregunta — de "¿ganan más los más educados?" (comparación bruta) a "¿gana más el más educado **entre personas comparables** en lo observable?".
+
+::: {.callout-tip title="Intuición" appearance="simple"}
+Controlar es comparar manzanas con manzanas: la pendiente de educación ya no mezcla novatos con veteranos, sino que compara personas con la misma experiencia y antigüedad.
+:::
 
 ## Corto vs largo: qué cambia al agregar controles
 
@@ -690,6 +919,12 @@ interactivo(p)
 
 ::::
 
+::: {.content-visible when-format="html"}
+::: {.callout-tip title="Intuición" appearance="simple"}
+Una dummy parte la muestra en dos grupos y su coeficiente es, simplemente, la distancia entre las dos medias: la regresión más sencilla del mundo es una comparación de promedios.
+:::
+:::
+
 ## Semi-elasticidad: leer $\log(y)$ en porcentaje
 
 :::: {.columns}
@@ -759,6 +994,12 @@ Además, la **inferencia** (los $SE$, $t$ e IC de hoy) descansa en supuestos sob
 
 ::::
 
+::: {.content-visible when-format="html"}
+::: {.callout-tip title="Intuición" appearance="simple"}
+La recta describe cómo les va a quienes ya estudiaron; no promete lo que ganaría una persona si la lleváramos a estudiar un año más. Describir no es intervenir.
+:::
+:::
+
 ## Errores comunes al leer una tabla de regresión
 
 | Error | Consecuencia | Corrección |
@@ -769,6 +1010,12 @@ Además, la **inferencia** (los $SE$, $t$ e IC de hoy) descansa en supuestos sob
 | Descartar un modelo por $R^2$ bajo | Se pierden estimados precisos y útiles | $R^2$ no mide la validez de $\hat{\beta}$ |
 | Interpretar un coeficiente en $\log(y)$ en unidades de $y$ | Error de dos órdenes de magnitud | $100 \cdot \hat{\beta}$ es un cambio en % |
 | Comparar coeficientes entre modelos con distinta muestra | Diferencias espurias | Misma muestra y especificación comparable |
+
+::: {.content-visible when-format="html"}
+::: {.callout-tip title="Intuición" appearance="simple"}
+Casi todos estos errores tienen la misma raíz: tratar la tabla como un veredicto automático, en vez de como una medición con unidades, margen de error y una pregunta detrás.
+:::
+:::
 
 ## Síntesis: checklist para leer cualquier tabla
 

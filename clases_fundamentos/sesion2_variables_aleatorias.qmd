@@ -15,6 +15,7 @@ format:
     code-line-numbers: false
     fig-align: center
     menu: true
+    scrollable: true
   beamer:
     aspectratio: 169
     theme: Madrid
@@ -115,6 +116,10 @@ $$\mathbb{E}[X] = \sum_{i} x_i\, p(x_i) \quad \text{(discreta)}, \qquad \mathbb{
 
 **Qué significa esto:** en políticas públicas, $\mathbb{E}[X]$ es el resultado promedio por beneficiario que produciría el programa si se implementara a gran escala.
 
+::: {.callout-tip title="Intuición" appearance="simple"}
+La esperanza es el "precio justo" de una lotería: el número donde se estaciona el promedio de los resultados cuando el juego se repite muchas veces.
+:::
+
 ## La esperanza como centro de masa
 
 ```{r}
@@ -196,6 +201,10 @@ $$\operatorname{Var}(X) = \mathbb{E}\big[(X-\mu)^2\big] = \sum_i (x_i-\mu)^2\, p
 
 **Qué significa esto:** dos programas pueden prometer el mismo beneficio esperado y diferir radicalmente en riesgo; la varianza es la medida formal de esa incertidumbre.
 
+::: {.callout-tip title="Intuición" appearance="simple"}
+La media dice qué esperar; la varianza dice cuánto fiarse de esa promesa: mide el "me puede ir muy distinto del promedio".
+:::
+
 ## Derivación: la fórmula alternativa de la varianza
 
 Expandiendo el cuadrado y aplicando linealidad de la esperanza:
@@ -267,6 +276,12 @@ $$\begin{aligned}
 - Si $X$ e $Y$ son independientes, $\mathbb{E}[XY]=\mu_X\mu_Y$ y por tanto $\operatorname{Cov}(X,Y)=0$. **El recíproco es falso.**
 
 **Qué significa esto:** la covarianza mide si $X$ e $Y$ se desvían de sus medias *en la misma dirección* (signo positivo) o en direcciones opuestas (signo negativo).
+
+:::: {.content-visible when-format="html"}
+::: {.callout-tip title="Intuición" appearance="simple"}
+La covarianza pregunta si dos variables "se mueven juntas": cuando una está por encima de su promedio, ¿la otra también tiende a estarlo?
+:::
+::::
 
 ## El signo de la covarianza: los cuatro cuadrantes
 
@@ -340,6 +355,12 @@ interactivo(p)
 
 **Qué significa esto:** $\rho$ compara la fuerza de asociación entre pares de variables medidos en unidades distintas — ingreso y escolaridad, inversión y asistencia — en una escala común.
 
+:::: {.content-visible when-format="html"}
+::: {.callout-tip title="Intuición" appearance="simple"}
+La correlación es la covarianza "sin unidades": 1 y $-1$ son línea perfecta, 0 es ausencia de relación lineal — aunque puede haber relación no lineal escondida.
+:::
+::::
+
 ## Ejemplo bivariado (1/2): tabla conjunta y marginales
 
 $X$ = participó en capacitación (0/1); $Y$ = obtuvo empleo formal (0/1). Distribución conjunta $p(x,y)$:
@@ -363,7 +384,10 @@ $$\mathbb{E}[X] = 0(0.5) + 1(0.5) = 0.50, \qquad \mathbb{E}[Y] = 0(0.45) + 1(0.5
 $$\mathbb{E}[XY] = 1 \cdot 1 \cdot 0.35 = 0.35$$
 
 **Paso 4 — covarianza** con la fórmula alternativa:
-$$\operatorname{Cov}(X,Y) = \mathbb{E}[XY] - \mu_X \mu_Y = 0.35 - (0.50)(0.55) = 0.35 - 0.275 = \boxed{0.075}$$
+$$\begin{aligned}
+\operatorname{Cov}(X,Y) &= \mathbb{E}[XY] - \mu_X \mu_Y \\
+&= 0.35 - (0.50)(0.55) = 0.35 - 0.275 = \boxed{0.075}
+\end{aligned}$$
 
 **Paso 5 — correlación** (Bernoulli: $\operatorname{Var} = p(1-p)$, ver dos slides más adelante):
 $$\operatorname{Var}(X) = 0.5(0.5) = 0.25, \quad \operatorname{Var}(Y) = 0.55(0.45) = 0.2475$$
@@ -374,6 +398,52 @@ $$\rho = \frac{0.075}{\sqrt{0.25 \times 0.2475}} = \frac{0.075}{0.2487} = \boxed
 pxy <- c(p00 = .30, p01 = .20, p10 = .15, p11 = .35)
 c(EXY = unname(pxy["p11"]), cov = .35 - .5 * .55, rho = .075 / sqrt(.25 * .2475)) |> round(3)
 ```
+
+## El ejemplo bivariado como diagrama de Venn
+
+:::: {.columns}
+
+::: {.column width="55%"}
+```{r}
+#| label: plot-venn-bivariado
+#| echo: false
+#| fig-width: 5.4
+#| fig-height: 3.1
+#| out.width: "100%"
+venn_df <- tibble(x0 = c(-0.55, 0.55), y0 = 0, r = 1.05,
+                  evento = c("A", "B"))
+ggplot() +
+  ggforce::geom_circle(data = venn_df,
+                       aes(x0 = x0, y0 = y0, r = r, fill = evento),
+                       alpha = 0.35, color = "grey35", linewidth = 0.4,
+                       show.legend = FALSE) +
+  scale_fill_manual(values = c(A = celeste, B = naranja)) +
+  annotate("text", x = -1.05, y = 0, label = "0.15", size = 5, color = azul) +
+  annotate("text", x = 0, y = 0, label = "0.35", size = 5.5,
+           fontface = "bold", color = azul) +
+  annotate("text", x = 1.05, y = 0, label = "0.20", size = 5, color = azul) +
+  annotate("text", x = -1.15, y = 1.35, label = "A: se capacitó (0.50)",
+           size = 4.3, color = azul) +
+  annotate("text", x = 1.15, y = 1.35, label = "B: empleo formal (0.55)",
+           size = 4.3, color = naranja) +
+  annotate("text", x = 1.9, y = -1.3, label = "ninguno: 0.30",
+           size = 4.1, color = "grey40") +
+  coord_fixed(xlim = c(-2.5, 2.7), ylim = c(-1.55, 1.6)) +
+  theme_void()
+```
+:::
+
+::: {.column width="45%"}
+- La celda $(1,1)$ de la tabla es la **intersección**: $P(A \cap B) = 0.35$, que aquí es $\mathbb{E}[XY]$.
+- Bajo independencia el traslape sería $0.50 \times 0.55 = 0.275$.
+- El traslape observado (0.35) **excede** ese valor en $0.075$: exactamente la covarianza.
+:::
+
+::::
+
+::: {.callout-tip title="Intuición" appearance="simple"}
+Con variables binarias, la covarianza es el "exceso de traslape": cuánto más se superponen los dos eventos respecto de lo que ocurriría si fueran independientes.
+:::
 
 ## $\operatorname{Var}(X+Y)$: demostración
 
@@ -412,6 +482,12 @@ $$\begin{aligned}
 
 - La varianza es máxima en $p = 0.5$ (incertidumbre total) y nula en $p \in \{0, 1\}$ (certeza).
 - **Ejemplo:** si la tasa de empleo formal es $p = 0.55$, entonces $\operatorname{Var}(Y) = 0.55 \times 0.45 = 0.2475$ — exactamente el valor usado en el ejemplo bivariado.
+
+:::: {.content-visible when-format="html"}
+::: {.callout-tip title="Intuición" appearance="simple"}
+Una moneda cargada es el átomo de la estadística: todo indicador binario — empleado o no, pobre o no — es esa misma moneda con distinta carga.
+:::
+::::
 
 ## Binomial: suma de Bernoullis independientes
 
@@ -492,6 +568,82 @@ interactivo(
 
 Con $X \sim \operatorname{Bin}(10, 0.3)$: $\mathbb{E}[X] = 3$, $\operatorname{Var}(X) = 2.1$. La zona roja es $P(X \ge 5) = 1 - P(X \le 4) = 0.15$: el estándar de alerta se activaría en un 15% de las auditorías aunque nada haya empeorado.
 
+## Laboratorio: Binomial
+
+Mueva los controles y observe cómo la masa de probabilidad se desplaza hacia $np$ y se ensancha según $np(1-p)$.
+
+::: {.content-visible when-format="html"}
+
+```{=html}
+<div style="display:flex; gap:1.5em; align-items:center; flex-wrap:wrap; font-size:0.62em; margin-bottom:0.3em;">
+  <label>Ensayos n: <input type="range" id="lab3-n" min="1" max="60" step="1" value="10" style="width:170px; vertical-align:middle;"> <span id="lab3-n-val"></span></label>
+  <label>Prob. de éxito p: <input type="range" id="lab3-p" min="0.05" max="0.95" step="0.01" value="0.30" style="width:170px; vertical-align:middle;"> <span id="lab3-p-val"></span></label>
+</div>
+<div id="lab3-plot" style="width:100%; height:400px;"></div>
+<div id="lab3-lectura" style="font-size:0.6em; color:#1F4E79; font-weight:600;"></div>
+<script>
+(function() {
+  function dibujar() {
+    var n = parseInt(document.getElementById('lab3-n').value, 10);
+    var p = parseFloat(document.getElementById('lab3-p').value);
+    document.getElementById('lab3-n-val').textContent = n;
+    document.getElementById('lab3-p-val').textContent = p.toFixed(2);
+    var ks = [], pk = [];
+    var cur = Math.pow(1 - p, n);
+    for (var k = 0; k <= n; k++) {
+      ks.push(k); pk.push(cur);
+      cur = cur * (n - k) / (k + 1) * p / (1 - p);
+    }
+    var media = n * p, varianza = n * p * (1 - p);
+    Plotly.react('lab3-plot', [
+      {x: ks, y: pk, type: 'bar', marker: {color: '#2E86C1'}, name: 'P(X = k)'},
+      {x: [media, media], y: [0, 1], type: 'scatter', mode: 'lines',
+       line: {color: '#E74C3C', width: 2, dash: 'dash'}, name: 'E[X] = np'}
+    ], {
+      margin: {t: 10, r: 20, b: 40, l: 50},
+      xaxis: {range: [-1, 61], title: {text: 'k éxitos'}},
+      yaxis: {range: [0, 1], title: {text: 'P(X = k)'}},
+      showlegend: false, bargap: 0.15
+    }, {displayModeBar: false});
+    document.getElementById('lab3-lectura').textContent =
+      'E[X] = np = ' + media.toFixed(2) + '  |  Var(X) = np(1-p) = ' + varianza.toFixed(2) +
+      '  |  DE = ' + Math.sqrt(varianza).toFixed(2) + '  (línea roja: la media np)';
+  }
+  function init() {
+    if (typeof Plotly === 'undefined') { setTimeout(init, 200); return; }
+    ['lab3-n', 'lab3-p'].forEach(function(id){ document.getElementById(id).addEventListener('input', dibujar); });
+    dibujar();
+  }
+  if (document.readyState === 'complete') { init(); } else { window.addEventListener('load', init); }
+})();
+</script>
+```
+
+:::
+
+::: {.content-visible unless-format="html"}
+```{r}
+#| label: pdf-lab-binom
+#| echo: false
+#| fig-height: 2.6
+#| fig-width: 8
+#| out.width: "92%"
+d_lab3 <- bind_rows(
+  tibble(k = 0:30, pk = dbinom(0:30, 10, .3), panel = "n = 10, p = 0.3"),
+  tibble(k = 0:30, pk = dbinom(0:30, 30, .3), panel = "n = 30, p = 0.3"),
+  tibble(k = 0:30, pk = dbinom(0:30, 30, .7), panel = "n = 30, p = 0.7"))
+d_mu3 <- tibble(panel = unique(d_lab3$panel), np = c(3, 9, 21))
+ggplot(d_lab3, aes(k, pk)) +
+  geom_col(fill = celeste, width = .85) +
+  geom_vline(data = d_mu3, aes(xintercept = np),
+             color = rojo, linetype = "dashed", linewidth = 0.7) +
+  facet_wrap(~panel, nrow = 1) +
+  labs(x = "k éxitos", y = "P(X = k)")
+```
+
+En la versión HTML, dos deslizadores controlan $n$ y $p$: al crecer $n$ la masa se centra en $np$ (línea roja) y se ensancha como $np(1-p)$; al mover $p$ la forma pasa de asimétrica a simétrica en $p = 0.5$.
+:::
+
 ## La distribución Normal: densidad completa
 
 :::: {.columns}
@@ -535,6 +687,93 @@ interactivo(p)
 
 ::::
 
+## Laboratorio: la normal y sus parámetros
+
+Mueva los controles: $\mu$ desplaza la curva sin deformarla; $\sigma$ la aplana y ensancha. Los puntos rojos son los puntos de inflexión, siempre en $\mu \pm \sigma$.
+
+::: {.content-visible when-format="html"}
+
+```{=html}
+<div style="display:flex; gap:1.5em; align-items:center; flex-wrap:wrap; font-size:0.62em; margin-bottom:0.3em;">
+  <label>Media &mu;: <input type="range" id="lab1-mu" min="-3" max="3" step="0.1" value="0" style="width:170px; vertical-align:middle;"> <span id="lab1-mu-val"></span></label>
+  <label>Desv. est. &sigma;: <input type="range" id="lab1-sigma" min="0.4" max="3" step="0.05" value="1" style="width:170px; vertical-align:middle;"> <span id="lab1-sigma-val"></span></label>
+</div>
+<div id="lab1-plot" style="width:100%; height:400px;"></div>
+<div id="lab1-lectura" style="font-size:0.6em; color:#1F4E79; font-weight:600;"></div>
+<script>
+(function() {
+  function dnorm(x, mu, s) {
+    return Math.exp(-0.5 * Math.pow((x - mu) / s, 2)) / (s * Math.sqrt(2 * Math.PI));
+  }
+  function dibujar() {
+    var mu = parseFloat(document.getElementById('lab1-mu').value);
+    var s  = parseFloat(document.getElementById('lab1-sigma').value);
+    document.getElementById('lab1-mu-val').textContent = mu.toFixed(1);
+    document.getElementById('lab1-sigma-val').textContent = s.toFixed(2);
+    var xs = [], ys = [];
+    for (var i = 0; i <= 400; i++) {
+      var x = -8 + 16 * i / 400;
+      xs.push(x); ys.push(dnorm(x, mu, s));
+    }
+    Plotly.react('lab1-plot', [
+      {x: xs, y: ys, type: 'scatter', mode: 'lines',
+       line: {color: '#1F4E79', width: 3}, name: 'f(x)'},
+      {x: [mu, mu], y: [0, dnorm(mu, mu, s)], type: 'scatter', mode: 'lines',
+       line: {color: '#F39C12', width: 2, dash: 'dash'}, name: 'mu'},
+      {x: [mu - s, mu + s], y: [dnorm(mu - s, mu, s), dnorm(mu + s, mu, s)],
+       type: 'scatter', mode: 'markers',
+       marker: {color: '#E74C3C', size: 10}, name: 'inflexión'}
+    ], {
+      margin: {t: 10, r: 20, b: 40, l: 50},
+      xaxis: {range: [-8, 8], title: {text: 'x'}},
+      yaxis: {range: [0, 1.05], title: {text: 'f(x)'}},
+      showlegend: false
+    }, {displayModeBar: false});
+    document.getElementById('lab1-lectura').textContent =
+      'Puntos de inflexión: mu - sigma = ' + (mu - s).toFixed(2) +
+      '  y  mu + sigma = ' + (mu + s).toFixed(2) +
+      '  |  altura máxima f(mu) = ' + dnorm(mu, mu, s).toFixed(3);
+  }
+  function init() {
+    if (typeof Plotly === 'undefined') { setTimeout(init, 200); return; }
+    ['lab1-mu', 'lab1-sigma'].forEach(function(id){ document.getElementById(id).addEventListener('input', dibujar); });
+    dibujar();
+  }
+  if (document.readyState === 'complete') { init(); } else { window.addEventListener('load', init); }
+})();
+</script>
+```
+
+:::
+
+::: {.content-visible unless-format="html"}
+```{r}
+#| label: pdf-lab-normal
+#| echo: false
+#| fig-height: 2.7
+#| fig-width: 7.5
+#| out.width: "80%"
+xx_l1 <- seq(-8, 8, length.out = 400)
+d_lab1 <- bind_rows(
+  tibble(x = xx_l1, f = dnorm(xx_l1, 0, 1),   curva = "N(0, 1)"),
+  tibble(x = xx_l1, f = dnorm(xx_l1, 1.5, 1), curva = "N(1.5, 1)"),
+  tibble(x = xx_l1, f = dnorm(xx_l1, 0, 2),   curva = "N(0, 2²)"))
+d_inf1 <- tibble(x = c(-1, 1, 0.5, 2.5, -2, 2),
+                 f = c(dnorm(-1), dnorm(1), dnorm(-1), dnorm(1),
+                       dnorm(-2, 0, 2), dnorm(2, 0, 2)))
+ggplot(d_lab1, aes(x, f, color = curva)) +
+  geom_line(linewidth = 1) +
+  geom_point(data = d_inf1, aes(x, f), inherit.aes = FALSE,
+             color = rojo, size = 2) +
+  scale_color_manual(values = c(`N(0, 1)` = azul, `N(1.5, 1)` = naranja,
+                                `N(0, 2²)` = celeste)) +
+  labs(x = "x", y = "f(x)", color = NULL) +
+  theme(legend.position = "top")
+```
+
+En la versión HTML, dos deslizadores controlan $\mu$ y $\sigma$ en vivo; aquí se muestran tres configuraciones. En todas, los puntos de inflexión (rojos) caen en $\mu \pm \sigma$.
+:::
+
 ## La regla empírica 68–95–99.7
 
 ```{r}
@@ -546,6 +785,12 @@ knitr::include_graphics("figuras/distribucion_normal.png")
 
 - $P(\mu - \sigma < X < \mu + \sigma) = 0.683$; $\;P(\mu - 2\sigma < X < \mu + 2\sigma) = 0.954$; $\;P(\mu - 3\sigma < X < \mu + 3\sigma) = 0.997$.
 - Más de $2\sigma$ desde la media es raro (menos del 5%); más de $3\sigma$, excepcional: una escuela a $3\sigma$ bajo la media nacional no es ruido muestral — amerita intervención.
+
+:::: {.content-visible when-format="html"}
+::: {.callout-tip title="Intuición" appearance="simple"}
+En una normal casi todo ocurre cerca del centro: 2 de cada 3 observaciones caen a menos de una desviación de la media, y salirse de tres es noticia, no ruido.
+:::
+::::
 
 ## Estandarización: $Z = (X-\mu)/\sigma$, demostrada
 
@@ -562,6 +807,10 @@ Si además $X \sim N(\mu, \sigma^2)$, el cierre lineal implica $Z \sim N(0,1)$: 
 
 **Qué significa esto:** toda pregunta sobre cualquier normal se traduce a una sola distribución tabulada. $Z$ responde "¿a cuántas desviaciones estándar de la media está este valor?" — la moneda común de la sesión 1 (z-scores), ahora con distribución exacta.
 
+::: {.callout-tip title="Intuición" appearance="simple"}
+Estandarizar es cambiar la regla de medir: en vez de pesos o puntos, todo se expresa en "desviaciones desde la media", una moneda común para comparar variables distintas.
+:::
+
 ## La función $\Phi$ y el cálculo de intervalos
 
 **Definición.** $\Phi(z) = P(Z \le z)$ con $Z \sim N(0,1)$; en R, `pnorm(z)`. Por simetría, $\Phi(-z) = 1 - \Phi(z)$.
@@ -576,6 +825,12 @@ $$P(a < X < b) = P\!\left(\frac{a-\mu}{\sigma} < Z < \frac{b-\mu}{\sigma}\right)
 
 - Cola izquierda: $P(X < b) = \Phi\big((b-\mu)/\sigma\big)$; cola derecha: $P(X > a) = 1 - \Phi\big((a-\mu)/\sigma\big)$.
 - En R: `pnorm(b, mu, sigma) - pnorm(a, mu, sigma)`, sin estandarizar a mano. La inversa $\Phi^{-1}$ es `qnorm()`.
+
+:::: {.content-visible when-format="html"}
+::: {.callout-tip title="Intuición" appearance="simple"}
+La función $\Phi$ responde una sola pregunta: ¿qué fracción de la población queda a la izquierda de este valor? Todo cálculo normal se reduce a leer esa fracción dos veces y restar.
+:::
+::::
 
 ## Ejemplo 1 (1/2): puntaje de focalización, paso a paso
 
@@ -617,6 +872,105 @@ interactivo(p)
 ```
 
 **Lectura de política:** con el umbral en 440 el subsidio cubre al 15.9% más vulnerable; la franja celeste (68.3%) concentra a los hogares que quedan fuera por poco — el grupo donde los errores de exclusión son más probables.
+
+## Laboratorio: probabilidad de un intervalo
+
+El puntaje de focalización es $X \sim N(\mu, \sigma^2)$. Mueva $\mu$, $\sigma$ y el umbral $a$: el área roja es la fracción elegible $P(X < a) = \Phi\big((a-\mu)/\sigma\big)$. Con $\mu = 520$, $\sigma = 80$ y $a = 440$ se recupera el 0.1587 del ejemplo.
+
+::: {.content-visible when-format="html"}
+
+```{=html}
+<div style="display:flex; gap:1.2em; align-items:center; flex-wrap:wrap; font-size:0.62em; margin-bottom:0.3em;">
+  <label>Media &mu;: <input type="range" id="lab2-mu" min="420" max="620" step="5" value="520" style="width:150px; vertical-align:middle;"> <span id="lab2-mu-val"></span></label>
+  <label>Desv. est. &sigma;: <input type="range" id="lab2-sigma" min="40" max="160" step="5" value="80" style="width:150px; vertical-align:middle;"> <span id="lab2-sigma-val"></span></label>
+  <label>Umbral a: <input type="range" id="lab2-a" min="300" max="700" step="5" value="440" style="width:150px; vertical-align:middle;"> <span id="lab2-a-val"></span></label>
+</div>
+<div id="lab2-plot" style="width:100%; height:400px;"></div>
+<div id="lab2-lectura" style="font-size:0.6em; color:#1F4E79; font-weight:600;"></div>
+<script>
+(function() {
+  function dnorm(x, mu, s) {
+    return Math.exp(-0.5 * Math.pow((x - mu) / s, 2)) / (s * Math.sqrt(2 * Math.PI));
+  }
+  function erf(x) {  // aproximación de Abramowitz-Stegun 7.1.26
+    var sg = x < 0 ? -1 : 1;
+    x = Math.abs(x);
+    var t = 1 / (1 + 0.3275911 * x);
+    var y = 1 - ((((1.061405429 * t - 1.453152027) * t + 1.421413741) * t
+              - 0.284496736) * t + 0.254829592) * t * Math.exp(-x * x);
+    return sg * y;
+  }
+  function phi(z) { return 0.5 * (1 + erf(z / Math.SQRT2)); }
+  function dibujar() {
+    var mu = parseFloat(document.getElementById('lab2-mu').value);
+    var s  = parseFloat(document.getElementById('lab2-sigma').value);
+    var a  = parseFloat(document.getElementById('lab2-a').value);
+    document.getElementById('lab2-mu-val').textContent = mu.toFixed(0);
+    document.getElementById('lab2-sigma-val').textContent = s.toFixed(0);
+    document.getElementById('lab2-a-val').textContent = a.toFixed(0);
+    var xs = [], ys = [], xa = [], ya = [];
+    for (var i = 0; i <= 500; i++) {
+      var x = 150 + (900 - 150) * i / 500;
+      var f = dnorm(x, mu, s);
+      xs.push(x); ys.push(f);
+      if (x <= a) { xa.push(x); ya.push(f); }
+    }
+    xa.push(a); ya.push(dnorm(a, mu, s));
+    var z = (a - mu) / s, prob = phi(z);
+    Plotly.react('lab2-plot', [
+      {x: xa, y: ya, type: 'scatter', mode: 'lines', fill: 'tozeroy',
+       fillcolor: 'rgba(231,76,60,0.45)', line: {color: '#E74C3C', width: 1},
+       name: 'P(X < a)'},
+      {x: xs, y: ys, type: 'scatter', mode: 'lines',
+       line: {color: '#1F4E79', width: 3}, name: 'f(x)'},
+      {x: [a, a], y: [0, 0.0105], type: 'scatter', mode: 'lines',
+       line: {color: '#F39C12', width: 2, dash: 'dash'}, name: 'umbral a'}
+    ], {
+      margin: {t: 10, r: 20, b: 40, l: 55},
+      xaxis: {range: [150, 900], title: {text: 'Puntaje de focalización'}},
+      yaxis: {range: [0, 0.0105], title: {text: 'Densidad'}},
+      showlegend: false
+    }, {displayModeBar: false});
+    document.getElementById('lab2-lectura').textContent =
+      'z = (a - mu)/sigma = ' + z.toFixed(3) +
+      '  |  P(X < a) = Phi(z) = ' + prob.toFixed(4) +
+      '  →  ' + (100 * prob).toFixed(1) + '% de hogares elegibles';
+  }
+  function init() {
+    if (typeof Plotly === 'undefined') { setTimeout(init, 200); return; }
+    ['lab2-mu', 'lab2-sigma', 'lab2-a'].forEach(function(id){ document.getElementById(id).addEventListener('input', dibujar); });
+    dibujar();
+  }
+  if (document.readyState === 'complete') { init(); } else { window.addEventListener('load', init); }
+})();
+</script>
+```
+
+:::
+
+::: {.content-visible unless-format="html"}
+```{r}
+#| label: pdf-lab-intervalo
+#| echo: false
+#| fig-height: 2.6
+#| fig-width: 8
+#| out.width: "88%"
+xx_l2 <- seq(150, 900, length.out = 500)
+d_lab2 <- bind_rows(
+  tibble(x = xx_l2, f = dnorm(xx_l2, 520, 80), a = 440,
+         panel = "a = 440: P(X < a) = 0.159"),
+  tibble(x = xx_l2, f = dnorm(xx_l2, 520, 80), a = 520,
+         panel = "a = 520: P(X < a) = 0.500"))
+ggplot(d_lab2, aes(x, f)) +
+  geom_area(data = filter(d_lab2, x <= a), fill = rojo, alpha = .55) +
+  geom_line(color = azul, linewidth = 0.9) +
+  geom_vline(aes(xintercept = a), linetype = "dashed", color = naranja) +
+  facet_wrap(~panel, nrow = 1) +
+  labs(x = "Puntaje de focalización", y = "Densidad")
+```
+
+En la versión HTML, tres deslizadores controlan $\mu$, $\sigma$ y el umbral $a$ en vivo: subir $a$ o aumentar $\sigma$ (cuando $a < \mu$) amplía la fracción elegible; el valor exacto siempre es $\Phi\big((a-\mu)/\sigma\big)$.
+:::
 
 ## Ejemplo 2 (1/2): probabilidad de pobreza, paso a paso
 

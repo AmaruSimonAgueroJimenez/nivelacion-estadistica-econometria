@@ -39,6 +39,86 @@ knitr::include_graphics("figuras/diagrama_venn.png")
 
 
 ## -----------------------------------------------------------------------------
+#| label: venn-operaciones
+#| echo: false
+#| fig-width: 7.5
+#| fig-height: 3.0
+#| out.width: "72%"
+library(ggforce)
+# Helpers de diagramas de Venn (se reutilizan en las laminas siguientes)
+circ_pts <- function(cx, cy, r, n = 240) {
+  t <- seq(0, 2 * pi, length.out = n)
+  list(x = cx + r * cos(t), y = cy + r * sin(t))
+}
+elip_pts <- function(cx, cy, a, b, n = 240) {
+  t <- seq(0, 2 * pi, length.out = n)
+  list(x = cx + a * cos(t), y = cy + b * sin(t))
+}
+rect_pts <- function(x0, y0, x1, y1) list(x = c(x0, x1, x1, x0), y = c(y0, y0, y1, y1))
+clip_df <- function(A, B, op, etiqueta) {
+  res <- polyclip::polyclip(A, B, op)
+  bind_rows(lapply(seq_along(res), function(i)
+    tibble(x = res[[i]]$x, y = res[[i]]$y, pieza = paste(etiqueta, i), op = etiqueta)))
+}
+
+cA <- circ_pts(-0.6, 0, 1); cB <- circ_pts(0.6, 0, 1)
+om <- rect_pts(-2.2, -1.35, 2.2, 1.35)
+ops <- c('A*" "*symbol("\\310")*" "*B', 'A*" "*symbol("\\307")*" "*B', 'A^c', 'A - B')
+zonas <- bind_rows(
+  clip_df(cA, cB, "union", ops[1]),
+  clip_df(cA, cB, "intersection", ops[2]),
+  clip_df(om, cA, "minus", ops[3]),
+  clip_df(cA, cB, "minus", ops[4])
+) %>% mutate(op = factor(op, levels = ops))
+marcos <- tibble(op = factor(ops, levels = ops),
+                 xmin = -2.2, xmax = 2.2, ymin = -1.35, ymax = 1.35)
+circulos <- crossing(tibble(op = factor(ops, levels = ops)),
+                     tibble(x0 = c(-0.6, 0.6), y0 = 0, r = 1))
+letras <- crossing(tibble(op = factor(ops, levels = ops)),
+                   tibble(x = c(-1.35, 1.35), y = 1.05, lab = c("A", "B")))
+ggplot() +
+  geom_rect(data = marcos, aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax),
+            fill = "grey96", color = "grey40", linewidth = 0.4) +
+  geom_polygon(data = zonas, aes(x = x, y = y, group = op, subgroup = pieza, fill = op),
+               alpha = 0.65, rule = "evenodd", show.legend = FALSE) +
+  geom_circle(data = circulos, aes(x0 = x0, y0 = y0, r = r),
+              color = azul, linewidth = 0.5, inherit.aes = FALSE) +
+  geom_text(data = letras, aes(x = x, y = y, label = lab),
+            color = azul, size = 4, fontface = "bold") +
+  scale_fill_manual(values = setNames(c(celeste, naranja, rojo, verde), ops)) +
+  facet_wrap(~op, nrow = 2, labeller = label_parsed) +
+  coord_fixed() + theme_void() +
+  theme(strip.text = element_text(size = 12, color = azul, face = "bold"))
+
+
+## -----------------------------------------------------------------------------
+#| label: venn-condicional
+#| echo: false
+#| fig-width: 6.5
+#| fig-height: 2.9
+#| out.width: "58%"
+cA2 <- circ_pts(-0.55, 0, 0.95); cB2 <- circ_pts(0.65, 0, 0.95)
+lente <- clip_df(cA2, cB2, "intersection", "lente")
+soloB <- clip_df(cB2, cA2, "minus", "soloB")
+ggplot() +
+  geom_rect(aes(xmin = -2.3, xmax = 2.3, ymin = -1.3, ymax = 1.3),
+            fill = "grey92", color = "grey55", linewidth = 0.4) +
+  geom_circle(aes(x0 = -0.55, y0 = 0, r = 0.95), fill = "grey80", alpha = 0.55,
+              color = "grey55", linewidth = 0.5) +
+  geom_polygon(data = soloB, aes(x = x, y = y, group = pieza), fill = celeste, alpha = 0.55) +
+  geom_polygon(data = lente, aes(x = x, y = y, group = pieza), fill = naranja, alpha = 0.85) +
+  geom_circle(aes(x0 = 0.65, y0 = 0, r = 0.95), fill = NA, color = azul, linewidth = 1.1) +
+  annotate("text", x = -1.35, y = 0.55, label = "A", color = "grey45", size = 5.5, fontface = "bold") +
+  annotate("text", x = 1.25, y = 0.55, label = "B", color = azul, size = 6, fontface = "bold") +
+  annotate("text", x = 0.05, y = 0, label = 'A*symbol("\\307")*B', parse = TRUE,
+           color = "grey10", size = 4.2) +
+  annotate("text", x = -1.72, y = -1.05, label = "Omega~(atenuado)", parse = TRUE,
+           color = "grey50", size = 3.8) +
+  annotate("text", x = 1.45, y = -1.05, label = "nuevo universo", color = azul, size = 3.8) +
+  coord_fixed() + theme_void()
+
+
+## -----------------------------------------------------------------------------
 #| label: plot-condicional
 #| echo: false
 #| fig-width: 5
@@ -56,6 +136,37 @@ p <- ggplot(df, aes(x = grupo, y = prob, fill = grupo)) +
   labs(x = NULL, y = "P(consigue empleo)",
        title = "Probabilidad de empleo según participación")
 interactivo(p)
+
+
+## -----------------------------------------------------------------------------
+#| label: venn-particion
+#| echo: false
+#| fig-width: 7.5
+#| fig-height: 2.9
+#| out.width: "68%"
+elB <- elip_pts(3.1, 1.1, 2.5, 0.72)
+franjas <- tibble(x0 = c(0, 2.0, 4.2), x1 = c(2.0, 4.2, 6.2),
+                  ev = c("A[1]", "A[2]", "A[3]"),
+                  col = c(celeste, verde, naranja))
+inter <- bind_rows(lapply(1:3, function(i)
+  clip_df(elB, rect_pts(franjas$x0[i], 0, franjas$x1[i], 2.2), "intersection",
+          franjas$ev[i])))
+ggplot() +
+  geom_rect(data = franjas, aes(xmin = x0, xmax = x1, ymin = 0, ymax = 2.2, fill = ev),
+            alpha = 0.25, color = "grey40", linewidth = 0.3, show.legend = FALSE) +
+  geom_polygon(data = inter, aes(x = x, y = y, group = pieza, fill = op),
+               alpha = 0.8, show.legend = FALSE) +
+  geom_ellipse(aes(x0 = 3.1, y0 = 1.1, a = 2.5, b = 0.72, angle = 0),
+               color = azul, linewidth = 0.7, inherit.aes = FALSE) +
+  geom_text(data = franjas, aes(x = (x0 + x1) / 2, y = 2.0, label = ev),
+            parse = TRUE, color = azul, size = 5, fontface = "bold") +
+  annotate("text", x = 5.45, y = 0.55, label = "B", color = azul, size = 6, fontface = "bold") +
+  geom_text(data = tibble(x = c(1.35, 3.1, 4.9), y = 1.1,
+                          lab = c('B*symbol("\\307")*A[1]', 'B*symbol("\\307")*A[2]',
+                                  'B*symbol("\\307")*A[3]')),
+            aes(x = x, y = y, label = lab), parse = TRUE, color = "grey20", size = 3.6) +
+  scale_fill_manual(values = setNames(franjas$col, franjas$ev)) +
+  coord_fixed() + theme_void()
 
 
 ## -----------------------------------------------------------------------------
@@ -127,6 +238,27 @@ p <- ggplot(df, aes(x = prev, y = post)) +
   labs(x = "Prevalencia P(V)", y = "Posterior P(V | +)",
        title = "Mismo instrumento (sens 0.90, espec 0.85), distinta poblacion")
 interactivo(p)
+
+
+## -----------------------------------------------------------------------------
+#| label: venn-exclusion
+#| echo: false
+#| fig-width: 6.0
+#| fig-height: 2.6
+#| out.width: "52%"
+ggplot() +
+  geom_rect(aes(xmin = -2.6, xmax = 2.6, ymin = -1.25, ymax = 1.25),
+            fill = "grey96", color = "grey40", linewidth = 0.4) +
+  geom_circle(aes(x0 = -1.25, y0 = 0, r = 0.85), fill = celeste, alpha = 0.5,
+              color = azul, linewidth = 0.6) +
+  geom_circle(aes(x0 = 1.25, y0 = 0, r = 0.85), fill = naranja, alpha = 0.5,
+              color = azul, linewidth = 0.6) +
+  annotate("text", x = -1.25, y = 0, label = "A", color = azul, size = 6, fontface = "bold") +
+  annotate("text", x = 1.25, y = 0, label = "B", color = azul, size = 6, fontface = "bold") +
+  annotate("text", x = 0, y = -1.02, label = 'A*" "*symbol("\\307")*" "*B*" = "*symbol("\\306")',
+           parse = TRUE, color = rojo, size = 5) +
+  annotate("text", x = 2.35, y = 1.06, label = "Omega", parse = TRUE, color = "grey40", size = 4.5) +
+  coord_fixed() + theme_void()
 
 
 ## -----------------------------------------------------------------------------

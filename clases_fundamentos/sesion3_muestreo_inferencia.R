@@ -44,6 +44,28 @@ interactivo(p)
 
 
 ## -----------------------------------------------------------------------------
+#| label: plot-lgn-trayectorias
+#| echo: false
+#| fig-height: 3.2
+set.seed(2026)
+p_verdadero <- 0.6
+tray <- map_dfr(1:5, function(k) {
+  x <- rbinom(1000, 1, p_verdadero)
+  tibble(encuestador = paste("Muestra", k), n = 1:1000, media = cummean(x))
+})
+p <- ggplot(tray, aes(n, media, color = encuestador)) +
+  geom_line(linewidth = 0.6, alpha = 0.85) +
+  geom_hline(yintercept = p_verdadero, linetype = "dashed", color = azul, linewidth = 1) +
+  annotate("text", x = 930, y = 0.635, label = "p = 0.60", color = azul, size = 4.2) +
+  scale_color_manual(values = c(celeste, naranja, verde, rojo, "#8E7CC3")) +
+  coord_cartesian(ylim = c(0.3, 0.9)) +
+  labs(x = "Tamaño muestral acumulado n", y = "Proporción muestral acumulada",
+       color = NULL, title = "Cinco encuestas independientes: apoyo verdadero p = 0.60") +
+  theme(legend.position = "none")
+interactivo(p)
+
+
+## -----------------------------------------------------------------------------
 #| label: plot-tlc-sim
 #| echo: false
 #| fig-height: 3.0

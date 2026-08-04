@@ -26,7 +26,7 @@ interactivo <- function(p) {
 ## -----------------------------------------------------------------------------
 #| label: plot-ancla
 #| echo: false
-#| fig-height: 3.0
+#| fig-height: 2.3
 p <- ggplot(wage1, aes(x = educ, y = wage)) +
   geom_jitter(width = 0.25, alpha = 0.35, color = celeste, size = 1.6) +
   geom_smooth(method = "lm", se = FALSE, color = rojo, linewidth = 1.1) +
@@ -106,6 +106,23 @@ interactivo(p)
 
 
 ## -----------------------------------------------------------------------------
+#| label: lab1-pdf
+#| echo: false
+#| fig-height: 2.7
+d8 <- tibble(x = c(8, 9, 10, 11, 12, 13, 14, 16),
+             y = c(4.5, 4.0, 6.0, 5.2, 6.8, 6.4, 8.2, 8.6))
+m8 <- lm(y ~ x, data = d8)
+d8 <- d8 %>% mutate(yhat = fitted(m8))
+p <- ggplot(d8, aes(x, y)) +
+  geom_segment(aes(xend = x, yend = yhat), color = naranja, linewidth = 0.9) +
+  geom_abline(intercept = coef(m8)[1], slope = coef(m8)[2], color = rojo, linewidth = 1.1) +
+  geom_point(color = azul, size = 2.8) +
+  labs(x = "Educación (años)", y = "Salario por hora (USD)",
+       title = "La recta ganadora: -0.46 + 0.57x, con SSR = 2.49")
+p
+
+
+## -----------------------------------------------------------------------------
 #| label: img-residuos
 #| echo: false
 #| out.width: "96%"
@@ -142,6 +159,26 @@ p <- tibble(
   labs(x = "Suma de cuadrados", y = NULL,
        title = "17.5 = 16.9 + 0.6")
 interactivo(p)
+
+
+## -----------------------------------------------------------------------------
+#| label: lab2-pdf
+#| echo: false
+#| fig-height: 2.7
+set.seed(7)
+sim2 <- purrr::map_dfr(c(1, 6), function(s) {
+  x <- runif(80, 0, 10)
+  y <- 2 + 0.5 * x + rnorm(80, 0, s)
+  r2 <- summary(lm(y ~ x))$r.squared
+  tibble(x, y, panel = sprintf("DE del error = %.0f:  R2 = %.2f", s, r2))
+})
+p <- ggplot(sim2, aes(x, y)) +
+  geom_point(color = celeste, alpha = 0.55, size = 1.5) +
+  geom_abline(intercept = 2, slope = 0.5, color = azul, linetype = "dashed") +
+  geom_smooth(method = "lm", se = FALSE, color = rojo, linewidth = 1) +
+  facet_wrap(~panel) +
+  labs(x = "x", y = "y")
+p
 
 
 ## -----------------------------------------------------------------------------

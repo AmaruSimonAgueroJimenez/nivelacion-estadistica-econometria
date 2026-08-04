@@ -22,6 +22,59 @@ knitr::include_graphics("figuras/diagrama_venn.png")
 
 
 ## -----------------------------------------------------------------------------
+#| label: venn-operaciones
+#| echo: false
+#| dev: png
+#| fig-width: 10
+#| fig-height: 2.7
+#| out-width: "100%"
+library(ggforce)
+niveles <- c("Unión: A o B (o ambos)", "Intersección: A y B",
+             "Complemento: no ocurre A", "Disjuntos: no coexisten")
+circ <- bind_rows(
+  tibble(panel = niveles[1], x0 = c(-0.5, 0.5), y0 = 0, r = 1,
+         fill = celeste, al = 0.45),
+  tibble(panel = niveles[2], x0 = c(-0.5, 0.5), y0 = 0, r = 1,
+         fill = NA_character_, al = 1),
+  tibble(panel = niveles[3], x0 = -0.2, y0 = 0, r = 1,
+         fill = "white", al = 1),
+  tibble(panel = niveles[4], x0 = c(-1.05, 1.05), y0 = 0, r = 0.9,
+         fill = c(celeste, naranja), al = 0.45)
+) %>% mutate(panel = factor(panel, levels = niveles))
+t1 <- seq(-pi/3, pi/3, length.out = 60)
+t2 <- seq(2*pi/3, 4*pi/3, length.out = 60)
+lente <- tibble(panel = factor(niveles[2], levels = niveles),
+                x = c(-0.5 + cos(t1), 0.5 + cos(t2)),
+                y = c(sin(t1), sin(t2)))
+fondo <- tibble(panel = factor(niveles[3], levels = niveles))
+etiq <- bind_rows(
+  tibble(panel = niveles[1], x = c(-0.95, 0.95), y = 1.25, lab = c("A", "B")),
+  tibble(panel = niveles[2], x = c(-0.95, 0.95), y = 1.25, lab = c("A", "B")),
+  tibble(panel = niveles[3], x = c(-0.2, 1.55), y = c(1.25, -1.25),
+         lab = c("A", "A^c")),
+  tibble(panel = niveles[4], x = c(-1.05, 1.05), y = 1.15, lab = c("A", "B"))
+) %>% mutate(panel = factor(panel, levels = niveles))
+ggplot() +
+  geom_rect(data = fondo,
+            aes(xmin = -2.05, xmax = 2.05, ymin = -1.45, ymax = 1.45),
+            fill = alpha(celeste, 0.45), color = NA) +
+  geom_polygon(data = lente, aes(x, y), fill = alpha(rojo, 0.65), color = NA) +
+  geom_circle(data = circ,
+              aes(x0 = x0, y0 = y0, r = r, fill = fill, alpha = al),
+              color = azul, linewidth = 0.6) +
+  scale_fill_identity() + scale_alpha_identity() +
+  annotate("rect", xmin = -2.05, xmax = 2.05, ymin = -1.45, ymax = 1.45,
+           fill = NA, color = "gray40", linewidth = 0.5) +
+  geom_text(data = etiq, aes(x, y, label = lab), color = azul, parse = TRUE,
+            fontface = "bold.italic", size = 4.2) +
+  facet_wrap(~panel, nrow = 1) +
+  coord_fixed(xlim = c(-2.1, 2.1), ylim = c(-1.5, 1.5), expand = FALSE) +
+  theme_void(base_size = 12) +
+  theme(strip.text = element_text(size = 10.5, face = "bold", color = azul,
+                                  margin = margin(b = 4)))
+
+
+## -----------------------------------------------------------------------------
 #| label: code-adicion
 pA <- 0.30; pB <- 0.25; pAB <- 0.10
 c(al_menos_uno = pA + pB - pAB,
@@ -128,6 +181,53 @@ interactivo(p)
 
 
 ## -----------------------------------------------------------------------------
+#| label: venn-condicional
+#| echo: false
+#| dev: png
+#| fig-width: 7.5
+#| fig-height: 3.0
+#| out-width: "70%"
+niveles3 <- c("Antes: el universo es Ω", "Al saber B: el universo es B")
+c3 <- bind_rows(
+  tibble(panel = niveles3[1], x0 = c(-0.5, 0.5), y0 = 0, r = 1,
+         fill = c(alpha(celeste, 0.45), alpha(naranja, 0.45)),
+         col = c(azul, naranja)),
+  tibble(panel = niveles3[2], x0 = c(-0.5, 0.5), y0 = 0, r = 1,
+         fill = c(NA_character_, alpha(naranja, 0.5)),
+         col = c("gray70", naranja))
+) %>% mutate(panel = factor(panel, levels = niveles3))
+t1 <- seq(-pi/3, pi/3, length.out = 60)
+t2 <- seq(2*pi/3, 4*pi/3, length.out = 60)
+lente3 <- tibble(panel = factor(niveles3[2], levels = niveles3),
+                 x = c(-0.5 + cos(t1), 0.5 + cos(t2)),
+                 y = c(sin(t1), sin(t2)))
+etiq3 <- bind_rows(
+  tibble(panel = niveles3[1], x = c(-1.0, 1.0), y = 1.25, lab = c("A", "B"),
+         col = c(azul, naranja)),
+  tibble(panel = niveles3[2], x = c(-1.0, 1.0), y = 1.25, lab = c("A", "B"),
+         col = c("gray60", naranja))
+) %>% mutate(panel = factor(panel, levels = niveles3))
+ggplot() +
+  annotate("rect", xmin = -2.05, xmax = 2.05, ymin = -1.45, ymax = 1.45,
+           fill = NA, color = "gray45", linewidth = 0.5) +
+  geom_circle(data = c3, aes(x0 = x0, y0 = y0, r = r, fill = fill, color = col),
+              linewidth = 0.7) +
+  geom_polygon(data = lente3, aes(x, y), fill = alpha(rojo, 0.6), color = NA) +
+  scale_fill_identity() + scale_color_identity() +
+  geom_text(data = etiq3, aes(x, y, label = lab, color = col),
+            fontface = "bold.italic", size = 4.6) +
+  geom_text(data = tibble(panel = factor(niveles3[2], levels = niveles3),
+                          x = 0, y = 0),
+            aes(x, y), label = "A∩B", color = "white",
+            fontface = "bold", size = 3.6) +
+  facet_wrap(~panel, nrow = 1) +
+  coord_fixed(xlim = c(-2.1, 2.1), ylim = c(-1.5, 1.5), expand = FALSE) +
+  theme_void(base_size = 12) +
+  theme(strip.text = element_text(size = 11, face = "bold", color = azul,
+                                  margin = margin(b = 4)))
+
+
+## -----------------------------------------------------------------------------
 #| label: code-indep
 tabla <- matrix(c(140, 70, 180, 110),
                 nrow = 2, byrow = TRUE)
@@ -138,6 +238,42 @@ round(chisq.test(tabla)$p.value, 3)
 #| label: code-producto
 round(c(dos_irregulares = (4/20) * (3/19),
         al_menos_uno = 1 - (16/20) * (15/19)), 3)
+
+
+## -----------------------------------------------------------------------------
+#| label: venn-particion
+#| echo: false
+#| dev: png
+#| fig-width: 7
+#| fig-height: 2.9
+#| out-width: "62%"
+bandas <- tibble(xmin = c(-2.1, -0.7, 0.7), xmax = c(-0.7, 0.7, 2.1),
+                 fill = c(alpha(celeste, 0.25), alpha(verde, 0.22),
+                          alpha(naranja, 0.25)))
+ggplot() +
+  geom_rect(data = bandas,
+            aes(xmin = xmin, xmax = xmax, ymin = -1.3, ymax = 1.3, fill = fill),
+            color = "gray55", linewidth = 0.4) +
+  scale_fill_identity() +
+  ggforce::geom_ellipse(aes(x0 = 0, y0 = -0.15, a = 1.45, b = 0.62, angle = 0),
+                        fill = alpha(rojo, 0.35), color = rojo,
+                        linewidth = 0.8) +
+  geom_vline(xintercept = c(-0.7, 0.7), color = "gray35", linewidth = 0.5) +
+  annotate("text", x = c(-1.4, 0, 1.4), y = 1.08,
+           label = c("B[1]", "B[2]", "B[3]"), parse = TRUE,
+           color = azul, fontface = "bold", size = 4.6) +
+  annotate("text", x = 0, y = -0.15, label = "A", color = rojo,
+           fontface = "bold.italic", size = 5) +
+  annotate("text", x = c(-1.05, 0, 1.05), y = -0.95,
+           label = c("A*'∩'*B[1]", "A*'∩'*B[2]", "A*'∩'*B[3]"), parse = TRUE,
+           color = "gray25", size = 3.4) +
+  annotate("segment", x = c(-1.05, 0, 1.05), xend = c(-1.05, 0, 1.05),
+           y = -0.83, yend = c(-0.52, -0.72, -0.52),
+           color = "gray45", linewidth = 0.4) +
+  annotate("text", x = -1.95, y = 1.18, label = "Omega", parse = TRUE,
+           color = "gray30", size = 4.6) +
+  coord_fixed(xlim = c(-2.15, 2.15), ylim = c(-1.35, 1.35), expand = FALSE) +
+  theme_void()
 
 
 ## -----------------------------------------------------------------------------
@@ -194,6 +330,17 @@ tibble(
   `Test -` = c("5", "8.910", "8.915"),
   `Total` = c("100", "9.900", "10.000")
 ) %>% kable(align = "lrrr")
+
+
+## -----------------------------------------------------------------------------
+#| label: tabla-lab-bayes
+#| echo: false
+prevs <- c(0.001, 0.01, 0.05, 0.20)
+posts <- 0.95 * prevs / (0.95 * prevs + 0.10 * (1 - prevs))
+tibble(
+  `Prevalencia (prior)` = scales::percent(prevs, accuracy = 0.1),
+  `P(Enf | +) (posterior)` = scales::percent(posts, accuracy = 0.1)
+) %>% kable(align = "rr")
 
 
 ## -----------------------------------------------------------------------------

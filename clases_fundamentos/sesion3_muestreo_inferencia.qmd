@@ -15,6 +15,7 @@ format:
     code-line-numbers: false
     fig-align: center
     menu: true
+    scrollable: true
   beamer:
     aspectratio: 169
     theme: Madrid
@@ -106,6 +107,12 @@ Un **estadístico** es cualquier función de la muestra que **no depende de par�
 
 **Que significa esto:** la tasa de pobreza *verdadera* de una región es $\theta$; la tasa calculada con la CASEN es $\hat{\theta}_n$. Nunca son idénticas — la inferencia mide cuánto pueden diferir.
 
+::: {.content-visible when-format="html"}
+::: {.callout-tip title="Intuición" appearance="simple"}
+El parámetro es el blanco fijo en la pared; el estimador es la flecha que lanzamos, y cada muestra nueva es un lanzamiento distinto. Inferir es describir la puntería sin ver el blanco.
+:::
+:::
+
 ## La distribución muestral: el estimador ES una variable aleatoria
 
 :::: {.columns}
@@ -133,6 +140,12 @@ knitr::include_graphics("figuras/distribucion_muestral.png")
 
 ::::
 
+::: {.content-visible when-format="html"}
+::: {.callout-tip title="Intuición" appearance="simple"}
+Si mil equipos hicieran la misma encuesta el mismo día, cada uno reportaría un promedio distinto: el histograma de esos mil promedios es la distribución muestral.
+:::
+:::
+
 ## Demostración: $\mathbb{E}[\bar{X}_n] = \mu$
 
 Sean $X_1, \dots, X_n$ i.i.d. con $\mathbb{E}[X_i] = \mu$. Entonces:
@@ -145,6 +158,12 @@ $$\begin{aligned}
 \end{aligned}$$
 
 **Que significa esto:** el promedio muestral no apunta sistemáticamente ni por arriba ni por abajo de $\mu$. Si repitiéramos la encuesta miles de veces, el promedio de los promedios coincidiría con el parámetro. Nótese que solo usamos linealidad: **no** se necesita independencia ni normalidad.
+
+::: {.content-visible when-format="html"}
+::: {.callout-tip title="Intuición" appearance="simple"}
+Insesgado no es acertar siempre: es que los errores hacia arriba y hacia abajo se cancelan en promedio, como una balanza bien calibrada que a veces marca de más y a veces de menos.
+:::
+:::
 
 ## Demostración: $\operatorname{Var}(\bar{X}_n) = \sigma^2 / n$
 
@@ -185,6 +204,52 @@ interactivo(p)
 
 Población **exponencial** (media $\mu = 5$, DE $\sigma = 5$, muy sesgada). Las medias de muestras con $n = 30$ se concentran alrededor de 5 con DE empírica $\approx 0.90$, casi idéntica al valor teórico $\sigma/\sqrt{n} = 5/\sqrt{30} \approx 0.91$ — y su forma ya es simétrica.
 
+## Ley de los Grandes Números: enunciado formal
+
+**Teorema (ley débil de los grandes números).** Sean $X_1, X_2, \dots$ i.i.d. con $\mathbb{E}[X_i] = \mu$ y $\operatorname{Var}(X_i) = \sigma^2 < \infty$. Entonces la media muestral **converge en probabilidad** al parámetro:
+
+$$\bar{X}_n \xrightarrow{\;p\;} \mu \quad\Longleftrightarrow\quad \lim_{n\to\infty} P\!\left(\,|\bar{X}_n - \mu| > \varepsilon\,\right) = 0 \quad \text{para todo } \varepsilon > 0$$
+
+**Demostración** (vía la desigualdad de Chebyshev), paso a paso:
+
+$$\begin{aligned}
+P\!\left(|\bar{X}_n - \mu| > \varepsilon\right) &\leq \frac{\operatorname{Var}(\bar{X}_n)}{\varepsilon^2} && \text{(Chebyshev sobre } \bar{X}_n\text{)} \\[2pt]
+&= \frac{\sigma^2}{n\,\varepsilon^2} && \text{(ya demostramos } \operatorname{Var}(\bar{X}_n)=\sigma^2/n\text{)} \\[2pt]
+&\xrightarrow[\;n \to \infty\;]{} 0 && \blacksquare
+\end{aligned}$$
+
+::: {.content-visible when-format="html"}
+::: {.callout-tip title="Intuición" appearance="simple"}
+Con suficientes observaciones, el azar "se promedia": la media muestral deja de ser una apuesta y se vuelve una medición del parámetro. Es la razón por la que encuestar 1.000 hogares informa sobre millones.
+:::
+:::
+
+## LGN en acción: trayectorias de la media muestral
+
+```{r}
+#| label: plot-lgn-trayectorias
+#| echo: false
+#| fig-height: 3.2
+set.seed(2026)
+p_verdadero <- 0.6
+tray <- map_dfr(1:5, function(k) {
+  x <- rbinom(1000, 1, p_verdadero)
+  tibble(encuestador = paste("Muestra", k), n = 1:1000, media = cummean(x))
+})
+p <- ggplot(tray, aes(n, media, color = encuestador)) +
+  geom_line(linewidth = 0.6, alpha = 0.85) +
+  geom_hline(yintercept = p_verdadero, linetype = "dashed", color = azul, linewidth = 1) +
+  annotate("text", x = 930, y = 0.635, label = "p = 0.60", color = azul, size = 4.2) +
+  scale_color_manual(values = c(celeste, naranja, verde, rojo, "#8E7CC3")) +
+  coord_cartesian(ylim = c(0.3, 0.9)) +
+  labs(x = "Tamaño muestral acumulado n", y = "Proporción muestral acumulada",
+       color = NULL, title = "Cinco encuestas independientes: apoyo verdadero p = 0.60") +
+  theme(legend.position = "none")
+interactivo(p)
+```
+
+Cada trayectoria es una encuesta que crece: con $n$ pequeño las cinco difieren mucho; hacia $n = 1000$ **todas** están pegadas a $p = 0.60$. Eso — y solo eso — es lo que garantiza la LGN.
+
 ## Teorema Central del Límite: enunciado formal
 
 **Teorema (Lindeberg–Lévy).** Sean $X_1, X_2, \dots$ i.i.d. con $\mathbb{E}[X_i] = \mu$ y $\operatorname{Var}(X_i) = \sigma^2 \in (0, \infty)$. Entonces
@@ -198,6 +263,12 @@ donde $\xrightarrow{d}$ denota **convergencia en distribución**: $\lim_{n\to\in
 **Lectura en palabras:** cualquiera sea la forma de la población — ingresos sesgados, conteos, dicotómicas — la media muestral estandarizada se comporta como una normal estándar cuando $n$ es grande. En la práctica: $\bar{X}_n \overset{\text{aprox}}{\sim} \mathcal{N}(\mu, \sigma^2/n)$.
 
 **Que significa esto:** el TCL es la licencia matemática para usar la campana de Gauss en encuestas de ingreso, pobreza o victimización, aunque ninguna de esas variables sea normal.
+
+::: {.content-visible when-format="html"}
+::: {.callout-tip title="Intuición" appearance="simple"}
+Al promediar muchas fuentes independientes de azar, los extremos se compensan entre sí y siempre emerge la misma silueta: la campana. La normal no es un supuesto, es un destino.
+:::
+:::
 
 ## TCL en acción: de una exponencial a la normal
 
@@ -226,6 +297,99 @@ interactivo(p)
 ```
 
 Con $n = 2$ la distribución de $\bar{X}_n$ hereda el sesgo exponencial; con $n = 30$ la curva normal (roja, con media $5$ y DE $5/\sqrt{n}$) ya calza; con $n = 100$ el ajuste es casi perfecto. La regla práctica $n \ge 30$ nace de aquí — con poblaciones muy sesgadas conviene más.
+
+## Laboratorio: TCL en vivo
+
+Mueva los controles y observe cómo el histograma de medias de una población exponencial (media 5, DE 5) se acerca a la campana normal, y cómo el SE empírico calza con el teórico.
+
+::: {.content-visible when-format="html"}
+
+```{=html}
+<div style="display:flex; gap:1.5em; align-items:center; flex-wrap:wrap; font-size:0.62em; margin-bottom:0.3em;">
+  <label>Tamano muestral n: <input type="range" id="lab1-n" min="1" max="200" step="1" value="30" style="width:170px; vertical-align:middle;"> <span id="lab1-n-val"></span></label>
+  <label>Numero de muestras: <input type="range" id="lab1-m" min="100" max="3000" step="100" value="1000" style="width:170px; vertical-align:middle;"> <span id="lab1-m-val"></span></label>
+</div>
+<div id="lab1-plot" style="width:100%; height:400px;"></div>
+<div id="lab1-lectura" style="font-size:0.6em; color:#1F4E79; font-weight:600;"></div>
+<script>
+(function() {
+  var MU = 5;
+  function rexp() { return -MU * Math.log(1 - Math.random()); }
+  function dibujar() {
+    var n = parseInt(document.getElementById('lab1-n').value, 10);
+    var m = parseInt(document.getElementById('lab1-m').value, 10);
+    document.getElementById('lab1-n-val').textContent = n;
+    document.getElementById('lab1-m-val').textContent = m;
+    var medias = new Array(m);
+    for (var i = 0; i < m; i++) {
+      var s = 0;
+      for (var j = 0; j < n; j++) { s += rexp(); }
+      medias[i] = s / n;
+    }
+    var se = MU / Math.sqrt(n);
+    var xs = [], ds = [];
+    for (var k = 0; k <= 240; k++) {
+      var x = 15 * k / 240;
+      xs.push(x);
+      ds.push(Math.exp(-0.5 * Math.pow((x - MU) / se, 2)) / (se * Math.sqrt(2 * Math.PI)));
+    }
+    var suma = 0;
+    for (var i2 = 0; i2 < m; i2++) { suma += medias[i2]; }
+    var prom = suma / m, sc = 0;
+    for (var i3 = 0; i3 < m; i3++) { sc += Math.pow(medias[i3] - prom, 2); }
+    var seEmp = Math.sqrt(sc / (m - 1));
+    Plotly.react('lab1-plot', [
+      { x: medias, type: 'histogram', histnorm: 'probability density',
+        marker: { color: '#2E86C1', line: { color: 'white', width: 0.5 } },
+        name: 'Medias muestrales', opacity: 0.75 },
+      { x: xs, y: ds, type: 'scatter', mode: 'lines',
+        line: { color: '#E74C3C', width: 2.5 },
+        name: 'Normal teorica' }
+    ], {
+      margin: { t: 10, r: 20, b: 40, l: 50 },
+      xaxis: { title: 'Media muestral de Exp(1/5)', range: [0, 15] },
+      yaxis: { title: 'Densidad', range: [0, 1.3] },
+      showlegend: true, legend: { orientation: 'h', y: 1.1 }
+    }, { displayModeBar: false });
+    document.getElementById('lab1-lectura').textContent =
+      'SE teorico = sigma/raiz(n) = 5/' + Math.sqrt(n).toFixed(2) + ' = ' + se.toFixed(3) +
+      '  |  SE empirico (DE de las ' + m + ' medias) = ' + seEmp.toFixed(3);
+  }
+  function init() {
+    if (typeof Plotly === 'undefined') { setTimeout(init, 200); return; }
+    ['lab1-n', 'lab1-m'].forEach(function(id) {
+      document.getElementById(id).addEventListener('input', dibujar);
+    });
+    dibujar();
+  }
+  if (document.readyState === 'complete') { init(); } else { window.addEventListener('load', init); }
+})();
+</script>
+```
+
+:::
+
+::: {.content-visible unless-format="html"}
+**Experimento (disponible en la versión HTML):** se extraen $m$ muestras de tamaño $n$ de una población $\text{Exp}(1/5)$ y se grafica el histograma de sus medias junto a la normal teórica $\mathcal{N}(5,\ 25/n)$, con $n$ y $m$ controlados por deslizadores.
+
+- Con $n$ pequeño el histograma hereda el sesgo exponencial; desde $n \approx 30$ la campana ya calza.
+- El SE empírico (DE de las $m$ medias) reproduce el teórico $\sigma/\sqrt{n} = 5/\sqrt{n}$.
+- Aumentar $m$ no angosta el histograma (eso solo lo hace $n$): únicamente lo dibuja con más nitidez.
+:::
+
+## LGN vs TCL: qué dice cada teorema
+
+| | Ley de los Grandes Números | Teorema Central del Límite |
+|---|---|---|
+| Pregunta que responde | ¿**A dónde** va $\bar{X}_n$? | ¿**Cómo fluctúa** $\bar{X}_n$ alrededor de $\mu$? |
+| Enunciado | $\bar{X}_n \xrightarrow{p} \mu$ | $\sqrt{n}\,(\bar{X}_n - \mu)/\sigma \xrightarrow{d} N(0,1)$ |
+| Garantiza | El destino: la media llega al parámetro | La forma: fluctuaciones normales a escala $\sigma/\sqrt{n}$ |
+| NO dice | Ni la velocidad ni la forma de las fluctuaciones | Que los datos $X_i$ sean normales (no lo necesita) |
+| En una encuesta | Con $n$ grande, $\hat{p} \approx p$ | Habilita el margen de error $\pm 1.96 \cdot SE$ |
+
+::: {.callout-tip title="Intuición" appearance="simple"}
+La LGN dice que el viaje **llega a destino**; el TCL describe **los tropiezos alrededor del destino**. Sin LGN no sabríamos que estimamos lo correcto; sin TCL no podríamos cuantificar la incertidumbre de la estimación.
+:::
 
 ## Por qué el TCL habilita toda la inferencia
 
@@ -264,6 +428,12 @@ El **sesgo** se define como $\operatorname{Sesgo}(\hat{\theta}_n) = \mathbb{E}[\
 $$\operatorname{ECM}(\hat{\theta}_n) = \mathbb{E}\left[(\hat{\theta}_n - \theta)^2\right] = \operatorname{Var}(\hat{\theta}_n) + \left[\operatorname{Sesgo}(\hat{\theta}_n)\right]^2$$
 
 **Que significa esto:** un indicador oficial (tasa de pobreza, desempleo) construido con un estimador sesgado distorsiona sistemáticamente la política, aunque la muestra sea enorme.
+
+::: {.content-visible when-format="html"}
+::: {.callout-tip title="Intuición" appearance="simple"}
+Insesgadez: la mira apunta al centro. Eficiencia: el pulso tiembla poco. Consistencia: con municiones infinitas, se termina dando en el blanco.
+:::
+:::
 
 ## Insesgadez: $\mathbb{E}[\hat{\theta}_n] = \theta$
 
@@ -320,6 +490,12 @@ round(rowMeans(sims), 1)
 ```
 
 Con $\sigma^2 = 100$ y $n = 5$: dividir por $n$ promedia $\approx 80.2$ (el valor teórico $\frac{4}{5} \times 100 = 80$, un sesgo del 20%); dividir por $n-1$ promedia $\approx 100.2$. La corrección funciona.
+
+::: {.content-visible when-format="html"}
+::: {.callout-tip title="Intuición" appearance="simple"}
+La muestra ya gastó una pieza de información en estimar su propio centro: quedan solo $n-1$ desviaciones libres para medir la dispersión, y por eso se divide entre $n-1$.
+:::
+:::
 
 ## Eficiencia: menor varianza entre insesgados
 
@@ -450,6 +626,10 @@ $Z$ es una cantidad **pivotal**: contiene a $\mu$, pero su distribución no depe
 $$P\left(-1.96 \le Z \le 1.96\right) = \Phi(1.96) - \Phi(-1.96) = 0.975 - 0.025 = 0.95$$
 
 **Que significa esto:** antes de observar los datos, hay un 95% de probabilidad de que la media muestral caiga a menos de $1.96$ errores estándar de $\mu$. La derivación siguiente solo *despeja* $\mu$ de esa desigualdad.
+
+::: {.callout-tip title="Intuición" appearance="simple"}
+La estaca (el parámetro) está fija; el aro (el intervalo) cambia con cada muestra: confianza 95% significa que 95 de cada 100 aros la capturan.
+:::
 
 ## Intervalo de confianza: derivación (2/2)
 
@@ -617,6 +797,88 @@ knitr::include_graphics("figuras/ancho_ic.png")
 
 ::::
 
+## Laboratorio: ancho del intervalo de confianza
+
+Mueva los controles y observe cómo $n$, $\sigma$ y el nivel de confianza gobiernan el ancho del intervalo alrededor de una media fija $\bar{x} = 50$.
+
+::: {.content-visible when-format="html"}
+
+```{=html}
+<div style="display:flex; gap:1.5em; align-items:center; flex-wrap:wrap; font-size:0.62em; margin-bottom:0.3em;">
+  <label>Tamano muestral n: <input type="range" id="lab2-n" min="5" max="500" step="5" value="35" style="width:170px; vertical-align:middle;"> <span id="lab2-n-val"></span></label>
+  <label>Sigma: <input type="range" id="lab2-s" min="1" max="30" step="1" value="15" style="width:150px; vertical-align:middle;"> <span id="lab2-s-val"></span></label>
+  <label>Confianza (%): <input type="range" id="lab2-c" min="80" max="99" step="1" value="95" style="width:150px; vertical-align:middle;"> <span id="lab2-c-val"></span></label>
+</div>
+<div id="lab2-plot" style="width:100%; height:400px;"></div>
+<div id="lab2-lectura" style="font-size:0.6em; color:#1F4E79; font-weight:600;"></div>
+<script>
+(function() {
+  var MEDIA = 50;
+  function zcrit(conf) {
+    var pts = [[80, 1.2816], [90, 1.6449], [95, 1.9600], [99, 2.5758]];
+    if (conf <= pts[0][0]) { return pts[0][1]; }
+    if (conf >= pts[3][0]) { return pts[3][1]; }
+    for (var i = 0; i < 3; i++) {
+      if (conf >= pts[i][0] && conf <= pts[i + 1][0]) {
+        var f = (conf - pts[i][0]) / (pts[i + 1][0] - pts[i][0]);
+        return pts[i][1] + f * (pts[i + 1][1] - pts[i][1]);
+      }
+    }
+  }
+  function dibujar() {
+    var n = parseInt(document.getElementById('lab2-n').value, 10);
+    var s = parseFloat(document.getElementById('lab2-s').value);
+    var c = parseInt(document.getElementById('lab2-c').value, 10);
+    document.getElementById('lab2-n-val').textContent = n;
+    document.getElementById('lab2-s-val').textContent = s.toFixed(0);
+    document.getElementById('lab2-c-val').textContent = c;
+    var z = zcrit(c);
+    var me = z * s / Math.sqrt(n);
+    var li = MEDIA - me, ls = MEDIA + me;
+    Plotly.react('lab2-plot', [
+      { x: [MEDIA, MEDIA], y: [0, 2], type: 'scatter', mode: 'lines',
+        line: { color: '#E74C3C', width: 1.5, dash: 'dash' },
+        name: 'Media muestral = 50' },
+      { x: [li, ls], y: [1, 1], type: 'scatter', mode: 'lines+markers',
+        line: { color: '#1F4E79', width: 6 },
+        marker: { size: 14, symbol: 'line-ns-open', color: '#1F4E79',
+                  line: { width: 3, color: '#1F4E79' } },
+        name: 'Intervalo de confianza' },
+      { x: [MEDIA], y: [1], type: 'scatter', mode: 'markers',
+        marker: { size: 11, color: '#F39C12' }, name: 'Centro' }
+    ], {
+      margin: { t: 10, r: 20, b: 40, l: 50 },
+      xaxis: { title: 'Valor del parametro mu', range: [10, 90] },
+      yaxis: { range: [0, 2], showticklabels: false, zeroline: false },
+      showlegend: true, legend: { orientation: 'h', y: 1.1 }
+    }, { displayModeBar: false });
+    document.getElementById('lab2-lectura').textContent =
+      'z = ' + z.toFixed(3) + '  |  Margen de error = z x sigma/raiz(n) = ' + me.toFixed(2) +
+      '  |  IC ' + c + '% = [' + li.toFixed(2) + ', ' + ls.toFixed(2) +
+      ']  |  Ancho = ' + (2 * me).toFixed(2);
+  }
+  function init() {
+    if (typeof Plotly === 'undefined') { setTimeout(init, 200); return; }
+    ['lab2-n', 'lab2-s', 'lab2-c'].forEach(function(id) {
+      document.getElementById(id).addEventListener('input', dibujar);
+    });
+    dibujar();
+  }
+  if (document.readyState === 'complete') { init(); } else { window.addEventListener('load', init); }
+})();
+</script>
+```
+
+:::
+
+::: {.content-visible unless-format="html"}
+**Experimento (disponible en la versión HTML):** deslizadores para $n$, $\sigma$ y el nivel de confianza redibujan el intervalo $\bar{x} \pm z_{1-\alpha/2}\,\sigma/\sqrt{n}$ como segmento centrado en $\bar{x} = 50$, con lectura en vivo del margen de error.
+
+- Cuadruplicar $n$ divide el ancho por 2 (la raíz cuadrada cobra su precio).
+- Subir la confianza de 95% a 99% agranda $z$ de $1.96$ a $2.576$: más seguridad, menos precisión.
+- $\sigma$ entra de forma lineal: poblaciones más heterogéneas exigen muestras mayores.
+:::
+
 ## Contraste de hipótesis: procedimiento formal en 6 pasos
 
 1. **Hipótesis:** $H_0: \theta = \theta_0$ (statu quo) vs $H_1: \theta \ne \theta_0$ (bilateral) o $>, <$ (unilateral). Se plantean **antes** de mirar los datos.
@@ -628,6 +890,12 @@ knitr::include_graphics("figuras/ancho_ic.png")
 
 ::: {.callout-warning appearance="simple"}
 El contraste es una **prueba por contradicción probabilística**: suponemos $H_0$ cierta y medimos cuán inverosímil resulta lo observado bajo ese supuesto.
+:::
+
+::: {.content-visible when-format="html"}
+::: {.callout-tip title="Intuición" appearance="simple"}
+Un contraste funciona como un juicio: $H_0$ es la presunción de inocencia y solo se condena (rechaza) si la evidencia observada sería muy improbable en un mundo donde $H_0$ es cierta.
+:::
 :::
 
 ## Ejemplo completo (1/2): ¿difiere el puntaje de la meta nacional?
@@ -718,6 +986,111 @@ interactivo(p)
 
 Con el efecto verdadero a $2.5$ errores estándar y regla bilateral con corte en $1.96$: $\beta = P(-1.96 \le Z_{H_1} \le 1.96) = 0.295$ y potencia $1 - \beta = 0.705$. Mover el corte a la derecha (bajar $\alpha$) agranda el área naranja: menos falsos positivos, más falsos negativos.
 
+## Laboratorio: errores y potencia
+
+Contraste unilateral derecho de $H_0: \mu = 0$ vs $H_1: \mu = \delta$, con $\operatorname{SE} = 1/\sqrt{n}$. Mueva los controles y observe cómo se reparten $\alpha$, $\beta$ y la potencia.
+
+::: {.content-visible when-format="html"}
+
+```{=html}
+<div style="display:flex; gap:1.5em; align-items:center; flex-wrap:wrap; font-size:0.62em; margin-bottom:0.3em;">
+  <label>Efecto delta = mu1 - mu0: <input type="range" id="lab3-d" min="0" max="3" step="0.05" value="0.5" style="width:160px; vertical-align:middle;"> <span id="lab3-d-val"></span></label>
+  <label>Tamano muestral n: <input type="range" id="lab3-n" min="5" max="200" step="1" value="25" style="width:150px; vertical-align:middle;"> <span id="lab3-n-val"></span></label>
+  <label>Alfa: <input type="range" id="lab3-a" min="0.01" max="0.20" step="0.01" value="0.05" style="width:140px; vertical-align:middle;"> <span id="lab3-a-val"></span></label>
+</div>
+<div id="lab3-plot" style="width:100%; height:400px;"></div>
+<div id="lab3-lectura" style="font-size:0.6em; color:#1F4E79; font-weight:600;"></div>
+<script>
+(function() {
+  function phi(x) {
+    var t = 1 / (1 + 0.2316419 * Math.abs(x));
+    var d = Math.exp(-x * x / 2) / Math.sqrt(2 * Math.PI);
+    var p = d * t * (0.319381530 + t * (-0.356563782 + t * (1.781477937 +
+            t * (-1.821255978 + t * 1.330274429))));
+    return x >= 0 ? 1 - p : p;
+  }
+  function zq(p) {
+    var lo = -8, hi = 8;
+    for (var i = 0; i < 60; i++) {
+      var mid = (lo + hi) / 2;
+      if (phi(mid) < p) { lo = mid; } else { hi = mid; }
+    }
+    return (lo + hi) / 2;
+  }
+  function dnorm(x, mu, sd) {
+    return Math.exp(-0.5 * Math.pow((x - mu) / sd, 2)) / (sd * Math.sqrt(2 * Math.PI));
+  }
+  function tramo(a, b, mu, sd) {
+    var xs = [], ys = [];
+    for (var k = 0; k <= 160; k++) {
+      var x = a + (b - a) * k / 160;
+      xs.push(x); ys.push(dnorm(x, mu, sd));
+    }
+    return { x: xs, y: ys };
+  }
+  function dibujar() {
+    var delta = parseFloat(document.getElementById('lab3-d').value);
+    var n = parseInt(document.getElementById('lab3-n').value, 10);
+    var alfa = parseFloat(document.getElementById('lab3-a').value);
+    document.getElementById('lab3-d-val').textContent = delta.toFixed(2);
+    document.getElementById('lab3-n-val').textContent = n;
+    document.getElementById('lab3-a-val').textContent = alfa.toFixed(2);
+    var se = 1 / Math.sqrt(n);
+    var c = zq(1 - alfa) * se;
+    var beta = phi((c - delta) / se);
+    var pot = 1 - beta;
+    var XMIN = -2, XMAX = 5;
+    var fAlfa = tramo(c, XMAX, 0, se);
+    var fBeta = tramo(XMIN, c, delta, se);
+    var fPot = tramo(c, XMAX, delta, se);
+    var lH0 = tramo(XMIN, XMAX, 0, se);
+    var lH1 = tramo(XMIN, XMAX, delta, se);
+    Plotly.react('lab3-plot', [
+      { x: fBeta.x, y: fBeta.y, type: 'scatter', mode: 'lines', fill: 'tozeroy',
+        fillcolor: 'rgba(243,156,18,0.55)', line: { width: 0 }, name: 'beta' },
+      { x: fPot.x, y: fPot.y, type: 'scatter', mode: 'lines', fill: 'tozeroy',
+        fillcolor: 'rgba(39,174,96,0.35)', line: { width: 0 }, name: 'potencia' },
+      { x: fAlfa.x, y: fAlfa.y, type: 'scatter', mode: 'lines', fill: 'tozeroy',
+        fillcolor: 'rgba(231,76,60,0.60)', line: { width: 0 }, name: 'alfa' },
+      { x: lH0.x, y: lH0.y, type: 'scatter', mode: 'lines',
+        line: { color: '#1F4E79', width: 2.5 }, name: 'H0: N(0, SE)' },
+      { x: lH1.x, y: lH1.y, type: 'scatter', mode: 'lines',
+        line: { color: '#2E86C1', width: 2.5 }, name: 'H1: N(delta, SE)' },
+      { x: [c, c], y: [0, 6], type: 'scatter', mode: 'lines',
+        line: { color: '#555555', width: 1.5, dash: 'dash' }, name: 'corte c' }
+    ], {
+      margin: { t: 10, r: 20, b: 40, l: 50 },
+      xaxis: { title: 'Media muestral', range: [XMIN, XMAX] },
+      yaxis: { title: 'Densidad', range: [0, 6] },
+      showlegend: true, legend: { orientation: 'h', y: 1.12 }
+    }, { displayModeBar: false });
+    document.getElementById('lab3-lectura').textContent =
+      'SE = 1/raiz(n) = ' + se.toFixed(3) + '  |  corte c = ' + c.toFixed(3) +
+      '  |  alfa = ' + alfa.toFixed(2) + '  |  beta = ' + beta.toFixed(3) +
+      '  |  potencia = ' + pot.toFixed(3);
+  }
+  function init() {
+    if (typeof Plotly === 'undefined') { setTimeout(init, 200); return; }
+    ['lab3-d', 'lab3-n', 'lab3-a'].forEach(function(id) {
+      document.getElementById(id).addEventListener('input', dibujar);
+    });
+    dibujar();
+  }
+  if (document.readyState === 'complete') { init(); } else { window.addEventListener('load', init); }
+})();
+</script>
+```
+
+:::
+
+::: {.content-visible unless-format="html"}
+**Experimento (disponible en la versión HTML):** deslizadores para $\delta$, $n$ y $\alpha$ redibujan las dos campanas ($H_0$ centrada en 0 y $H_1$ en $\delta$, ambas con $\operatorname{SE} = 1/\sqrt{n}$) con las áreas $\alpha$, $\beta$ y potencia sombreadas y su lectura numérica en vivo.
+
+- Aumentar $n$ angosta ambas campanas: se separan y la potencia sube sin tocar $\alpha$.
+- Aumentar $\delta$ aleja $H_1$ del corte: efectos grandes son fáciles de detectar.
+- Bajar $\alpha$ mueve el corte a la derecha: menos falsos positivos, pero $\beta$ crece.
+:::
+
 ## Valor-p: definición formal
 
 :::: {.columns}
@@ -756,6 +1129,10 @@ interactivo(p)
 :::
 
 ::::
+
+::: {.callout-tip title="Intuición" appearance="simple"}
+El valor-p es un medidor de sorpresa: qué tan raro sería observar algo así de extremo si $H_0$ fuera cierta. Mucha sorpresa (p pequeño) invita a abandonar el supuesto.
+:::
 
 ## Valor-p: lo que NO significa
 
@@ -800,6 +1177,12 @@ knitr::include_graphics("figuras/potencia_estadistica.png")
 :::
 
 ::::
+
+::: {.content-visible when-format="html"}
+::: {.callout-tip title="Intuición" appearance="simple"}
+La potencia es la resolución del microscopio: con poca, no ver el efecto no prueba que no exista — solo que el instrumento no alcanza a distinguirlo.
+:::
+:::
 
 ## Curva de potencia con `power.t.test()`
 

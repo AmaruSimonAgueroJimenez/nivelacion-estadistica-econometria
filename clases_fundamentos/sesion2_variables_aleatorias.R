@@ -119,6 +119,34 @@ c(EXY = unname(pxy["p11"]), cov = .35 - .5 * .55, rho = .075 / sqrt(.25 * .2475)
 
 
 ## -----------------------------------------------------------------------------
+#| label: plot-venn-bivariado
+#| echo: false
+#| fig-width: 5.4
+#| fig-height: 3.1
+#| out.width: "100%"
+venn_df <- tibble(x0 = c(-0.55, 0.55), y0 = 0, r = 1.05,
+                  evento = c("A", "B"))
+ggplot() +
+  ggforce::geom_circle(data = venn_df,
+                       aes(x0 = x0, y0 = y0, r = r, fill = evento),
+                       alpha = 0.35, color = "grey35", linewidth = 0.4,
+                       show.legend = FALSE) +
+  scale_fill_manual(values = c(A = celeste, B = naranja)) +
+  annotate("text", x = -1.05, y = 0, label = "0.15", size = 5, color = azul) +
+  annotate("text", x = 0, y = 0, label = "0.35", size = 5.5,
+           fontface = "bold", color = azul) +
+  annotate("text", x = 1.05, y = 0, label = "0.20", size = 5, color = azul) +
+  annotate("text", x = -1.15, y = 1.35, label = "A: se capacitó (0.50)",
+           size = 4.3, color = azul) +
+  annotate("text", x = 1.15, y = 1.35, label = "B: empleo formal (0.55)",
+           size = 4.3, color = naranja) +
+  annotate("text", x = 1.9, y = -1.3, label = "ninguno: 0.30",
+           size = 4.1, color = "grey40") +
+  coord_fixed(xlim = c(-2.5, 2.7), ylim = c(-1.55, 1.6)) +
+  theme_void()
+
+
+## -----------------------------------------------------------------------------
 #| label: ej-varsuma
 s <- c(0, 1, 1, 2)  # S = X + Y en el ejemplo bivariado
 c(directa = sum(s^2 * pxy) - sum(s * pxy)^2, formula = .25 + .2475 + 2 * .075)
@@ -169,6 +197,25 @@ interactivo(
 
 
 ## -----------------------------------------------------------------------------
+#| label: pdf-lab-binom
+#| echo: false
+#| fig-height: 2.6
+#| fig-width: 8
+#| out.width: "92%"
+d_lab3 <- bind_rows(
+  tibble(k = 0:30, pk = dbinom(0:30, 10, .3), panel = "n = 10, p = 0.3"),
+  tibble(k = 0:30, pk = dbinom(0:30, 30, .3), panel = "n = 30, p = 0.3"),
+  tibble(k = 0:30, pk = dbinom(0:30, 30, .7), panel = "n = 30, p = 0.7"))
+d_mu3 <- tibble(panel = unique(d_lab3$panel), np = c(3, 9, 21))
+ggplot(d_lab3, aes(k, pk)) +
+  geom_col(fill = celeste, width = .85) +
+  geom_vline(data = d_mu3, aes(xintercept = np),
+             color = rojo, linetype = "dashed", linewidth = 0.7) +
+  facet_wrap(~panel, nrow = 1) +
+  labs(x = "k éxitos", y = "P(X = k)")
+
+
+## -----------------------------------------------------------------------------
 #| label: plot-normal
 #| echo: false
 #| fig-width: 5
@@ -186,6 +233,30 @@ p <- ggplot(dn, aes(x, f)) +
   labs(x = "x (en unidades de sigma desde mu)", y = "f(x)",
        title = "Densidad N(0, 1)")
 interactivo(p)
+
+
+## -----------------------------------------------------------------------------
+#| label: pdf-lab-normal
+#| echo: false
+#| fig-height: 2.7
+#| fig-width: 7.5
+#| out.width: "80%"
+xx_l1 <- seq(-8, 8, length.out = 400)
+d_lab1 <- bind_rows(
+  tibble(x = xx_l1, f = dnorm(xx_l1, 0, 1),   curva = "N(0, 1)"),
+  tibble(x = xx_l1, f = dnorm(xx_l1, 1.5, 1), curva = "N(1.5, 1)"),
+  tibble(x = xx_l1, f = dnorm(xx_l1, 0, 2),   curva = "N(0, 2²)"))
+d_inf1 <- tibble(x = c(-1, 1, 0.5, 2.5, -2, 2),
+                 f = c(dnorm(-1), dnorm(1), dnorm(-1), dnorm(1),
+                       dnorm(-2, 0, 2), dnorm(2, 0, 2)))
+ggplot(d_lab1, aes(x, f, color = curva)) +
+  geom_line(linewidth = 1) +
+  geom_point(data = d_inf1, aes(x, f), inherit.aes = FALSE,
+             color = rojo, size = 2) +
+  scale_color_manual(values = c(`N(0, 1)` = azul, `N(1.5, 1)` = naranja,
+                                `N(0, 2²)` = celeste)) +
+  labs(x = "x", y = "f(x)", color = NULL) +
+  theme(legend.position = "top")
 
 
 ## -----------------------------------------------------------------------------
@@ -217,6 +288,26 @@ p <- ggplot(d1, aes(x, f)) +
   labs(x = "Puntaje de focalización", y = "Densidad",
        title = "X ~ N(520, 80²): elegibles (rojo) y franja 440-600 (celeste)")
 interactivo(p)
+
+
+## -----------------------------------------------------------------------------
+#| label: pdf-lab-intervalo
+#| echo: false
+#| fig-height: 2.6
+#| fig-width: 8
+#| out.width: "88%"
+xx_l2 <- seq(150, 900, length.out = 500)
+d_lab2 <- bind_rows(
+  tibble(x = xx_l2, f = dnorm(xx_l2, 520, 80), a = 440,
+         panel = "a = 440: P(X < a) = 0.159"),
+  tibble(x = xx_l2, f = dnorm(xx_l2, 520, 80), a = 520,
+         panel = "a = 520: P(X < a) = 0.500"))
+ggplot(d_lab2, aes(x, f)) +
+  geom_area(data = filter(d_lab2, x <= a), fill = rojo, alpha = .55) +
+  geom_line(color = azul, linewidth = 0.9) +
+  geom_vline(aes(xintercept = a), linetype = "dashed", color = naranja) +
+  facet_wrap(~panel, nrow = 1) +
+  labs(x = "Puntaje de focalización", y = "Densidad")
 
 
 ## -----------------------------------------------------------------------------
