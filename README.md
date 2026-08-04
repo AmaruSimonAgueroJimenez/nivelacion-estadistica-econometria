@@ -11,7 +11,7 @@ Cada sesión se genera desde un único archivo Quarto (`.qmd`) que produce dos s
 
 ## Curso: Fundamentos de Probabilidad y Estadística
 
-Nivelación intensiva de 2 días (4 horas por día, 2 bloques diarios) previa a la asignatura **Métodos Cuantitativos** del Doctorado en Políticas Públicas. Énfasis en formalidad matemática con demostraciones y ejemplos numéricos resueltos paso a paso.
+Nivelación intensiva de 2 días (4 horas por día, 2 bloques diarios) previa a la asignatura **Métodos Cuantitativos**, para el Doctorado en Ciencias de la Complejidad Social y el Doctorado en Políticas Públicas. Énfasis en formalidad matemática con demostraciones y ejemplos numéricos resueltos paso a paso.
 
 | Sesión | Tema | Slides interactivas | PDF | Fuente | Script R |
 |:------:|------|:---:|:---:|:---:|:---:|
@@ -54,7 +54,7 @@ Nivelación intensiva de 2 días (4 horas por día, 2 bloques diarios) previa a 
 
 ## Documentos adicionales
 
-**Fundamentos de Probabilidad y Estadística (Doctorado en Políticas Públicas)**
+**Fundamentos de Probabilidad y Estadística (Doctorados en Ciencias de la Complejidad Social y en Políticas Públicas)**
 
 | Documento | PDF | Fuente |
 |-----------|:---:|:---:|
@@ -64,12 +64,12 @@ Nivelación intensiva de 2 días (4 horas por día, 2 bloques diarios) previa a 
 
 **Nivelación Estadística y Econometría (CICS)**
 
-| Documento | PDF |
-|-----------|:---:|
-| Syllabus Estadística | [PDF](Syllabus_Nivelacion_Estadistica_2026.pdf) |
-| Syllabus Econometría | [PDF](Syllabus_Nivelacion_Econometria_2026.pdf) |
-| Prueba Diagnóstica | [PDF](Prueba_Diagnostica_Nivelacion_2026.pdf) |
-| Pauta de Corrección | [PDF](Pauta_Correccion_Diagnostica_2026.pdf) |
+| Documento | PDF | Fuente |
+|-----------|:---:|:---:|
+| Syllabus Estadística | [PDF](Syllabus_Nivelacion_Estadistica_2026.pdf) | [QMD](Syllabus_Nivelacion_Estadistica_2026.qmd) |
+| Syllabus Econometría | [PDF](Syllabus_Nivelacion_Econometria_2026.pdf) | [QMD](Syllabus_Nivelacion_Econometria_2026.qmd) |
+| Prueba Diagnóstica | [PDF](Prueba_Diagnostica_Nivelacion_2026.pdf) | — |
+| Pauta de Corrección | [PDF](Pauta_Correccion_Diagnostica_2026.pdf) | — |
 
 ---
 

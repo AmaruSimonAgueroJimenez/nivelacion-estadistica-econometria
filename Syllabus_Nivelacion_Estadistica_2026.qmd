@@ -1,0 +1,190 @@
+---
+format:
+  pdf:
+    documentclass: article
+    geometry: margin=2.2cm
+    fontsize: 11pt
+    colorlinks: true
+    linkcolor: "[HTML]{1F4E79}"
+    urlcolor: "[HTML]{2E86C1}"
+    include-in-header:
+      text: |
+        \usepackage{fancyhdr}
+        \pagestyle{fancy}
+        \fancyhf{}
+        \fancyfoot[C]{\footnotesize\itshape Docente: Denise Laroze | Ayudante: Amaru Agüero | CICS, UDD \quad\quad Página \thepage}
+        \renewcommand{\headrulewidth}{0pt}
+        \usepackage{xcolor}
+        \definecolor{uddblue}{HTML}{1F4E79}
+        \usepackage{sectsty}
+        \sectionfont{\color{uddblue}}
+        \subsectionfont{\color{uddblue}}
+lang: es
+---
+
+```{=latex}
+\begin{center}
+\includegraphics[width=6cm]{logo_gobierno.png}
+
+\vspace{0.5cm}
+{\color{uddblue}\Huge\bfseries SYLLABUS}
+
+\vspace{0.2cm}
+{\Large Nivelación en Estadística}
+
+Doctorado en Ciencias de la Complejidad Social — CICS
+
+Cohorte 2026 \\ Marzo 2026
+\end{center}
+\vspace{0.3cm}
+```
+
+| | |
+|:---|:---|
+| **Docente:** | Denise Laroze |
+| **Ayudante:** | Amaru Agüero |
+| **Programa:** | Doctorado en Ciencias de la Complejidad Social |
+| **Fechas:** | 18 y 19 de marzo de 2026 |
+| **Sesiones:** | 5 sesiones (70 minutos cada una) |
+| **Software:** | R / RStudio |
+| **Modalidad:** | Presencial — CICS, UDD |
+
+# 1. Presentación
+
+El curso de Nivelación en Estadística está diseñado para que todos los estudiantes que ingresan al Doctorado en Ciencias de la Complejidad Social de la Universidad del Desarrollo cuenten con una base sólida en herramientas estadísticas fundamentales. Dado el carácter interdisciplinario del programa, los participantes provienen de formaciones diversas (sociología, ciencia política, psicología, economía, ingeniería, entre otras), por lo que estas sesiones intensivas buscan nivelar conocimientos y establecer un lenguaje cuantitativo común.
+
+El módulo es intensivo y aplicado: cada sesión combina exposición teórica con demostraciones en vivo y ejercicios prácticos en R/RStudio, utilizando datos reales relevantes para las ciencias de la complejidad social. Al finalizar, cada estudiante debe manejar con soltura la estadística descriptiva, los fundamentos de probabilidad, las distribuciones clave, la estimación por intervalos y la implementación de todos estos procedimientos en R/RStudio.
+
+# 2. Evaluación diagnóstica inicial
+
+Al inicio de la primera sesión se aplicará una breve evaluación diagnóstica (sin calificación) para verificar el manejo de los contenidos de estadística y econometría. La evaluación cubre interpretación de medidas descriptivas, lectura de códigos, gráficos o tablas, nociones de probabilidad e inferencia básica. No tiene carácter aprobatorio.
+
+# 3. Objetivos de aprendizaje
+
+**Objetivo general**
+
+Proveer a los estudiantes del doctorado las competencias estadísticas básicas necesarias para comprender, ejecutar e interpretar análisis cuantitativos en el contexto de la investigación en complejidad social.
+
+**Objetivos específicos**
+
+- Describir datos utilizando medidas de tendencia central, dispersión y visualizaciones apropiadas.
+- Comprender los fundamentos de probabilidad, incluyendo probabilidad condicional y el teorema de Bayes.
+- Identificar y aplicar las distribuciones de probabilidad más relevantes (Normal, t, chi-cuadrado, binomial, Poisson).
+- Construir e interpretar correctamente intervalos de confianza.
+- Integrar todos los contenidos del módulo en una práctica aplicada en R/RStudio.
+- Implementar todos los procedimientos en R/RStudio de manera autónoma.
+
+# 4. Metodología
+
+Cada sesión de 70 minutos se estructura en tres bloques: (1) exposición teórica con ejemplos motivadores (~25 min), (2) demostración en vivo en R/RStudio a cargo de la docente y el ayudante (~20 min), y (3) ejercicio práctico guiado donde los estudiantes replican y extienden los análisis en sus propios computadores (~25 min).
+
+Se proporcionará un script de R comentado para cada sesión. Los datos utilizados provienen de fuentes relevantes para la complejidad social: encuestas nacionales (CASEN, Latinobarómetro), datos de redes sociales, indicadores urbanos y series temporales socioeconómicas.
+
+# 5. Calendario de sesiones
+
+| N° | Día | Horario | Sala | Tema |
+|:--:|:----|:--------|:-----|:-----|
+| 1 | Miércoles 18 marzo | 09:50–11:00 | Sala Reuniones CICS | Fundamentos y descriptiva |
+| 2 | Miércoles 18 marzo | 11:10–12:20 | Sala Reuniones CICS | Probabilidad |
+| 3 | Jueves 19 marzo | 09:50–11:00 | Sala Estudios CICS | Distribuciones |
+| 4 | Jueves 19 marzo | 11:10–12:20 | Sala Estudios CICS | Inferencia estadística |
+| 5 | Jueves 19 marzo | 14:30–15:40 | Sala Estudios CICS | Práctica integradora en R |
+
+# 6. Detalle de contenidos por sesión
+
+## Sesión 1 — Fundamentos y Estadística Descriptiva
+
+*Miércoles 18 marzo, 09:50–11:00 — Sala Reuniones CICS*
+
+**Objetivos específicos:** clasificar variables según su tipo y escala de medición; calcular e interpretar medidas de tendencia central y dispersión; producir visualizaciones informativas de datos univariados y bivariados en R.
+
+**Contenidos detallados:**
+
+- **Tipos de datos y escalas de medición.** Variables cualitativas (nominales y ordinales) con ejemplos en ciencias sociales; variables cuantitativas (discretas y continuas), escalas de intervalo y razón; implicancias de la escala para el análisis: qué operaciones son válidas en cada caso.
+- **Medidas de tendencia central.** Media aritmética: cálculo, sensibilidad a valores extremos, cuándo es apropiada. Mediana: robustez, interpretación, uso con distribuciones asimétricas. Moda: aplicación en variables categóricas y discretas.
+- **Medidas de dispersión y posición.** Varianza y desviación estándar (fórmulas poblacional y muestral); rango intercuartílico y detección de outliers con la regla 1.5×IQR; coeficiente de variación; percentiles, cuartiles y z-scores.
+- **Visualización de datos con ggplot2.** Histogramas (elección de bins, forma de la distribución), boxplots (cuartiles, bigotes, outliers), scatter plots y gráficos de barras.
+
+**Actividad práctica en R:** carga de un dataset social con `read_csv()`; exploración con `str()`, `summary()`, `glimpse()`; cálculo de medidas descriptivas con funciones base y dplyr; creación de al menos 3 visualizaciones con ggplot2 e interpretación.
+
+## Sesión 2 — Fundamentos de Probabilidad
+
+*Miércoles 18 marzo, 11:10–12:20 — Sala Reuniones CICS*
+
+**Objetivos específicos:** comprender los axiomas de probabilidad y aplicarlos a eventos simples y compuestos; calcular probabilidades condicionales y aplicar el teorema de Bayes; distinguir entre variables aleatorias discretas y continuas y calcular sus momentos.
+
+**Contenidos detallados:**
+
+- **Conceptos fundamentales.** Experimento aleatorio, espacio muestral y eventos; axiomas de Kolmogorov; regla de la suma para eventos excluyentes y no excluyentes; regla del complemento.
+- **Probabilidad condicional e independencia.** Definición formal de P(A|B); independencia de eventos: definición y verificación; regla del producto; ejemplos sociales: correlaciones espurias, confusión de condicionales.
+- **Teorema de Bayes.** Derivación intuitiva desde la probabilidad condicional; fórmula general con probabilidades totales; actualización de creencias con nueva evidencia; conexión con el pensamiento bayesiano en ciencias sociales.
+- **Variables aleatorias.** Discretas (PMF) y continuas (PDF y CDF); valor esperado y varianza: definición, cálculo y propiedades; la esperanza como "centro de gravedad" de la distribución.
+
+**Actividad práctica en R:** simulaciones con `sample()` y `replicate()`; simulación de dados y urnas para verificar reglas de probabilidad; implementación del teorema de Bayes con un ejemplo de diagnóstico; cálculo de esperanza y varianza empíricas.
+
+## Sesión 3 — Distribuciones de Probabilidad
+
+*Jueves 19 marzo, 09:50–11:00 — Sala Estudios CICS*
+
+**Objetivos específicos:** reconocer y aplicar las distribuciones discretas y continuas más utilizadas; comprender y demostrar intuitivamente el Teorema del Límite Central; identificar cuándo y por qué aparecen las distribuciones t, chi-cuadrado y F.
+
+**Contenidos detallados:**
+
+- **Distribuciones discretas.** Bernoulli (parámetro p); Binomial (parámetros n y p; encuestas, votaciones); Poisson (conteo de eventos raros, parámetro λ; crímenes por zona, accidentes).
+- **Distribución Normal.** Propiedades: simetría, parámetros μ y σ; regla empírica 68-95-99.7; estandarización a Z ~ N(0,1); cálculo de probabilidades con `pnorm()` y `qnorm()`; la Normal como aproximación de otras distribuciones.
+- **Teorema del Límite Central.** Enunciado; demostración intuitiva con simulaciones desde distribuciones no normales; importancia para la inferencia; velocidad de convergencia según la forma de la distribución original.
+- **Distribuciones derivadas.** t de Student (estimación de σ con s, grados de libertad); chi-cuadrado (suma de normales al cuadrado, tablas de contingencia); F de Fisher (cociente de chi-cuadrados, ANOVA); relación entre estas distribuciones y la Normal.
+
+**Actividad práctica en R:** generación de muestras con `rbinom()`, `rpois()`, `rnorm()`; visualización de distribuciones teóricas vs. empíricas; simulación del TLC (1000 medias de muestras desde una uniforme); comparación visual de t de Student vs. Normal estándar.
+
+## Sesión 4 — Inferencia Estadística: Estimación
+
+*Jueves 19 marzo, 11:10–12:20 — Sala Estudios CICS*
+
+**Objetivos específicos:** distinguir claramente entre parámetro poblacional y estadístico muestral; comprender las propiedades deseables de un estimador; construir e interpretar correctamente intervalos de confianza.
+
+**Contenidos detallados:**
+
+- **Lógica de la inferencia.** Población vs. muestra; parámetro (μ, σ, p) vs. estadístico; distribución muestral de un estadístico; error estándar y su relación con el tamaño muestral.
+- **Estimación puntual.** Propiedades deseables: insesgamiento, eficiencia, consistencia; la media muestral como estimador insesgado de μ; la proporción muestral; noción intuitiva de máxima verosimilitud.
+- **Intervalos de confianza.** Construcción: estimador ± valor crítico × error estándar; IC para la media con σ conocida (Z) y desconocida (t); IC para proporciones (Wald y Wilson); IC para diferencia de medias; interpretación correcta y errores frecuentes; factores que afectan el ancho del IC.
+
+**Actividad práctica en R:** cálculo manual y con `t.test()` de intervalos para la media; IC para proporciones con `prop.test()` y `binom.test()`; simulación de cobertura (100 muestras, 100 intervalos, ~95% contienen μ) y su visualización como segmentos con ggplot2.
+
+## Sesión 5 — Práctica Integradora en R
+
+*Jueves 19 marzo, 14:30–15:40 — Sala Estudios CICS*
+
+**Objetivos específicos:** aplicar de forma autónoma los procedimientos estadísticos aprendidos usando R/RStudio; resolver ejercicios integradores que combinen estadística descriptiva, probabilidad, distribuciones e inferencia; consolidar el manejo de R para análisis de datos reales.
+
+**Contenidos detallados:**
+
+- **Repaso de estadística descriptiva en R.** Carga, exploración y limpieza de datos con tidyverse; medidas descriptivas y visualización con ggplot2.
+- **Repaso de probabilidad y distribuciones en R.** Simulaciones y verificación de reglas con `sample()` y `replicate()`; generación de muestras (`rbinom()`, `rpois()`, `rnorm()`, `rt()`); simulación del TLC.
+- **Repaso de inferencia en R.** Intervalos de confianza con `t.test()` y `prop.test()`; simulación de cobertura.
+- **Ejercicio integrador.** Análisis estadístico completo de un dataset social: desde la exploración hasta la inferencia; resolución de problemas en grupo y discusión de resultados.
+
+**Actividad práctica en R:** carga y exploración de un dataset social; simulación de distribuciones, cálculo de probabilidades y verificación del TLC; construcción e interpretación de intervalos de confianza; discusión grupal y preparación para el módulo de econometría.
+
+# 7. Requisitos previos y software
+
+Se solicita a los estudiantes traer su computador portátil con R y RStudio instalados previamente. Se recomienda instalar los siguientes paquetes antes de la primera sesión:
+
+- **tidyverse** (incluye dplyr, ggplot2, readr, tidyr)
+- **car** (diagnósticos estadísticos)
+- **MASS** (distribuciones y funciones estadísticas adicionales)
+
+No se requiere experiencia previa con R, pero sí familiaridad básica con aritmética y álgebra elemental (ecuaciones, funciones). Los estudiantes que deseen reforzar su base pueden revisar los capítulos introductorios de *OpenIntro Statistics* (disponible gratuitamente).
+
+# 8. Bibliografía recomendada
+
+**Textos principales**
+
+- Diez, D., Cetinkaya-Rundel, M. & Barr, C. (2019). *OpenIntro Statistics* (4th ed.). OpenIntro.
+- Wickham, H. & Grolemund, G. (2017). *R for Data Science*. O'Reilly.
+
+**Textos complementarios**
+
+- Wackerly, D., Mendenhall, W. & Scheaffer, R. (2014). *Estadística Matemática con Aplicaciones* (7ma ed.). Cengage Learning.
+- Field, A., Miles, J. & Field, Z. (2012). *Discovering Statistics Using R*. SAGE Publications.
+- Navarro, D. (2019). *Learning Statistics with R*.

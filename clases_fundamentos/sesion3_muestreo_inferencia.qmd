@@ -1,6 +1,6 @@
 ---
 title: "Sesión 3 · Muestreo e Inferencia Estadística"
-subtitle: "Fundamentos de Probabilidad y Estadística — Doctorado en Políticas Públicas · Universidad del Desarrollo"
+subtitle: "Fundamentos de Probabilidad y Estadística — Doctorados en Ciencias de la Complejidad Social y en Políticas Públicas · UDD"
 author: "Amaru Agüero Jiménez (a.agueroj@udd.cl)"
 date: "Marzo 2026"
 date-format: "MMMM [de] YYYY"
@@ -9,7 +9,7 @@ format:
   revealjs:
     theme: [default, estilo_slides.scss]
     slide-number: c/t
-    footer: "Fundamentos de Probabilidad y Estadística — Doctorado en Políticas Públicas · Universidad del Desarrollo"
+    footer: "Fundamentos de Probabilidad y Estadística — Doctorados en Ciencias de la Complejidad Social y en Políticas Públicas · UDD"
     transition: fade
     embed-resources: true
     code-line-numbers: false

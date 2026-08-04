@@ -12,7 +12,7 @@ format:
         \usepackage{fancyhdr}
         \pagestyle{fancy}
         \fancyhf{}
-        \fancyfoot[C]{\footnotesize\itshape Docente: Amaru Agüero Jiménez | Doctorado en Políticas Públicas — UDD \quad\quad Página \thepage}
+        \fancyfoot[C]{\footnotesize\itshape Docente: Amaru Agüero Jiménez | Doctorados en Cs. de la Complejidad Social y Políticas Públicas — UDD \quad\quad Página \thepage}
         \renewcommand{\headrulewidth}{0pt}
         \usepackage{xcolor}
         \definecolor{uddblue}{HTML}{1F4E79}
@@ -40,7 +40,7 @@ lang: es
 \vspace{0.25cm}
 {\Large Fundamentos de Probabilidad y Estadística}
 
-Doctorado en Políticas Públicas — Universidad del Desarrollo \\ Marzo 2026
+Doctorado en Ciencias de la Complejidad Social · Doctorado en Políticas Públicas \\ Universidad del Desarrollo \\ Marzo 2026
 \end{center}
 \vspace{0.3cm}
 \noindent\textbf{Nombre:}\enspace\rule{11.5cm}{0.4pt}

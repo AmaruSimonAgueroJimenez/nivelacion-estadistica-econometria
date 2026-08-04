@@ -12,7 +12,7 @@ format:
         \usepackage{fancyhdr}
         \pagestyle{fancy}
         \fancyhf{}
-        \fancyfoot[C]{\footnotesize\itshape Docente: Amaru Agüero Jiménez | Doctorado en Políticas Públicas — UDD \quad\quad Página \thepage}
+        \fancyfoot[C]{\footnotesize\itshape Docente: Amaru Agüero Jiménez | Doctorados en Cs. de la Complejidad Social y Políticas Públicas — UDD \quad\quad Página \thepage}
         \renewcommand{\headrulewidth}{0pt}
         \usepackage{xcolor}
         \definecolor{uddblue}{HTML}{1F4E79}
@@ -32,6 +32,8 @@ lang: es
 \vspace{0.2cm}
 {\Large Fundamentos de Probabilidad y Estadística}
 
+Doctorado en Ciencias de la Complejidad Social · Doctorado en Políticas Públicas
+
 Cohorte 2026 \\ Marzo 2026
 \end{center}
 \vspace{0.3cm}
@@ -40,7 +42,7 @@ Cohorte 2026 \\ Marzo 2026
 | | |
 |:---|:---|
 | **Docente:** | Amaru Agüero Jiménez (a.agueroj@udd.cl) |
-| **Programa:** | Doctorado en Políticas Públicas |
+| **Programa:** | Doctorado en Ciencias de la Complejidad Social · Doctorado en Políticas Públicas |
 | **Tipo de asignatura:** | Nivelación, sin créditos |
 | **Duración:** | 2 días, 4 horas por día (2 bloques diarios de ~2 horas) |
 | **Prerrequisito para:** | Métodos Cuantitativos |
@@ -49,7 +51,7 @@ Cohorte 2026 \\ Marzo 2026
 
 # A. Antecedentes generales
 
-Fundamentos de Probabilidad y Estadística es la asignatura de nivelación del Doctorado en Políticas Públicas de la Universidad del Desarrollo. Se dicta de forma intensiva en dos días (cuatro horas diarias, organizadas en dos bloques de aproximadamente dos horas) durante la semana previa al inicio de Métodos Cuantitativos, no otorga créditos y no tiene carácter aprobatorio.
+Fundamentos de Probabilidad y Estadística es la asignatura de nivelación del Doctorado en Ciencias de la Complejidad Social y del Doctorado en Políticas Públicas de la Universidad del Desarrollo. Se dicta de forma intensiva en dos días (cuatro horas diarias, organizadas en dos bloques de aproximadamente dos horas) durante la semana previa al inicio de Métodos Cuantitativos, no otorga créditos y no tiene carácter aprobatorio.
 
 # B. Objetivo general
 

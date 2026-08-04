@@ -1,0 +1,196 @@
+---
+format:
+  pdf:
+    documentclass: article
+    geometry: margin=2.2cm
+    fontsize: 11pt
+    colorlinks: true
+    linkcolor: "[HTML]{1F4E79}"
+    urlcolor: "[HTML]{2E86C1}"
+    include-in-header:
+      text: |
+        \usepackage{fancyhdr}
+        \pagestyle{fancy}
+        \fancyhf{}
+        \fancyfoot[C]{\footnotesize\itshape Docente: Denise Laroze | Ayudante: Amaru Agüero | CICS, UDD \quad\quad Página \thepage}
+        \renewcommand{\headrulewidth}{0pt}
+        \usepackage{xcolor}
+        \definecolor{uddblue}{HTML}{1F4E79}
+        \usepackage{sectsty}
+        \sectionfont{\color{uddblue}}
+        \subsectionfont{\color{uddblue}}
+lang: es
+---
+
+```{=latex}
+\begin{center}
+\includegraphics[width=6cm]{logo_gobierno.png}
+
+\vspace{0.5cm}
+{\color{uddblue}\Huge\bfseries SYLLABUS}
+
+\vspace{0.2cm}
+{\Large Nivelación en Econometría}
+
+Doctorado en Ciencias de la Complejidad Social — CICS
+
+Cohorte 2026 \\ Marzo 2026
+\end{center}
+\vspace{0.3cm}
+```
+
+| | |
+|:---|:---|
+| **Docente:** | Denise Laroze |
+| **Ayudante:** | Amaru Agüero |
+| **Programa:** | Doctorado en Ciencias de la Complejidad Social |
+| **Fechas:** | 23, 24 y 25 de marzo de 2026 |
+| **Sesiones:** | 5 sesiones (70 minutos cada una) |
+| **Prerrequisito:** | Nivelación en Estadística (Semana 1) |
+| **Software:** | R / RStudio |
+| **Modalidad:** | Presencial — CICS, UDD |
+
+# 1. Presentación
+
+El curso de Nivelación en Econometría es la segunda parte del bloque de nivelación cuantitativa para estudiantes nuevos del Doctorado en Ciencias de la Complejidad Social de la Universidad del Desarrollo. Asumiendo los fundamentos estadísticos trabajados en la semana anterior, este módulo introduce las herramientas econométricas básicas que los estudiantes necesitarán para los cursos metodológicos del programa.
+
+El enfoque es aplicado y orientado a la investigación en complejidad social: cada técnica se motiva con preguntas de investigación sustantivas, se implementa en R/RStudio con datos reales, y se discuten críticamente sus supuestos y limitaciones. Al finalizar, los estudiantes deben ser capaces de realizar pruebas de hipótesis, estimar e interpretar modelos de regresión lineal simple y múltiple, e implementar todos estos procedimientos en R/RStudio.
+
+# 2. Evaluación diagnóstica inicial
+
+Al inicio de la primera sesión se aplicará una breve evaluación diagnóstica (sin calificación) para verificar el manejo de los contenidos de estadística y econometría. La evaluación cubre interpretación de medidas descriptivas, lectura de códigos, gráficos o tablas, nociones de probabilidad e inferencia básica. No tiene carácter aprobatorio.
+
+# 3. Objetivos de aprendizaje
+
+**Objetivo general**
+
+Dotar a los estudiantes de las competencias econométricas fundamentales para realizar pruebas de hipótesis, formular, estimar e interpretar modelos de regresión lineal en el contexto de la investigación en ciencias de la complejidad social.
+
+**Objetivos específicos**
+
+- Formular, ejecutar e interpretar pruebas de hipótesis para medias y proporciones.
+- Estimar e interpretar modelos de regresión lineal simple y múltiple por Mínimos Cuadrados Ordinarios (MCO).
+- Incorporar y analizar variables categóricas (dummies), interacciones y términos de significancia.
+- Comprender los fundamentos de la inferencia en el contexto de regresión (tests t y F).
+- Integrar todos los contenidos del módulo en prácticas aplicadas en R/RStudio.
+- Implementar todos los procedimientos econométricos en R/RStudio de manera autónoma.
+
+# 4. Metodología
+
+Cada sesión de 70 minutos sigue la misma estructura del módulo de Estadística: (1) exposición teórica con motivación empírica (~25 min), (2) demostración en vivo en R/RStudio (~20 min), y (3) ejercicio práctico guiado (~25 min). Se entregará un script de R comentado por sesión.
+
+Los datasets utilizados provienen de fuentes relevantes para la complejidad social: encuestas nacionales, datos de desigualdad, indicadores de bienestar, datos electorales y series socioeconómicas, permitiendo que los modelos estimados tengan significancia sustantiva para la investigación doctoral.
+
+# 5. Calendario de sesiones
+
+| N° | Día | Horario | Sala | Tema |
+|:--:|:----|:--------|:-----|:-----|
+| 1 | Lunes 23 marzo | 11:10–12:20 | Sala Reuniones CICS | Pruebas de hipótesis |
+| 2 | Lunes 23 marzo | 14:30–15:40 | Sala Reuniones CICS | Regresión lineal simple |
+| 3 | Martes 24 marzo | 14:30–15:40 | Sala Reuniones CICS | Regresión múltiple |
+| 4 | Miércoles 25 marzo | 09:50–11:00 | Sala Reuniones CICS | Práctica integradora en R (I) |
+| 5 | Miércoles 25 marzo | 11:10–12:20 | Sala Reuniones CICS | Práctica integradora en R (II) |
+
+# 6. Detalle de contenidos por sesión
+
+## Sesión 1 — Pruebas de Hipótesis
+
+*Lunes 23 marzo, 11:10–12:20 — Sala Reuniones CICS*
+
+**Objetivos específicos:** formular hipótesis nula y alternativa en contextos de ciencias sociales; ejecutar e interpretar pruebas de hipótesis para medias y proporciones; comprender el concepto de valor p, errores Tipo I y Tipo II, y potencia estadística.
+
+**Contenidos detallados:**
+
+- **Lógica de las pruebas de hipótesis.** H0 y H1: formulación correcta; tests unilaterales vs. bilaterales; estadístico de prueba: concepto y construcción; región de rechazo y nivel de significancia (α); valor p: definición, cálculo e interpretación correcta.
+- **Errores de decisión.** Error Tipo I (falso positivo, probabilidad α); Error Tipo II (falso negativo, probabilidad β); potencia del test (1−β) y factores que la afectan; trade-off entre α y β.
+- **Test t para una media.** Formulación H0: μ = μ0 vs. H1: μ ≠ μ0; estadístico t a partir de la media muestral y el error estándar; distribución t de Student con n−1 grados de libertad; equivalencia entre decisión por valor p y por intervalo de confianza.
+- **Test t para diferencia de medias.** Muestras independientes (varianzas iguales vs. desiguales, Welch); muestras pareadas; significancia estadística vs. significancia sustantiva.
+- **Tests para proporciones.** Test Z para una proporción y para diferencia de proporciones; relación con intervalos de confianza.
+- **Test chi-cuadrado de independencia.** Tablas de contingencia: frecuencias observadas vs. esperadas; estadístico χ²; asociación entre variables categóricas en datos sociales.
+
+**Actividad práctica en R:** `t.test()` para una media y diferencia de medias; `prop.test()`; `chisq.test()` sobre tablas de contingencia; simulación de la distribución del estadístico t bajo H0 con `replicate()`; comparación de indicadores socioeconómicos entre grupos.
+
+## Sesión 2 — Regresión Lineal Simple
+
+*Lunes 23 marzo, 14:30–15:40 — Sala Reuniones CICS*
+
+**Objetivos específicos:** distinguir entre correlación y causalidad en el contexto de ciencias sociales; formular y estimar un modelo de regresión lineal simple por MCO; interpretar coeficientes, errores estándar y medidas de bondad de ajuste.
+
+**Contenidos detallados:**
+
+- **Correlación vs. causalidad.** Coeficiente de correlación de Pearson; por qué correlación no implica causalidad: confusoras, causalidad inversa; correlaciones espurias clásicas; el papel de la teoría en la formulación de modelos causales.
+- **El modelo de regresión lineal simple.** Formulación Y = β0 + β1X + ε; supuestos básicos: linealidad, exogeneidad, homocedasticidad; interpretación gráfica de la recta de regresión.
+- **Mínimos Cuadrados Ordinarios.** Principio de minimizar la suma de residuos al cuadrado; derivación intuitiva y geométrica (proyección ortogonal); fórmulas de los estimadores: β̂1 = Cov(X,Y)/Var(X), β̂0 = ȳ − β̂1x̄; teorema de Gauss-Markov (BLUE).
+- **Interpretación de resultados.** Intercepto y pendiente; errores estándar de los coeficientes; R² y sus limitaciones; R² ajustado; error estándar de la regresión.
+
+**Actividad práctica en R:** estimación con `lm()` y lectura detallada de `summary()`; scatter plot con recta de regresión (`ggplot2` + `geom_smooth(method='lm')`); cálculo manual de β̂0 y β̂1 para verificar `lm()`; relación entre ingreso y años de escolaridad.
+
+## Sesión 3 — Regresión Lineal Múltiple
+
+*Martes 24 marzo, 14:30–15:40 — Sala Reuniones CICS*
+
+**Objetivos específicos:** extender el modelo simple al caso multivariado y entender la lógica del control estadístico; incorporar variables categóricas mediante dummies e interpretar interacciones; evaluar la significancia individual y conjunta de los coeficientes.
+
+**Contenidos detallados:**
+
+- **Motivación.** Por qué controlar por otras variables: sesgo por variable omitida; formulación Y = β0 + β1X1 + β2X2 + ... + ε; interpretación ceteris paribus; correlación parcial vs. bivariada.
+- **Variables categóricas (dummies).** Codificación dummy; categoría de referencia y su elección; `relevel()` y `factor(..., levels=...)`; variables con más de 2 categorías: k−1 dummies, trampa de la variable dummy.
+- **Términos de interacción.** El efecto de X1 depende del valor de X2; formulación con β3(X1×X2); efecto marginal condicional; interacción continua×dummy vs. continua×continua; cuándo incluir interacciones.
+- **Tests de significancia.** Test t individual; test F global; test F parcial para subconjuntos de variables; significancia estadística vs. sustantiva.
+
+**Actividad práctica en R:** modelo múltiple con variables continuas y categóricas; `factor()`, `relevel()` y `contrasts()`; interacciones con `lm(y ~ x1 * x2)`; comparación de modelos con `anova()` y AIC/BIC; modelo de ingresos controlando por educación, edad, género y región.
+
+## Sesión 4 — Práctica Integradora en R (I)
+
+*Miércoles 25 marzo, 09:50–11:00 — Sala Reuniones CICS*
+
+**Objetivos específicos:** aplicar de forma autónoma los procedimientos de pruebas de hipótesis y regresión lineal simple usando R/RStudio; resolver ejercicios integradores que combinen inferencia y modelamiento con datos reales; consolidar el manejo de R para análisis econométricos.
+
+**Contenidos detallados:**
+
+- **Repaso de pruebas de hipótesis en R.** `t.test()`, `prop.test()`, `chisq.test()`; interpretación de valor p, intervalos de confianza y decisión.
+- **Repaso de regresión lineal simple en R.** `lm()` y lectura de `summary()`; visualización de la recta con ggplot2; interpretación de coeficientes, R² y errores estándar.
+- **Ejercicio integrador.** Análisis de un dataset social: exploración, tests de hipótesis y ajuste de modelo lineal simple; resolución de problemas en grupo y discusión de resultados.
+
+**Actividad práctica en R:** carga y exploración de un dataset social con tidyverse y ggplot2; ejecución de pruebas de hipótesis; estimación e interpretación de modelos de regresión lineal simple; discusión grupal.
+
+## Sesión 5 — Práctica Integradora en R (II)
+
+*Miércoles 25 marzo, 11:10–12:20 — Sala Reuniones CICS*
+
+**Objetivos específicos:** aplicar de forma autónoma los procedimientos de regresión lineal múltiple usando R/RStudio; resolver un ejercicio integrador que combine todos los contenidos del módulo; consolidar el manejo integral de R para análisis cuantitativos.
+
+**Contenidos detallados:**
+
+- **Repaso de regresión múltiple en R.** Modelos con variables continuas y categóricas; manejo de dummies con `factor()` y `relevel()`; interacciones; comparación de modelos con `anova()` y AIC/BIC.
+- **Ejercicio integrador completo.** Análisis econométrico completo de un dataset social: desde la exploración hasta la regresión múltiple; pruebas de hipótesis, regresión simple y múltiple; interpretación de coeficientes parciales y tests de significancia (t y F); discusión de resultados y limitaciones.
+- **Cierre del módulo.** Resumen de conceptos clave; conexión con los cursos metodológicos del programa doctoral; recursos para seguir aprendiendo.
+
+**Actividad práctica en R:** modelos de regresión múltiple con variables continuas, categóricas e interacciones; comparación de especificaciones con `anova()`, AIC y BIC; ejercicio final integrativo; discusión grupal.
+
+# 7. Requisitos previos y software
+
+Además de los paquetes instalados para el módulo de Estadística, se requiere instalar los siguientes paquetes adicionales:
+
+- **lmtest** (tests de hipótesis y diagnóstico)
+- **sandwich** (errores estándar robustos)
+- **car** (VIF, tests de linealidad, diagnósticos avanzados)
+- **stargazer** (tablas de regresión con formato académico)
+- **modelsummary** (tablas modernas y flexibles de resultados)
+- **margins** (efectos marginales para modelos logit/probit)
+
+Se asume que los estudiantes completaron el módulo de Nivelación en Estadística o poseen conocimientos equivalentes en estadística descriptiva, probabilidad e inferencia básica.
+
+# 8. Bibliografía recomendada
+
+**Textos principales**
+
+- Wooldridge, J. M. (2019). *Introductory Econometrics: A Modern Approach* (7th ed.). Cengage Learning.
+- Hanck, C., Arnold, M., Gerber, A. & Schmelzer, M. (2024). *Introduction to Econometrics with R*. [Disponible en econometrics-with-r.org]
+
+**Textos complementarios**
+
+- Stock, J. & Watson, M. (2019). *Introduction to Econometrics* (4th ed.). Pearson.
+- Angrist, J. & Pischke, J.-S. (2014). *Mastering 'Metrics: The Path from Cause to Effect*. Princeton University Press.
+- Cunningham, S. (2021). *Causal Inference: The Mixtape*. Yale University Press. [Disponible en mixtape.scunning.com]
+- Wickham, H. & Grolemund, G. (2017). *R for Data Science*. O'Reilly. [Disponible en r4ds.had.co.nz]
