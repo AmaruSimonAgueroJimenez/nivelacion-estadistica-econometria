@@ -210,13 +210,15 @@ tidy(m1, conf.int = TRUE) %>% filter(term == "educ") %>%
 ## -----------------------------------------------------------------------------
 #| label: tabla-modelos
 #| echo: false
-modelsummary(list("(1) Salario" = m1, "(2) Salario" = m2),
+m3 <- lm(wage ~ educ + exper + tenure + female, data = wage1)
+modelsummary(list("(1) Salario" = m1, "(2) Salario" = m2, "(3) Salario" = m3),
              output = "markdown", fmt = 3,
              stars = c("+" = 0.1, "*" = 0.05, "**" = 0.01, "***" = 0.001),
              estimate = "{estimate}{stars}",
              coef_rename = c(educ = "Educación (años)", exper = "Experiencia (años)",
-                             tenure = "Antigüedad (años)", "(Intercept)" = "Constante"),
-             gof_map = c("nobs", "r.squared"))
+                             tenure = "Antigüedad (años)", female = "Mujer (dummy)",
+                             "(Intercept)" = "Constante"),
+             gof_map = c("nobs", "r.squared", "adj.r.squared"))
 
 
 ## -----------------------------------------------------------------------------
